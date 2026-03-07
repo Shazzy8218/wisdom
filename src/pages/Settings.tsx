@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Brain, Trash2, Eye, RotateCcw } from "lucide-react";
+import { Brain, Trash2, Eye, RotateCcw, Wifi, Loader2, CheckCircle, XCircle } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { streamChat, generateLesson, generateGameQuestion } from "@/lib/ai-stream";
 
 interface MemoryToggle {
   id: string;
