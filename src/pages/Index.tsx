@@ -103,12 +103,14 @@ export default function Index() {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.15 }}
-        className="mx-5 mb-8"
+        className="mx-5 mb-8 relative"
       >
         <div className="editorial-divider mb-4" />
         <p className="section-label mb-3">Daily Wisdom</p>
         <p className="text-[15px] italic leading-relaxed text-muted-foreground">"{quote}"</p>
         <div className="editorial-divider mt-4" />
+        {/* Hidden owl easter egg */}
+        <HiddenOwl locationId="home-quote" className="absolute -right-1 bottom-2" size={16} />
       </motion.div>
 
       {/* Section 3: Scoreboard */}
