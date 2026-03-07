@@ -1,7 +1,8 @@
 import { useState, useCallback } from "react";
 import { useParams, useSearchParams, Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Bot, Sparkles, CheckCircle2, ChevronRight, Loader2, BookOpen, Copy, ArrowRight, Share2, Brain, AlertTriangle, Zap, Quote, RotateCcw } from "lucide-react";
+import { ArrowLeft, CheckCircle2, ChevronRight, Loader2, BookOpen, Copy, ArrowRight, Share2, Brain, AlertTriangle, Zap, Quote, RotateCcw } from "lucide-react";
+import OwlIcon from "@/components/OwlIcon";
 import { getCategoryTrack, type StarterLesson } from "@/lib/categories";
 import { generateLesson } from "@/lib/ai-stream";
 import { completeModuleLesson, isLessonCompleted, getModuleLessonKey } from "@/lib/progress";
