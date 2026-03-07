@@ -1,19 +1,37 @@
 import { motion } from "framer-motion";
-import { Sparkles, TrendingUp, TrendingDown, Gift } from "lucide-react";
+import { TrendingUp, TrendingDown, Gift } from "lucide-react";
 import StatBlock from "@/components/StatBlock";
-
-const HISTORY = [
-  { type: "earn", label: "Completed: 3-Part Prompt Formula", tokens: 10, date: "Today" },
-  { type: "earn", label: "Daily Mission Complete", tokens: 25, date: "Today" },
-  { type: "earn", label: "7-Day Streak Bonus", tokens: 50, date: "Yesterday" },
-  { type: "spend", label: "Unlocked: AI for Money Track", tokens: -75, date: "2 days ago" },
-  { type: "earn", label: "Hallucination Hunter: Level 2", tokens: 20, date: "3 days ago" },
-  { type: "earn", label: "Completed: Constraint Prompting", tokens: 15, date: "3 days ago" },
-  { type: "earn", label: "Weekly Feed Quest", tokens: 100, date: "Last week" },
-  { type: "spend", label: "Unlocked: Boss Challenge", tokens: -50, date: "Last week" },
-];
+import { useProgress } from "@/hooks/useProgress";
+import { getOwlState } from "@/lib/owl-hunt";
 
 export default function WisdomWallet() {
+  const { progress } = useProgress();
+  const owlState = getOwlState();
+
+  // Build transaction history from actual progress data
+  const history: { type: string; label: string; tokens: number; date: string }[] = [];
+
+  if (progress.completedLessons.length > 0) {
+    progress.completedLessons.slice(-5).forEach((id, i) => {
+      history.push({ type: "earn", label: `Completed lesson: ${id.split(":").slice(0, 2).join(" ")}`, tokens: 10, date: i === 0 ? "Today" : `${i + 1} days ago` });
+    });
+  }
+
+  if (owlState.claimedCount > 0) {
+    history.push({ type: "earn", label: `Owl Hunt: ${owlState.claimedCount}/3 found today`, tokens: owlState.claimedCount * 3, date: "Today" });
+  }
+
+  if (progress.streak > 0) {
+    history.push({ type: "earn", label: `${progress.streak}-day streak active`, tokens: 0, date: "Ongoing" });
+  }
+
+  if (history.length === 0) {
+    history.push({ type: "earn", label: "Start completing lessons to earn tokens!", tokens: 0, date: "—" });
+  }
+
+  const nextMilestone = progress.tokens < 50 ? 50 : progress.tokens < 100 ? 100 : progress.tokens < 200 ? 200 : 500;
+  const milestoneProgress = Math.min(100, (progress.tokens / nextMilestone) * 100);
+
   return (
     <div className="min-h-screen pb-24">
       <div className="px-5 pt-14 pb-6">
@@ -22,8 +40,8 @@ export default function WisdomWallet() {
       </div>
 
       <div className="grid grid-cols-2 gap-3 px-5 mb-6">
-        <StatBlock label="Balance" value={142} icon="✦" accent delay={0.1} />
-        <StatBlock label="Earned Total" value={367} icon="📈" delay={0.15} />
+        <StatBlock label="Balance" value={progress.tokens} icon="✦" accent delay={0.1} />
+        <StatBlock label="XP Earned" value={progress.xp} icon="⚡" delay={0.15} />
       </div>
 
       {/* Milestone */}
@@ -34,21 +52,34 @@ export default function WisdomWallet() {
             <Gift className="h-5 w-5 text-accent-gold" />
             <span className="section-label text-accent-gold">Next Milestone</span>
           </div>
-          <p className="text-body text-foreground font-medium">Reach 200 tokens to unlock Business Power Bundle</p>
+          <p className="text-body text-foreground font-medium">Reach {nextMilestone} tokens</p>
           <div className="mt-3 h-1.5 w-full rounded-full bg-secondary overflow-hidden">
-            <motion.div className="h-full rounded-full bg-accent-gold" initial={{ width: 0 }} animate={{ width: "71%" }} transition={{ duration: 1, delay: 0.4 }} />
+            <motion.div className="h-full rounded-full bg-accent-gold" initial={{ width: 0 }} animate={{ width: `${milestoneProgress}%` }} transition={{ duration: 1, delay: 0.4 }} />
           </div>
-          <p className="text-micro text-muted-foreground mt-2">142 / 200 tokens</p>
+          <p className="text-micro text-muted-foreground mt-2">{progress.tokens} / {nextMilestone} tokens</p>
         </motion.div>
+      </div>
+
+      <div className="editorial-divider mx-5 mb-6" />
+
+      {/* Owl Hunt Status */}
+      <div className="px-5 mb-6">
+        <div className="glass-card p-4 flex items-center gap-3">
+          <span className="text-lg">🦉</span>
+          <div className="flex-1">
+            <p className="text-caption font-medium text-foreground">Daily Owl Hunt</p>
+            <p className="text-micro text-muted-foreground">{owlState.claimedCount}/3 found today · +{owlState.claimedCount * 3} tokens</p>
+          </div>
+        </div>
       </div>
 
       <div className="editorial-divider mx-5 mb-6" />
 
       {/* History */}
       <div className="px-5">
-        <h2 className="section-label mb-4">Transaction History</h2>
+        <h2 className="section-label mb-4">Activity Log</h2>
         <div className="space-y-2">
-          {HISTORY.map((item, i) => (
+          {history.map((item, i) => (
             <motion.div key={i} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.3 + i * 0.03 }}
               className="glass-card p-4 flex items-center gap-3">
@@ -61,9 +92,11 @@ export default function WisdomWallet() {
                 <p className="text-caption text-foreground truncate">{item.label}</p>
                 <p className="text-micro text-muted-foreground">{item.date}</p>
               </div>
-              <span className={`font-display text-body font-bold ${item.tokens > 0 ? "text-accent-green" : "text-primary"}`}>
-                {item.tokens > 0 ? "+" : ""}{item.tokens}
-              </span>
+              {item.tokens > 0 && (
+                <span className={`font-display text-body font-bold ${item.tokens > 0 ? "text-accent-green" : "text-primary"}`}>
+                  +{item.tokens}
+                </span>
+              )}
             </motion.div>
           ))}
         </div>
