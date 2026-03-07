@@ -1,12 +1,20 @@
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { MASTERY_CATEGORIES, getLevelLabel } from "@/lib/data";
+import { useProgress } from "@/hooks/useProgress";
 import ProgressRing from "./ProgressRing";
 
 export default function MasteryRadar() {
-  const globalScore = Math.round(
-    MASTERY_CATEGORIES.reduce((sum, c) => sum + c.score, 0) / MASTERY_CATEGORIES.length
-  );
+  const { progress } = useProgress();
+
+  const categoriesWithScores = MASTERY_CATEGORIES.map(c => ({
+    ...c,
+    score: progress.masteryScores[c.id] || 0,
+  }));
+
+  const globalScore = categoriesWithScores.length > 0
+    ? Math.round(categoriesWithScores.reduce((sum, c) => sum + c.score, 0) / categoriesWithScores.length)
+    : 0;
 
   return (
     <div className="space-y-8">
@@ -24,7 +32,7 @@ export default function MasteryRadar() {
 
       {/* Grid */}
       <div className="grid grid-cols-2 gap-3">
-        {MASTERY_CATEGORIES.map((cat, i) => {
+        {categoriesWithScores.map((cat, i) => {
           const isActive = cat.score > 0;
           return (
             <motion.div key={cat.id} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }}

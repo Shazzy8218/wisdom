@@ -5,6 +5,7 @@ import { ArrowLeft, BookOpen, Zap, MessageSquare, Gamepad2, Sparkles, ChevronRig
 import { getCategoryTrack } from "@/lib/categories";
 import { MASTERY_CATEGORIES, getLevelLabel } from "@/lib/data";
 import { generateLesson } from "@/lib/ai-stream";
+import { useProgress } from "@/hooks/useProgress";
 import ProgressRing from "@/components/ProgressRing";
 import { toast } from "@/hooks/use-toast";
 
@@ -14,6 +15,8 @@ export default function CategoryHub() {
   const { categoryId } = useParams<{ categoryId: string }>();
   const track = getCategoryTrack(categoryId || "");
   const mastery = MASTERY_CATEGORIES.find(c => c.id === categoryId);
+  const { progress } = useProgress();
+  const masteryScore = progress.masteryScores[categoryId || ""] || 0;
   const [tab, setTab] = useState<Tab>("lessons");
   const [selectedLevel, setSelectedLevel] = useState("Beginner");
   const [generating, setGenerating] = useState(false);
@@ -66,14 +69,12 @@ export default function CategoryHub() {
           <p className="section-label text-primary">{track.icon} Category Hub</p>
           <h1 className="font-display text-h3 text-foreground">{track.name}</h1>
         </div>
-        {mastery && <ProgressRing value={mastery.score} size={48} strokeWidth={3} />}
+        <ProgressRing value={masteryScore} size={48} strokeWidth={3} />
       </div>
 
       <div className="px-5 mb-4">
         <p className="text-body text-muted-foreground">{track.description}</p>
-        {mastery && (
-          <p className="text-caption text-primary mt-1 font-semibold">{getLevelLabel(mastery.score)} · {mastery.score}% mastery</p>
-        )}
+        <p className="text-caption text-primary mt-1 font-semibold">{getLevelLabel(masteryScore)} · {masteryScore}% mastery</p>
       </div>
 
       {/* Level Selector */}
