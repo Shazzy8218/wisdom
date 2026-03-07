@@ -79,9 +79,10 @@ export default function Library() {
 
   return (
     <div className="min-h-screen pb-24">
-      <div className="px-5 pt-14 pb-6">
+      <div className="px-5 pt-14 pb-6 relative">
         <p className="section-label text-primary mb-2">Library</p>
         <h1 className="font-display text-h1 text-foreground">Your<br/>Collection</h1>
+        <HiddenOwl locationId="library-top" className="absolute right-6 top-16" size={16} />
       </div>
 
       {/* Search */}
