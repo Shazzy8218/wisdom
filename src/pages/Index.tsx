@@ -8,6 +8,9 @@ import { useProgress } from "@/hooks/useProgress";
 import { CATEGORY_TRACKS } from "@/lib/categories";
 import { useLiveClock } from "@/hooks/useLiveClock";
 import { useUserProfile } from "@/hooks/useUserProfile";
+import owlLogo from "@/assets/owl-logo.png";
+import HiddenOwl from "@/components/HiddenOwl";
+import OwlHuntTracker from "@/components/OwlHuntTracker";
 
 const QUICK_ACTIONS = [
   { icon: MessageSquare, label: "Chat", to: "/chat" },
