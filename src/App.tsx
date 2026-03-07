@@ -26,6 +26,8 @@ import OutputDuel from "./pages/OutputDuel";
 import TimeTrial from "./pages/TimeTrial";
 import PromptSurgery from "./pages/PromptSurgery";
 import CategoryHub from "./pages/CategoryHub";
+import ModuleView from "./pages/ModuleView";
+import LessonView from "./pages/LessonView";
 
 const queryClient = new QueryClient();
 
