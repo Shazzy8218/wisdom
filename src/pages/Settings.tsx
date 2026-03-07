@@ -155,8 +155,16 @@ export default function Settings() {
       lastActiveDate: new Date().toISOString().split("T")[0],
       lessonsToday: 0, quizScores: {}, savedNotes: {}, generatedLessonIds: [],
     }));
+    // Clear all related localStorage items
+    localStorage.removeItem("wisdom-feed-seen");
+    localStorage.removeItem("wisdom-unlocked-items");
+    localStorage.removeItem("wisdom-favorites");
+    localStorage.removeItem("wisdom-seen-quotes-v2");
+    localStorage.removeItem("wisdom-owl-hunt");
+    localStorage.removeItem("wisdom-ai-chat-history");
+    localStorage.removeItem("wisdom-snapshots");
     setShowResetConfirm(false);
-    toast({ title: "Progress reset to zero" });
+    toast({ title: "Progress reset to zero", description: "All learning data, tokens, and history cleared." });
   };
 
   const handleDeleteAccount = () => {
