@@ -124,6 +124,8 @@ export default function Settings() {
 
   const handleSignOut = async () => {
     try {
+      const { resetCloudLoadedFlag } = await import("@/hooks/useProgress");
+      resetCloudLoadedFlag();
       await signOut();
       navigate("/auth", { replace: true });
     } catch {
@@ -147,15 +149,12 @@ export default function Settings() {
     toast({ title: "Data exported" });
   };
 
-  const handleResetProgress = () => {
+  const handleResetProgress = async () => {
     if (!showResetConfirm) { setShowResetConfirm(true); return; }
-    update(() => ({
-      completedLessons: [], completedModules: [], masteryScores: {},
-      tokens: 0, xp: 0, streak: 0,
-      lastActiveDate: new Date().toISOString().split("T")[0],
-      lessonsToday: 0, quizScores: {}, savedNotes: {}, generatedLessonIds: [],
-    }));
-    // Clear all related localStorage items
+    const { resetCloudProgress } = await import("@/lib/progress");
+    const fresh = await resetCloudProgress();
+    update(() => fresh);
+    // Clear legacy localStorage keys
     localStorage.removeItem("wisdom-feed-seen");
     localStorage.removeItem("wisdom-unlocked-items");
     localStorage.removeItem("wisdom-favorites");
@@ -163,6 +162,7 @@ export default function Settings() {
     localStorage.removeItem("wisdom-owl-hunt");
     localStorage.removeItem("wisdom-ai-chat-history");
     localStorage.removeItem("wisdom-snapshots");
+    localStorage.removeItem("wisdom-ai-progress");
     setShowResetConfirm(false);
     toast({ title: "Progress reset to zero", description: "All learning data, tokens, and history cleared." });
   };
