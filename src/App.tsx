@@ -55,6 +55,8 @@ const App = () => {
               <Route path="/games/time-trial" element={<TimeTrial />} />
               <Route path="/games/prompt-surgery" element={<PromptSurgery />} />
               <Route path="/category/:categoryId" element={<CategoryHub />} />
+              <Route path="/category/:categoryId/module" element={<ModuleView />} />
+              <Route path="/category/:categoryId/lesson" element={<LessonView />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/wallet" element={<WisdomWallet />} />
               <Route path="/store" element={<TokenStore />} />
