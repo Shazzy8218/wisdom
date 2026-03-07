@@ -6,6 +6,7 @@ import { STARTER_FEED, getSeenCardIds, markCardSeen, type FeedCard as FeedCardT 
 import { useProgress } from "@/hooks/useProgress";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { generateFeedCard } from "@/lib/ai-stream";
+import HiddenOwl from "@/components/HiddenOwl";
 
 type FeedMode = "normal" | "nerd" | "quick";
 

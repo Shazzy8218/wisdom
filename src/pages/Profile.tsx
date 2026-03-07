@@ -4,6 +4,7 @@ import { User, Wallet, BookOpen, Settings, Crown, ChevronRight, Sparkles, Wrench
 import { Link } from "react-router-dom";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { useProgress } from "@/hooks/useProgress";
+import HiddenOwl from "@/components/HiddenOwl";
 
 export default function Profile() {
   const { profile, updateProfile } = useUserProfile();

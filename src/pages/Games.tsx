@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { ChevronRight, Trophy } from "lucide-react";
 import { Link } from "react-router-dom";
 import { GAMES } from "@/lib/data";
+import HiddenOwl from "@/components/HiddenOwl";
 
 const GAME_ROUTES: Record<string, string> = {
   "hallucination-hunter": "/games/hallucination-hunter",

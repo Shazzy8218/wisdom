@@ -1,4 +1,5 @@
 import MasteryRadar from "@/components/MasteryRadar";
+import HiddenOwl from "@/components/HiddenOwl";
 
 export default function MasteryChart() {
   return (

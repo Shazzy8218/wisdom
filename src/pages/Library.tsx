@@ -5,6 +5,7 @@ import { toast } from "@/hooks/use-toast";
 import { loadChatThreads } from "@/lib/chat-history";
 import { loadSnapshots, type WisdomSnapshot } from "@/lib/wisdom-snapshots";
 import { useNavigate } from "react-router-dom";
+import HiddenOwl from "@/components/HiddenOwl";
 
 type Tab = "prompts" | "snapshots" | "threads" | "quotes";
 

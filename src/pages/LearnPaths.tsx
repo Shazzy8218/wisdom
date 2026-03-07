@@ -3,6 +3,7 @@ import { ChevronRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import { MASTERY_CATEGORIES, getLevelLabel } from "@/lib/data";
 import ProgressRing from "@/components/ProgressRing";
+import HiddenOwl from "@/components/HiddenOwl";
 
 export default function LearnPaths() {
   return (
