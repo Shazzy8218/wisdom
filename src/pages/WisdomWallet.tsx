@@ -17,8 +17,8 @@ export default function WisdomWallet() {
     });
   }
 
-  if (owlState.claimedCount > 0) {
-    history.push({ type: "earn", label: `Owl Hunt: ${owlState.claimedCount}/3 found today`, tokens: owlState.claimedCount * 3, date: "Today" });
+  if (owlState.claimed > 0) {
+    history.push({ type: "earn", label: `Owl Hunt: ${owlState.claimed}/3 found today`, tokens: owlState.claimed * 3, date: "Today" });
   }
 
   if (progress.streak > 0) {
