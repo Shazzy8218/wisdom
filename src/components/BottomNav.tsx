@@ -1,4 +1,4 @@
-import { Home, BookOpen, Route, MessageCircle, BarChart3, Gamepad2, BookMarked, User } from "lucide-react";
+import { Home, BookOpen, Route, MessageCircle, BookMarked, User } from "lucide-react";
 import { NavLink } from "react-router-dom";
 
 const NAV_ITEMS = [
@@ -6,8 +6,6 @@ const NAV_ITEMS = [
   { to: "/feed", icon: BookOpen, label: "Feed" },
   { to: "/paths", icon: Route, label: "Paths" },
   { to: "/chat", icon: MessageCircle, label: "Chat" },
-  { to: "/mastery", icon: BarChart3, label: "Mastery" },
-  { to: "/games", icon: Gamepad2, label: "Games" },
   { to: "/library", icon: BookMarked, label: "Library" },
   { to: "/profile", icon: User, label: "Profile" },
 ];

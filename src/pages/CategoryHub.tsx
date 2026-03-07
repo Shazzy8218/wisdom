@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, BookOpen, Zap, MessageSquare, Gamepad2, Sparkles, ChevronRight, Loader2 } from "lucide-react";
 import { getCategoryTrack } from "@/lib/categories";
@@ -18,6 +18,7 @@ export default function CategoryHub() {
   const [selectedLevel, setSelectedLevel] = useState("Beginner");
   const [generating, setGenerating] = useState(false);
   const [generatedLesson, setGeneratedLesson] = useState<any>(null);
+  const navigate = useNavigate();
 
   if (!track) {
     return (
@@ -50,11 +51,15 @@ export default function CategoryHub() {
     { id: "scenario", label: "Scenario", icon: Gamepad2 },
   ];
 
+  const handleStarterLessonClick = (lessonIdx: number) => {
+    navigate(`/category/${categoryId}/lesson?level=${selectedLevel}&mod=0&lesson=${lessonIdx}`);
+  };
+
   return (
     <div className="min-h-screen pb-24">
       {/* Header */}
       <div className="px-5 pt-14 pb-4 flex items-center gap-3">
-        <Link to="/mastery" className="flex h-9 w-9 items-center justify-center rounded-xl bg-surface-2 hover:bg-surface-hover transition-colors">
+        <Link to="/paths" className="flex h-9 w-9 items-center justify-center rounded-xl bg-surface-2 hover:bg-surface-hover transition-colors">
           <ArrowLeft className="h-4 w-4 text-foreground" />
         </Link>
         <div className="flex-1">
@@ -122,7 +127,7 @@ export default function CategoryHub() {
 
               <div className="editorial-divider mb-4" />
 
-              {/* Starter Lessons */}
+              {/* Starter Lessons - now clickable */}
               <p className="section-label mb-3">Starter Lessons</p>
               <div className="space-y-1.5 mb-4">
                 {track.starterLessons
@@ -131,9 +136,14 @@ export default function CategoryHub() {
                   .map((lesson, i) => (
                     <motion.div key={i} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: i * 0.03 }}
-                      className="glass-card p-4 cursor-pointer hover:border-primary/20 transition-all">
-                      <p className="text-body font-semibold text-foreground">{lesson.title}</p>
-                      <p className="text-caption text-muted-foreground mt-0.5">{lesson.hook}</p>
+                      onClick={() => handleStarterLessonClick(i)}
+                      className="glass-card p-4 cursor-pointer hover:border-primary/20 transition-all flex items-center gap-3">
+                      <BookOpen className="h-4 w-4 text-primary shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-body font-semibold text-foreground">{lesson.title}</p>
+                        <p className="text-caption text-muted-foreground mt-0.5">{lesson.hook}</p>
+                      </div>
+                      <ChevronRight className="h-4 w-4 text-text-tertiary shrink-0" />
                     </motion.div>
                   ))}
               </div>
