@@ -1,6 +1,11 @@
 import { motion } from "framer-motion";
 import { ChevronRight, Trophy } from "lucide-react";
+import { Link } from "react-router-dom";
 import { GAMES } from "@/lib/data";
+
+const GAME_ROUTES: Record<string, string> = {
+  "hallucination-hunter": "/games/hallucination-hunter",
+};
 
 export default function Games() {
   return (
@@ -10,37 +15,30 @@ export default function Games() {
         <h1 className="font-display text-h1 text-foreground">Learn by<br/>Playing</h1>
         <p className="text-body text-muted-foreground mt-2">Interactive challenges to sharpen your AI skills.</p>
       </div>
-
       <div className="editorial-divider mx-5 mb-6" />
-
       <div className="px-5 space-y-3">
-        {GAMES.map((game, i) => (
-          <motion.div
-            key={game.id}
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.05, duration: 0.35 }}
-            className="glass-card p-5 flex items-center gap-4 cursor-pointer hover:border-primary/20 transition-all duration-200"
-          >
-            <span className="text-2xl">{game.icon}</span>
-            <div className="flex-1 min-w-0">
-              <h3 className="text-body font-semibold text-foreground">{game.name}</h3>
-              <p className="text-caption text-muted-foreground mt-0.5">{game.description}</p>
-              <div className="flex items-center gap-2 mt-2">
-                <span className="section-label">Level {game.level}</span>
-                {game.bestScore > 0 && (
-                  <>
-                    <span className="text-text-tertiary">·</span>
-                    <span className="flex items-center gap-1 text-micro text-accent-gold font-semibold">
-                      <Trophy className="h-3 w-3" /> {game.bestScore}
-                    </span>
-                  </>
-                )}
-              </div>
-            </div>
-            <ChevronRight className="h-4 w-4 text-text-tertiary" />
-          </motion.div>
-        ))}
+        {GAMES.map((game, i) => {
+          const route = GAME_ROUTES[game.id];
+          const Wrapper = route ? Link : "div";
+          return (
+            <motion.div key={game.id} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.05, duration: 0.35 }}>
+              <Wrapper {...(route ? { to: route } : {})}
+                className="glass-card p-5 flex items-center gap-4 cursor-pointer hover:border-primary/20 transition-all duration-200 block">
+                <span className="text-2xl">{game.icon}</span>
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-body font-semibold text-foreground">{game.name}</h3>
+                  <p className="text-caption text-muted-foreground mt-0.5">{game.description}</p>
+                  <div className="flex items-center gap-2 mt-2">
+                    <span className="section-label">Level {game.level}</span>
+                    {!route && <span className="text-micro text-text-tertiary italic">Coming soon</span>}
+                  </div>
+                </div>
+                <ChevronRight className="h-4 w-4 text-text-tertiary" />
+              </Wrapper>
+            </motion.div>
+          );
+        })}
       </div>
     </div>
   );
