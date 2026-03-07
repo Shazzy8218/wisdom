@@ -19,12 +19,8 @@ export default function Games() {
       <div className="px-5 space-y-3">
         {GAMES.map((game, i) => {
           const route = GAME_ROUTES[game.id];
-          const Wrapper = route ? Link : "div";
-          return (
-            <motion.div key={game.id} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.05, duration: 0.35 }}>
-              <Wrapper {...(route ? { to: route } : {})}
-                className="glass-card p-5 flex items-center gap-4 cursor-pointer hover:border-primary/20 transition-all duration-200 block">
+          const content = (
+            <>
                 <span className="text-2xl">{game.icon}</span>
                 <div className="flex-1 min-w-0">
                   <h3 className="text-body font-semibold text-foreground">{game.name}</h3>
