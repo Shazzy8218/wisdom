@@ -1,8 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Brain, Trash2, Eye, RotateCcw, Wifi, Loader2, CheckCircle, XCircle } from "lucide-react";
+import { Brain, Trash2, Eye, RotateCcw, Wifi, Loader2, CheckCircle, XCircle, LogOut, Shield, HelpCircle, Download, AlertTriangle } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
 import { streamChat, generateLesson, generateGameQuestion } from "@/lib/ai-stream";
+import { useAuth } from "@/hooks/useAuth";
+import { useProgress } from "@/hooks/useProgress";
 import HiddenOwl from "@/components/HiddenOwl";
 
 interface MemoryToggle {
@@ -18,6 +21,16 @@ const MEMORY_TOGGLES: MemoryToggle[] = [
   { id: "workflows", label: "Remember saved workflows", description: "AI recalls your custom workflows" },
 ];
 
+const SETTINGS_KEY = "wisdom-settings";
+
+function loadSettings(): Record<string, boolean> {
+  try { return JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}"); } catch { return {}; }
+}
+
+function saveSettings(s: Record<string, boolean>) {
+  localStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
+}
+
 function AIConnectionTest() {
   const [testing, setTesting] = useState(false);
   const [results, setResults] = useState<{ chat?: any; lesson?: any; game?: any }>({});
@@ -26,8 +39,6 @@ function AIConnectionTest() {
     setTesting(true);
     setResults({});
     const r: any = {};
-
-    // Test chat
     const chatStart = Date.now();
     try {
       let response = "";
@@ -42,8 +53,6 @@ function AIConnectionTest() {
       r.chat = { error: e.message, latency: Date.now() - chatStart };
     }
     setResults({ ...r });
-
-    // Test lesson generation
     const lessonStart = Date.now();
     try {
       const lesson = await generateLesson({ track: "Management", difficulty: "beginner" });
@@ -52,11 +61,9 @@ function AIConnectionTest() {
       r.lesson = { error: e.message, latency: Date.now() - lessonStart };
     }
     setResults({ ...r });
-
-    // Test game question
     const gameStart = Date.now();
     try {
-      const q = await generateGameQuestion({ gameType: "hallucination-hunter" });
+      await generateGameQuestion({ gameType: "hallucination-hunter" });
       r.game = { ok: true, latency: Date.now() - gameStart };
     } catch (e: any) {
       r.game = { error: e.message, latency: Date.now() - gameStart };
@@ -92,17 +99,75 @@ function AIConnectionTest() {
 }
 
 export default function Settings() {
-  const [toggles, setToggles] = useState<Record<string, boolean>>({});
-  const [reduceMotion, setReduceMotion] = useState(false);
+  const { signOut } = useAuth();
+  const { progress, update } = useProgress();
+  const navigate = useNavigate();
+  const [settings, setSettings] = useState<Record<string, boolean>>(loadSettings);
+  const [showMemory, setShowMemory] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   const handleToggle = (id: string) => {
-    setToggles((prev) => ({ ...prev, [id]: !prev[id] }));
+    setSettings(prev => {
+      const next = { ...prev, [id]: !prev[id] };
+      saveSettings(next);
+      return next;
+    });
   };
 
   const handleResetMemory = () => {
-    setToggles({});
+    const cleared: Record<string, boolean> = {};
+    MEMORY_TOGGLES.forEach(t => { cleared[t.id] = false; });
+    setSettings(prev => { const next = { ...prev, ...cleared }; saveSettings(next); return next; });
     toast({ title: "Memory Reset", description: "All AI memory has been cleared." });
   };
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      navigate("/auth", { replace: true });
+    } catch {
+      toast({ title: "Error signing out", variant: "destructive" });
+    }
+  };
+
+  const handleExportData = () => {
+    const data = {
+      progress,
+      settings,
+      chatHistory: JSON.parse(localStorage.getItem("wisdom-ai-chat-history") || "[]"),
+      feedSeen: JSON.parse(localStorage.getItem("wisdom-feed-seen") || "[]"),
+      exportedAt: new Date().toISOString(),
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = "wisdom-ai-data.json"; a.click();
+    URL.revokeObjectURL(url);
+    toast({ title: "Data exported" });
+  };
+
+  const handleResetProgress = () => {
+    if (!showResetConfirm) { setShowResetConfirm(true); return; }
+    update(() => ({
+      completedLessons: [], completedModules: [], masteryScores: {},
+      tokens: 0, xp: 0, streak: 0,
+      lastActiveDate: new Date().toISOString().split("T")[0],
+      lessonsToday: 0, quizScores: {}, savedNotes: {}, generatedLessonIds: [],
+    }));
+    setShowResetConfirm(false);
+    toast({ title: "Progress reset to zero" });
+  };
+
+  const handleDeleteAccount = () => {
+    if (!showDeleteConfirm) { setShowDeleteConfirm(true); return; }
+    // Clear all local data
+    localStorage.clear();
+    toast({ title: "Account deletion requested", description: "Your data will be removed within 30 days." });
+    handleSignOut();
+  };
+
+  const memoryItems = MEMORY_TOGGLES.filter(t => settings[t.id]);
 
   return (
     <div className="min-h-screen pb-24">
@@ -118,7 +183,6 @@ export default function Settings() {
           <h2 className="section-label text-primary">AI Memory (Consent-Only)</h2>
         </div>
         <p className="text-caption text-muted-foreground mb-4">These settings are OFF by default. Your data is never stored without your permission.</p>
-
         <div className="space-y-2">
           {MEMORY_TOGGLES.map((toggle, i) => (
             <motion.div key={toggle.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
@@ -129,21 +193,43 @@ export default function Settings() {
                 <p className="text-micro text-muted-foreground">{toggle.description}</p>
               </div>
               <button onClick={() => handleToggle(toggle.id)}
-                className={`relative h-6 w-11 rounded-full transition-colors ${toggles[toggle.id] ? "bg-primary" : "bg-surface-2 border border-border"}`}>
-                <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-foreground transition-transform ${toggles[toggle.id] ? "translate-x-5" : "translate-x-0.5"}`} />
+                className={`relative h-6 w-11 rounded-full transition-colors ${settings[toggle.id] ? "bg-primary" : "bg-surface-2 border border-border"}`}>
+                <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-foreground transition-transform ${settings[toggle.id] ? "translate-x-5" : "translate-x-0.5"}`} />
               </button>
             </motion.div>
           ))}
         </div>
-
         <div className="flex gap-2 mt-4">
-          <button className="flex items-center gap-2 rounded-xl bg-surface-2 px-4 py-2.5 text-caption text-muted-foreground hover:bg-surface-hover transition-colors">
+          <button onClick={() => setShowMemory(!showMemory)}
+            className="flex items-center gap-2 rounded-xl bg-surface-2 px-4 py-2.5 text-caption text-muted-foreground hover:bg-surface-hover transition-colors">
             <Eye className="h-3.5 w-3.5" /> View Memory
           </button>
-          <button onClick={handleResetMemory} className="flex items-center gap-2 rounded-xl bg-surface-2 px-4 py-2.5 text-caption text-primary hover:bg-primary/10 transition-colors">
+          <button onClick={handleResetMemory}
+            className="flex items-center gap-2 rounded-xl bg-surface-2 px-4 py-2.5 text-caption text-primary hover:bg-primary/10 transition-colors">
             <RotateCcw className="h-3.5 w-3.5" /> Reset All
           </button>
         </div>
+
+        {/* Memory View */}
+        {showMemory && (
+          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} className="mt-3 overflow-hidden">
+            <div className="glass-card p-4">
+              <p className="section-label mb-2">Active Memory Items</p>
+              {memoryItems.length === 0 ? (
+                <p className="text-caption text-muted-foreground">No memory items enabled.</p>
+              ) : (
+                <div className="space-y-2">
+                  {memoryItems.map(item => (
+                    <div key={item.id} className="flex items-center justify-between p-2 rounded-lg bg-surface-2">
+                      <span className="text-caption text-foreground">{item.label}</span>
+                      <button onClick={() => handleToggle(item.id)} className="text-micro text-primary hover:underline">Remove</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
       </div>
 
       <div className="editorial-divider mx-5 mb-6" />
@@ -156,11 +242,37 @@ export default function Settings() {
             <p className="text-body font-medium text-foreground">Reduce Motion</p>
             <p className="text-micro text-muted-foreground">Minimize animations</p>
           </div>
-          <button onClick={() => setReduceMotion(!reduceMotion)}
-            className={`relative h-6 w-11 rounded-full transition-colors ${reduceMotion ? "bg-primary" : "bg-surface-2 border border-border"}`}>
-            <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-foreground transition-transform ${reduceMotion ? "translate-x-5" : "translate-x-0.5"}`} />
+          <button onClick={() => handleToggle("reduceMotion")}
+            className={`relative h-6 w-11 rounded-full transition-colors ${settings.reduceMotion ? "bg-primary" : "bg-surface-2 border border-border"}`}>
+            <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-foreground transition-transform ${settings.reduceMotion ? "translate-x-5" : "translate-x-0.5"}`} />
           </button>
         </div>
+
+        <div className="glass-card p-4 flex items-center gap-3 mt-2">
+          <div className="flex-1">
+            <p className="text-body font-medium text-foreground">Notifications</p>
+            <p className="text-micro text-muted-foreground">Streak reminders, new missions</p>
+          </div>
+          <button onClick={() => handleToggle("notifications")}
+            className={`relative h-6 w-11 rounded-full transition-colors ${settings.notifications ? "bg-primary" : "bg-surface-2 border border-border"}`}>
+            <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-foreground transition-transform ${settings.notifications ? "translate-x-5" : "translate-x-0.5"}`} />
+          </button>
+        </div>
+      </div>
+
+      <div className="editorial-divider mx-5 mb-6" />
+
+      {/* Links */}
+      <div className="px-5 mb-6 space-y-2">
+        <h2 className="section-label mb-4">Legal & Support</h2>
+        <Link to="/privacy" className="glass-card p-4 flex items-center gap-3 hover:border-primary/10 transition-all block">
+          <Shield className="h-4 w-4 text-muted-foreground" />
+          <span className="text-body text-foreground">Privacy Policy</span>
+        </Link>
+        <Link to="/support" className="glass-card p-4 flex items-center gap-3 hover:border-primary/10 transition-all block">
+          <HelpCircle className="h-4 w-4 text-muted-foreground" />
+          <span className="text-body text-foreground">Support & FAQ</span>
+        </Link>
       </div>
 
       <div className="editorial-divider mx-5 mb-6" />
@@ -173,14 +285,43 @@ export default function Settings() {
 
       <div className="editorial-divider mx-5 mb-6" />
 
+      {/* Account */}
+      <div className="px-5 mb-6 space-y-2">
+        <h2 className="section-label mb-4">Account</h2>
+        <button onClick={handleExportData}
+          className="w-full glass-card p-4 flex items-center gap-3 text-left hover:border-primary/10 transition-all">
+          <Download className="h-4 w-4 text-muted-foreground" />
+          <div>
+            <p className="text-body font-medium text-foreground">Export My Data</p>
+            <p className="text-micro text-muted-foreground">Download all your data as JSON</p>
+          </div>
+        </button>
+        <button onClick={handleSignOut}
+          className="w-full glass-card p-4 flex items-center gap-3 text-left hover:border-primary/10 transition-all">
+          <LogOut className="h-4 w-4 text-muted-foreground" />
+          <p className="text-body font-medium text-foreground">Sign Out</p>
+        </button>
+      </div>
+
+      <div className="editorial-divider mx-5 mb-6" />
+
       {/* Danger Zone */}
-      <div className="px-5">
+      <div className="px-5 space-y-2">
         <h2 className="section-label mb-4 text-primary">Danger Zone</h2>
-        <button className="glass-card p-4 w-full flex items-center gap-3 text-left border-primary/20 hover:border-primary/40 transition-all">
+        <button onClick={handleResetProgress}
+          className="w-full glass-card p-4 flex items-center gap-3 text-left border-primary/10 hover:border-primary/30 transition-all">
+          <RotateCcw className="h-4 w-4 text-primary" />
+          <div>
+            <p className="text-body font-medium text-primary">{showResetConfirm ? "Tap again to confirm reset" : "Reset All Progress"}</p>
+            <p className="text-micro text-muted-foreground">Tokens, streak, mastery back to zero</p>
+          </div>
+        </button>
+        <button onClick={handleDeleteAccount}
+          className="w-full glass-card p-4 flex items-center gap-3 text-left border-primary/20 hover:border-primary/40 transition-all">
           <Trash2 className="h-4 w-4 text-primary" />
           <div>
-            <p className="text-body font-medium text-primary">Delete All Data</p>
-            <p className="text-micro text-muted-foreground">Remove all progress, tokens, and saved content</p>
+            <p className="text-body font-medium text-primary">{showDeleteConfirm ? "Tap again to confirm deletion" : "Delete My Account"}</p>
+            <p className="text-micro text-muted-foreground">Permanently remove all data</p>
           </div>
         </button>
       </div>

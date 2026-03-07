@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import BottomNav from "@/components/BottomNav";
 import SplashQuote from "@/components/SplashQuote";
+import ScrollToTop from "@/components/ScrollToTop";
 import { useAuth } from "@/hooks/useAuth";
 import Index from "./pages/Index";
 import LearnFeed from "./pages/LearnFeed";
@@ -30,6 +31,9 @@ import CategoryHub from "./pages/CategoryHub";
 import ModuleView from "./pages/ModuleView";
 import LessonView from "./pages/LessonView";
 import Auth from "./pages/Auth";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import Support from "./pages/Support";
+import LiveFireDrills from "./pages/LiveFireDrills";
 
 const queryClient = new QueryClient();
 
@@ -37,7 +41,6 @@ function AppRoutes() {
   const { user, loading } = useAuth();
   const [splashDismissed, setSplashDismissed] = useState(false);
 
-  // Still checking auth state
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -46,24 +49,24 @@ function AppRoutes() {
     );
   }
 
-  // Show splash before anything else
   if (!splashDismissed) {
     return <SplashQuote onDismiss={() => setSplashDismissed(true)} />;
   }
 
-  // Not logged in → auth page
   if (!user) {
     return (
       <Routes>
         <Route path="/auth" element={<Auth />} />
+        <Route path="/privacy" element={<PrivacyPolicy />} />
+        <Route path="/support" element={<Support />} />
         <Route path="*" element={<Navigate to="/auth" replace />} />
       </Routes>
     );
   }
 
-  // Logged in → full app
   return (
     <>
+      <ScrollToTop />
       <div className="mx-auto max-w-lg">
         <Routes>
           <Route path="/" element={<Index />} />
@@ -87,6 +90,9 @@ function AppRoutes() {
           <Route path="/library" element={<Library />} />
           <Route path="/playground" element={<Playground />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/support" element={<Support />} />
+          <Route path="/drills" element={<LiveFireDrills />} />
           <Route path="/auth" element={<Navigate to="/" replace />} />
           <Route path="*" element={<NotFound />} />
         </Routes>

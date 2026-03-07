@@ -21,9 +21,9 @@ function getDefaultProgress(): UserProgress {
     completedLessons: [],
     completedModules: [],
     masteryScores: {},
-    tokens: 142,
-    xp: 550,
-    streak: 7,
+    tokens: 0,
+    xp: 0,
+    streak: 0,
     lastActiveDate: new Date().toISOString().split("T")[0],
     lessonsToday: 0,
     quizScores: {},
@@ -54,8 +54,6 @@ export function completeLesson(lessonId: string, categoryId: string, tokensEarne
     p.tokens += tokensEarned;
     p.xp += xpEarned;
     p.lessonsToday += 1;
-    
-    // Update mastery for category
     updateMastery(p, categoryId);
   }
   // Update streak
@@ -86,12 +84,6 @@ export function markGeneratedLessonSeen(lessonId: string): void {
 }
 
 function updateMastery(p: UserProgress, categoryId: string): void {
-  // Calculate mastery based on completed lessons in this category
-  // Simple: each completed lesson adds roughly 2% mastery, capped at 100
-  const categoryLessons = p.completedLessons.filter(id => {
-    // Check if lesson belongs to this category (for generated lessons, we store category in ID)
-    return id.startsWith(`${categoryId}:`) || p.completedLessons.includes(id);
-  });
   const current = p.masteryScores[categoryId] || 0;
   p.masteryScores[categoryId] = Math.min(100, current + 2);
 }

@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
-import { BookOpen, BarChart3, Gamepad2, BookMarked, ChevronRight, Zap } from "lucide-react";
+import { BookOpen, BarChart3, Gamepad2, BookMarked, ChevronRight, Zap, Flame } from "lucide-react";
 import { Link } from "react-router-dom";
 import StatBlock from "@/components/StatBlock";
 import { QUOTES, MICRO_LESSONS } from "@/lib/data";
@@ -19,7 +19,7 @@ function getUnseenQuote(): string {
   const seen = JSON.parse(localStorage.getItem(QUOTE_SEEN_KEY) || "[]") as number[];
   const available = QUOTES.map((_, i) => i).filter((i) => !seen.includes(i));
   if (available.length === 0) {
-    // All seen — never repeat, return last one but don't re-show
+    // All seen — return last one but cycle
     return QUOTES[seen[seen.length - 1] ?? 0];
   }
   const pick = available[Math.floor(Math.random() * available.length)];
@@ -143,7 +143,7 @@ export default function Index() {
       </motion.div>
 
       {/* Section 5: Today's Mission */}
-      <div className="px-5 mb-8">
+      <div className="px-5 mb-4">
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
           <Link
             to="/feed"
@@ -159,7 +159,23 @@ export default function Index() {
         </motion.div>
       </div>
 
-      {/* Section 6: Focus Sprint */}
+      {/* Section 6: Live Fire Drills */}
+      <div className="px-5 mb-4">
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.43 }}>
+          <Link
+            to="/drills"
+            className="flex items-center gap-3 py-3 px-4 rounded-2xl bg-primary/5 border border-primary/20 hover:border-primary/40 transition-all group"
+          >
+            <Flame className="h-4 w-4 text-primary" />
+            <span className="text-[13px] text-foreground font-medium group-hover:text-primary transition-colors">
+              Live Fire Drills — Sandbox Mode
+            </span>
+            <ChevronRight className="h-3.5 w-3.5 text-muted-foreground ml-auto" />
+          </Link>
+        </motion.div>
+      </div>
+
+      {/* Section 7: Focus Sprint */}
       <div className="px-5 mb-6">
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.45 }}>
           <Link
