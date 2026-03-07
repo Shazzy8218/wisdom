@@ -124,6 +124,8 @@ export default function Settings() {
 
   const handleSignOut = async () => {
     try {
+      const { resetCloudLoadedFlag } = await import("@/hooks/useProgress");
+      resetCloudLoadedFlag();
       await signOut();
       navigate("/auth", { replace: true });
     } catch {
