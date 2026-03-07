@@ -9,6 +9,7 @@ import {
   loadChatThreads, createThread, addMessageToThread, renameThread, deleteThread, getThread,
   type ChatThread,
 } from "@/lib/chat-history";
+import { getUserProfileForAI } from "@/hooks/useUserProfile";
 
 const TUTOR_MODES = [
   { id: "default", label: "Teach Me", icon: "📖" },
