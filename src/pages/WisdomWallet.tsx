@@ -68,7 +68,7 @@ export default function WisdomWallet() {
           <span className="text-lg">🦉</span>
           <div className="flex-1">
             <p className="text-caption font-medium text-foreground">Daily Owl Hunt</p>
-            <p className="text-micro text-muted-foreground">{owlState.claimedCount}/3 found today · +{owlState.claimedCount * 3} tokens</p>
+            <p className="text-micro text-muted-foreground">{owlState.claimed}/3 found today · +{owlState.claimed * 3} tokens</p>
           </div>
         </div>
       </div>
