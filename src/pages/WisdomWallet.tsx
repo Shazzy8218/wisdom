@@ -6,7 +6,7 @@ import { getOwlHuntStatus } from "@/lib/owl-hunt";
 
 export default function WisdomWallet() {
   const { progress } = useProgress();
-  const owlState = getOwlState();
+  const owlState = getOwlHuntStatus();
 
   // Build transaction history from actual progress data
   const history: { type: string; label: string; tokens: number; date: string }[] = [];
