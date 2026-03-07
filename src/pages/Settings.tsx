@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Brain, Trash2, Eye, RotateCcw } from "lucide-react";
+import { Brain, Trash2, Eye, RotateCcw, Wifi, Loader2, CheckCircle, XCircle } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { streamChat, generateLesson, generateGameQuestion } from "@/lib/ai-stream";
 
 interface MemoryToggle {
   id: string;
@@ -15,6 +16,79 @@ const MEMORY_TOGGLES: MemoryToggle[] = [
   { id: "industry", label: "Remember industry/tools", description: "AI references your industry context" },
   { id: "workflows", label: "Remember saved workflows", description: "AI recalls your custom workflows" },
 ];
+
+function AIConnectionTest() {
+  const [testing, setTesting] = useState(false);
+  const [results, setResults] = useState<{ chat?: any; lesson?: any; game?: any }>({});
+
+  const runTest = async () => {
+    setTesting(true);
+    setResults({});
+    const r: any = {};
+
+    // Test chat
+    const chatStart = Date.now();
+    try {
+      let response = "";
+      await streamChat({
+        messages: [{ role: "user", content: "Reply with exactly the word CONNECTED." }],
+        onDelta: (t) => { response += t; },
+        onDone: () => {},
+        onError: (e) => { r.chat = { error: e }; },
+      });
+      r.chat = { ok: true, response: response.trim(), latency: Date.now() - chatStart };
+    } catch (e: any) {
+      r.chat = { error: e.message, latency: Date.now() - chatStart };
+    }
+    setResults({ ...r });
+
+    // Test lesson generation
+    const lessonStart = Date.now();
+    try {
+      const lesson = await generateLesson({ track: "Management", difficulty: "beginner" });
+      r.lesson = { ok: true, title: lesson.title, latency: Date.now() - lessonStart };
+    } catch (e: any) {
+      r.lesson = { error: e.message, latency: Date.now() - lessonStart };
+    }
+    setResults({ ...r });
+
+    // Test game question
+    const gameStart = Date.now();
+    try {
+      const q = await generateGameQuestion({ gameType: "hallucination-hunter" });
+      r.game = { ok: true, latency: Date.now() - gameStart };
+    } catch (e: any) {
+      r.game = { error: e.message, latency: Date.now() - gameStart };
+    }
+    setResults({ ...r });
+    setTesting(false);
+  };
+
+  const StatusIcon = ({ ok }: { ok?: boolean }) =>
+    ok === undefined ? null : ok ? <CheckCircle className="h-4 w-4 text-green-500" /> : <XCircle className="h-4 w-4 text-primary" />;
+
+  return (
+    <div className="space-y-3">
+      <button onClick={runTest} disabled={testing}
+        className="glass-card p-4 w-full flex items-center justify-center gap-2 text-body font-medium text-foreground hover:border-primary/30 transition-all disabled:opacity-50">
+        {testing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wifi className="h-4 w-4" />}
+        {testing ? "Testing..." : "Test AI Connection"}
+      </button>
+      {Object.entries(results).map(([key, val]: [string, any]) => (
+        <div key={key} className="glass-card p-3 text-micro">
+          <div className="flex items-center gap-2 mb-1">
+            <StatusIcon ok={val?.ok} />
+            <span className="font-medium text-foreground capitalize">{key}</span>
+            {val?.latency && <span className="text-muted-foreground ml-auto">{val.latency}ms</span>}
+          </div>
+          {val?.response && <p className="text-muted-foreground truncate">Response: {val.response}</p>}
+          {val?.title && <p className="text-muted-foreground truncate">Lesson: {val.title}</p>}
+          {val?.error && <p className="text-primary truncate">Error: {val.error}</p>}
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export default function Settings() {
   const [toggles, setToggles] = useState<Record<string, boolean>>({});
@@ -86,6 +160,14 @@ export default function Settings() {
             <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-foreground transition-transform ${reduceMotion ? "translate-x-5" : "translate-x-0.5"}`} />
           </button>
         </div>
+      </div>
+
+      <div className="editorial-divider mx-5 mb-6" />
+
+      {/* AI Connection Test */}
+      <div className="px-5 mb-6">
+        <h2 className="section-label mb-4">AI Connection Test</h2>
+        <AIConnectionTest />
       </div>
 
       <div className="editorial-divider mx-5 mb-6" />
