@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { TrendingUp, TrendingDown, Gift } from "lucide-react";
 import StatBlock from "@/components/StatBlock";
 import { useProgress } from "@/hooks/useProgress";
-import { getOwlState } from "@/lib/owl-hunt";
+import { getOwlHuntStatus } from "@/lib/owl-hunt";
 
 export default function WisdomWallet() {
   const { progress } = useProgress();
