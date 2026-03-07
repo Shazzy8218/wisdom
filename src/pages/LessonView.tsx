@@ -284,7 +284,7 @@ export default function LessonView() {
             className="w-full glass-card p-4 flex items-center gap-3 hover:border-primary/20 transition-all border-primary/10">
             <OwlIcon size={20} />
             <div className="flex-1 text-left">
-              <span className="text-body font-medium text-foreground block">Ask AI about this lesson</span>
+              <span className="text-body font-medium text-foreground block">Ask Owl about this lesson</span>
               <span className="text-micro text-muted-foreground">Auto-sends context for beginner explanation</span>
             </div>
             <ChevronRight className="h-4 w-4 text-muted-foreground" />
