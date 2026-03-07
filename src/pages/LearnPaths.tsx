@@ -3,14 +3,16 @@ import { ChevronRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import { MASTERY_CATEGORIES, getLevelLabel } from "@/lib/data";
 import ProgressRing from "@/components/ProgressRing";
+import HiddenOwl from "@/components/HiddenOwl";
 
 export default function LearnPaths() {
   return (
     <div className="min-h-screen pb-24">
-      <div className="px-5 pt-14 pb-6">
+      <div className="px-5 pt-14 pb-6 relative">
         <p className="section-label text-primary mb-2">Course Catalog</p>
         <h1 className="font-display text-h1 text-foreground">22 Category<br/>Tracks</h1>
         <p className="text-body text-muted-foreground mt-2">Full curriculum across every field. Tap to explore.</p>
+        <HiddenOwl locationId="paths-header" className="absolute right-6 bottom-4" size={16} />
       </div>
 
       <div className="editorial-divider mx-5 mb-6" />

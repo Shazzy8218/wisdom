@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { Brain, Trash2, Eye, RotateCcw, Wifi, Loader2, CheckCircle, XCircle } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { streamChat, generateLesson, generateGameQuestion } from "@/lib/ai-stream";
+import HiddenOwl from "@/components/HiddenOwl";
 
 interface MemoryToggle {
   id: string;
@@ -182,6 +183,9 @@ export default function Settings() {
             <p className="text-micro text-muted-foreground">Remove all progress, tokens, and saved content</p>
           </div>
         </button>
+      </div>
+      <div className="px-5 pb-8 flex justify-end">
+        <HiddenOwl locationId="settings-footer" size={14} />
       </div>
     </div>
   );

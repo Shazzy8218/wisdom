@@ -8,6 +8,9 @@ import { useProgress } from "@/hooks/useProgress";
 import { CATEGORY_TRACKS } from "@/lib/categories";
 import { useLiveClock } from "@/hooks/useLiveClock";
 import { useUserProfile } from "@/hooks/useUserProfile";
+import owlLogo from "@/assets/owl-logo.png";
+import HiddenOwl from "@/components/HiddenOwl";
+import OwlHuntTracker from "@/components/OwlHuntTracker";
 
 const QUICK_ACTIONS = [
   { icon: MessageSquare, label: "Chat", to: "/chat" },
@@ -54,8 +57,14 @@ export default function Index() {
       {/* Section 1: Header */}
       <div className="px-5 pt-14 pb-6">
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center justify-between mb-1">
-          <p className="section-label text-primary">Wisdom AI</p>
-          <span className="text-[11px] font-mono text-muted-foreground">{clock.timeStr}</span>
+          <div className="flex items-center gap-2">
+            <img src={owlLogo} alt="Wisdom AI" className="w-6 h-6 drop-shadow-[0_0_8px_hsl(45,90%,55%,0.3)]" />
+            <p className="section-label text-accent-gold">Wisdom AI</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <OwlHuntTracker />
+            <span className="text-[11px] font-mono text-muted-foreground">{clock.timeStr}</span>
+          </div>
         </motion.div>
 
         <motion.h1
@@ -94,12 +103,14 @@ export default function Index() {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.15 }}
-        className="mx-5 mb-8"
+        className="mx-5 mb-8 relative"
       >
         <div className="editorial-divider mb-4" />
         <p className="section-label mb-3">Daily Wisdom</p>
         <p className="text-[15px] italic leading-relaxed text-muted-foreground">"{quote}"</p>
         <div className="editorial-divider mt-4" />
+        {/* Hidden owl easter egg */}
+        <HiddenOwl locationId="home-quote" className="absolute -right-1 bottom-2" size={16} />
       </motion.div>
 
       {/* Section 3: Scoreboard */}

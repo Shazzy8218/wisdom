@@ -6,6 +6,7 @@ import { STARTER_FEED, getSeenCardIds, markCardSeen, type FeedCard as FeedCardT 
 import { useProgress } from "@/hooks/useProgress";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { generateFeedCard } from "@/lib/ai-stream";
+import HiddenOwl from "@/components/HiddenOwl";
 
 type FeedMode = "normal" | "nerd" | "quick";
 
@@ -89,6 +90,7 @@ export default function LearnFeed() {
             <p className="text-caption text-muted-foreground mt-0.5">Swipe. Learn. Level up.</p>
           </div>
           <div className="flex items-center gap-3">
+            <HiddenOwl locationId="feed-header" size={16} />
             <span className="flex items-center gap-1 text-caption text-muted-foreground">
               <Sparkles className="h-3 w-3 text-accent-gold" /> {progress.tokens}
             </span>
