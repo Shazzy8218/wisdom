@@ -3,9 +3,10 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import BottomNav from "@/components/BottomNav";
 import SplashQuote from "@/components/SplashQuote";
+import { useAuth } from "@/hooks/useAuth";
 import Index from "./pages/Index";
 import LearnFeed from "./pages/LearnFeed";
 import LearnPaths from "./pages/LearnPaths";
@@ -28,46 +29,81 @@ import PromptSurgery from "./pages/PromptSurgery";
 import CategoryHub from "./pages/CategoryHub";
 import ModuleView from "./pages/ModuleView";
 import LessonView from "./pages/LessonView";
+import Auth from "./pages/Auth";
 
 const queryClient = new QueryClient();
 
-const App = () => {
-  const [showSplash, setShowSplash] = useState(true);
+function AppRoutes() {
+  const { user, loading } = useAuth();
+  const [splashDismissed, setSplashDismissed] = useState(false);
 
+  // Still checking auth state
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="w-6 h-6 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+      </div>
+    );
+  }
+
+  // Show splash before anything else
+  if (!splashDismissed) {
+    return <SplashQuote onDismiss={() => setSplashDismissed(true)} />;
+  }
+
+  // Not logged in → auth page
+  if (!user) {
+    return (
+      <Routes>
+        <Route path="/auth" element={<Auth />} />
+        <Route path="*" element={<Navigate to="/auth" replace />} />
+      </Routes>
+    );
+  }
+
+  // Logged in → full app
+  return (
+    <>
+      <div className="mx-auto max-w-lg">
+        <Routes>
+          <Route path="/" element={<Index />} />
+          <Route path="/feed" element={<LearnFeed />} />
+          <Route path="/paths" element={<LearnPaths />} />
+          <Route path="/chat" element={<Chat />} />
+          <Route path="/mastery" element={<MasteryChart />} />
+          <Route path="/games" element={<Games />} />
+          <Route path="/games/hallucination-hunter" element={<HallucinationHunter />} />
+          <Route path="/games/prompt-puzzle" element={<PromptPuzzle />} />
+          <Route path="/games/output-duel" element={<OutputDuel />} />
+          <Route path="/games/time-trial" element={<TimeTrial />} />
+          <Route path="/games/prompt-surgery" element={<PromptSurgery />} />
+          <Route path="/category/:categoryId" element={<CategoryHub />} />
+          <Route path="/category/:categoryId/module" element={<ModuleView />} />
+          <Route path="/category/:categoryId/lesson" element={<LessonView />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/wallet" element={<WisdomWallet />} />
+          <Route path="/store" element={<TokenStore />} />
+          <Route path="/upgrade" element={<Upgrade />} />
+          <Route path="/library" element={<Library />} />
+          <Route path="/playground" element={<Playground />} />
+          <Route path="/settings" element={<Settings />} />
+          <Route path="/auth" element={<Navigate to="/" replace />} />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+        <BottomNav />
+      </div>
+    </>
+  );
+}
+
+const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        {showSplash && <SplashQuote onDismiss={() => setShowSplash(false)} />}
         <BrowserRouter>
-          <div className="mx-auto max-w-lg">
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/feed" element={<LearnFeed />} />
-              <Route path="/paths" element={<LearnPaths />} />
-              <Route path="/chat" element={<Chat />} />
-              <Route path="/mastery" element={<MasteryChart />} />
-              <Route path="/games" element={<Games />} />
-              <Route path="/games/hallucination-hunter" element={<HallucinationHunter />} />
-              <Route path="/games/prompt-puzzle" element={<PromptPuzzle />} />
-              <Route path="/games/output-duel" element={<OutputDuel />} />
-              <Route path="/games/time-trial" element={<TimeTrial />} />
-              <Route path="/games/prompt-surgery" element={<PromptSurgery />} />
-              <Route path="/category/:categoryId" element={<CategoryHub />} />
-              <Route path="/category/:categoryId/module" element={<ModuleView />} />
-              <Route path="/category/:categoryId/lesson" element={<LessonView />} />
-              <Route path="/profile" element={<Profile />} />
-              <Route path="/wallet" element={<WisdomWallet />} />
-              <Route path="/store" element={<TokenStore />} />
-              <Route path="/upgrade" element={<Upgrade />} />
-              <Route path="/library" element={<Library />} />
-              <Route path="/playground" element={<Playground />} />
-              <Route path="/settings" element={<Settings />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-            <BottomNav />
-          </div>
+          <AppRoutes />
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>
