@@ -1,0 +1,10 @@
+project_id = "lkzouzuvqwohkwtszmgl"
+
+[functions.chat]
+verify_jwt = false
+
+[functions.generate-lesson]
+verify_jwt = false
+
+[functions.generate-game-question]
+verify_jwt = false

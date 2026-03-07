@@ -14,6 +14,13 @@ import MasteryChart from "./pages/MasteryChart";
 import Games from "./pages/Games";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
+import WisdomWallet from "./pages/WisdomWallet";
+import TokenStore from "./pages/TokenStore";
+import Upgrade from "./pages/Upgrade";
+import Library from "./pages/Library";
+import Playground from "./pages/Playground";
+import Settings from "./pages/Settings";
+import HallucinationHunter from "./pages/HallucinationHunter";
 
 const queryClient = new QueryClient();
 
@@ -35,7 +42,14 @@ const App = () => {
               <Route path="/chat" element={<Chat />} />
               <Route path="/mastery" element={<MasteryChart />} />
               <Route path="/games" element={<Games />} />
+              <Route path="/games/hallucination-hunter" element={<HallucinationHunter />} />
               <Route path="/profile" element={<Profile />} />
+              <Route path="/wallet" element={<WisdomWallet />} />
+              <Route path="/store" element={<TokenStore />} />
+              <Route path="/upgrade" element={<Upgrade />} />
+              <Route path="/library" element={<Library />} />
+              <Route path="/playground" element={<Playground />} />
+              <Route path="/settings" element={<Settings />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
             <BottomNav />
