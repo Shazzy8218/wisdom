@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
-import { MessageSquare, Newspaper, BarChart3, Gamepad2, BookOpen, ChevronRight, Zap } from "lucide-react";
+import { BookOpen, BarChart3, Gamepad2, BookMarked, ChevronRight, Zap } from "lucide-react";
 import { Link } from "react-router-dom";
 import StatBlock from "@/components/StatBlock";
 import { QUOTES, MICRO_LESSONS } from "@/lib/data";
@@ -9,43 +9,44 @@ import { CATEGORY_TRACKS } from "@/lib/categories";
 import { useLiveClock } from "@/hooks/useLiveClock";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import owlLogo from "@/assets/owl-logo.png";
+import OwlIcon from "@/components/OwlIcon";
 import HiddenOwl from "@/components/HiddenOwl";
 import OwlHuntTracker from "@/components/OwlHuntTracker";
 
+const QUOTE_SEEN_KEY = "wisdom-seen-quotes-v2";
+
+function getUnseenQuote(): string {
+  const seen = JSON.parse(localStorage.getItem(QUOTE_SEEN_KEY) || "[]") as number[];
+  const available = QUOTES.map((_, i) => i).filter((i) => !seen.includes(i));
+  if (available.length === 0) {
+    // All seen — never repeat, return last one but don't re-show
+    return QUOTES[seen[seen.length - 1] ?? 0];
+  }
+  const pick = available[Math.floor(Math.random() * available.length)];
+  localStorage.setItem(QUOTE_SEEN_KEY, JSON.stringify([...seen, pick]));
+  return QUOTES[pick];
+}
+
 const QUICK_ACTIONS = [
-  { icon: MessageSquare, label: "Chat", to: "/chat" },
-  { icon: Newspaper, label: "Feed", to: "/feed" },
+  { icon: null, label: "Chat", to: "/chat", isOwl: true },
+  { icon: BookOpen, label: "Feed", to: "/feed" },
   { icon: BarChart3, label: "Mastery", to: "/mastery" },
   { icon: Gamepad2, label: "Games", to: "/games" },
-  { icon: BookOpen, label: "Library", to: "/library" },
+  { icon: BookMarked, label: "Library", to: "/library" },
 ];
 
 export default function Index() {
-  const [quote, setQuote] = useState("");
+  const [quote] = useState(() => getUnseenQuote());
   const { progress } = useProgress();
   const clock = useLiveClock();
   const { profile } = useUserProfile();
-
-  useEffect(() => {
-    const seen = JSON.parse(localStorage.getItem("wisdom-seen-quotes") || "[]") as number[];
-    const available = QUOTES.map((_, i) => i).filter((i) => !seen.includes(i));
-    if (available.length === 0) {
-      localStorage.setItem("wisdom-seen-quotes", "[]");
-      setQuote(QUOTES[0]);
-    } else {
-      const pick = available[Math.floor(Math.random() * available.length)];
-      setQuote(QUOTES[pick]);
-      localStorage.setItem("wisdom-seen-quotes", JSON.stringify([...seen, pick]));
-    }
-  }, []);
 
   const masteryAvg = useMemo(() => {
     const vals = Object.values(progress.masteryScores);
     return vals.length > 0 ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : 0;
   }, [progress.masteryScores]);
 
-  const todayXP = progress.lessonsToday * 25; // approximate XP earned today
-
+  const todayXP = progress.lessonsToday * 25;
   const nextLesson = MICRO_LESSONS[0];
 
   const displayGreeting = profile.displayName
@@ -85,7 +86,7 @@ export default function Index() {
           {clock.dateStr}
         </motion.p>
 
-        {/* Day progress — thin line */}
+        {/* Day progress */}
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.15 }} className="mt-4">
           <div className="h-[2px] w-full rounded-full bg-surface-2 overflow-hidden">
             <motion.div
@@ -109,7 +110,6 @@ export default function Index() {
         <p className="section-label mb-3">Daily Wisdom</p>
         <p className="text-[15px] italic leading-relaxed text-muted-foreground">"{quote}"</p>
         <div className="editorial-divider mt-4" />
-        {/* Hidden owl easter egg */}
         <HiddenOwl locationId="home-quote" className="absolute -right-1 bottom-2" size={16} />
       </motion.div>
 
@@ -128,10 +128,14 @@ export default function Index() {
         transition={{ delay: 0.35 }}
         className="flex justify-between px-8 mb-8"
       >
-        {QUICK_ACTIONS.map(({ icon: Icon, label, to }) => (
+        {QUICK_ACTIONS.map(({ icon: Icon, label, to, isOwl }) => (
           <Link key={to} to={to} className="flex flex-col items-center gap-1.5 group">
             <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-surface-2 border border-border group-hover:border-primary/30 transition-colors">
-              <Icon className="h-[18px] w-[18px] text-muted-foreground group-hover:text-primary transition-colors" />
+              {isOwl ? (
+                <OwlIcon size={18} />
+              ) : (
+                Icon && <Icon className="h-[18px] w-[18px] text-muted-foreground group-hover:text-primary transition-colors" />
+              )}
             </div>
             <span className="text-[10px] text-muted-foreground group-hover:text-foreground transition-colors">{label}</span>
           </Link>
@@ -155,7 +159,7 @@ export default function Index() {
         </motion.div>
       </div>
 
-      {/* Section 6: Focus Sprint (single utility) */}
+      {/* Section 6: Focus Sprint */}
       <div className="px-5 mb-6">
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.45 }}>
           <Link

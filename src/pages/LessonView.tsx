@@ -1,7 +1,8 @@
 import { useState, useCallback } from "react";
 import { useParams, useSearchParams, Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Bot, Sparkles, CheckCircle2, ChevronRight, Loader2, BookOpen, Copy, ArrowRight, Share2, Brain, AlertTriangle, Zap, Quote, RotateCcw } from "lucide-react";
+import { ArrowLeft, CheckCircle2, ChevronRight, Loader2, BookOpen, Copy, ArrowRight, Share2, Brain, AlertTriangle, Zap, Quote, RotateCcw } from "lucide-react";
+import OwlIcon from "@/components/OwlIcon";
 import { getCategoryTrack, type StarterLesson } from "@/lib/categories";
 import { generateLesson } from "@/lib/ai-stream";
 import { completeModuleLesson, isLessonCompleted, getModuleLessonKey } from "@/lib/progress";
@@ -261,7 +262,7 @@ export default function LessonView() {
         <div className="glass-card p-4 flex items-center justify-between mb-5">
           <div className="flex items-center gap-4">
             <span className="flex items-center gap-1.5 text-caption text-muted-foreground">
-              <Sparkles className="h-3.5 w-3.5 text-accent-gold" /> +{lesson.tokens || 10}
+              ✦ +{lesson.tokens || 10}
             </span>
             <span className="text-caption text-muted-foreground">+{lesson.xp || 50} XP</span>
           </div>
@@ -281,9 +282,9 @@ export default function LessonView() {
         <div className="space-y-2 mb-5">
           <button onClick={handleAskAI}
             className="w-full glass-card p-4 flex items-center gap-3 hover:border-primary/20 transition-all border-primary/10">
-            <Bot className="h-5 w-5 text-primary" />
+            <OwlIcon size={20} />
             <div className="flex-1 text-left">
-              <span className="text-body font-medium text-foreground block">Ask AI about this lesson</span>
+              <span className="text-body font-medium text-foreground block">Ask Owl about this lesson</span>
               <span className="text-micro text-muted-foreground">Auto-sends context for beginner explanation</span>
             </div>
             <ChevronRight className="h-4 w-4 text-muted-foreground" />

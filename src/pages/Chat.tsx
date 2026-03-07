@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, Sparkles, Bot, Square, RotateCcw, ChevronDown, Plus, History, Pencil, Trash2 } from "lucide-react";
+import { Send, Square, RotateCcw, ChevronDown, Plus, History, Pencil, Trash2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { streamChat, type Msg } from "@/lib/ai-stream";
 import { toast } from "@/hooks/use-toast";
@@ -10,6 +10,7 @@ import {
   type ChatThread,
 } from "@/lib/chat-history";
 import { getUserProfileForAI } from "@/hooks/useUserProfile";
+import OwlIcon from "@/components/OwlIcon";
 
 const TUTOR_MODES = [
   { id: "default", label: "Teach Me", icon: "📖" },
@@ -56,16 +57,13 @@ export default function Chat() {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages]);
 
-  // Auto-send lesson context when navigating from "Ask AI about this lesson"
   useEffect(() => {
     if (contextParam && autoSendParam === "true" && !autoSentRef.current) {
       autoSentRef.current = true;
       const decoded = decodeURIComponent(contextParam);
       setInput("");
-      // Create thread linked to lesson
       const thread = createThread("Lesson Q&A", lessonIdParam || undefined);
       setCurrentThreadId(thread.id);
-      // Auto-send
       setTimeout(() => {
         sendMessage(decoded, thread.id);
       }, 500);
@@ -80,7 +78,6 @@ export default function Chat() {
     setInput("");
     setIsStreaming(true);
 
-    // Persist
     let tid = threadId || currentThreadId;
     if (!tid) {
       const thread = createThread("New Chat");
@@ -195,7 +192,7 @@ export default function Chat() {
       <div className="px-5 pt-14 pb-3 border-b border-border">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10">
-            <Bot className="h-5 w-5 text-primary" />
+            <OwlIcon size={22} />
           </div>
           <div className="flex-1">
             <p className="section-label text-primary">AI Coach</p>
@@ -278,7 +275,7 @@ export default function Chat() {
               className={`flex gap-3 ${msg.role === "user" ? "justify-end" : ""}`}>
               {msg.role === "assistant" && (
                 <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-primary/10 mt-0.5">
-                  <Sparkles className="h-4 w-4 text-primary" />
+                  <OwlIcon size={18} />
                 </div>
               )}
               <div className={`max-w-[85%] rounded-2xl px-5 py-4 text-body leading-relaxed ${
@@ -299,7 +296,7 @@ export default function Chat() {
         {isStreaming && messages[messages.length - 1]?.role !== "assistant" && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex gap-3">
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-primary/10 mt-0.5">
-              <Sparkles className="h-4 w-4 text-primary" />
+              <OwlIcon size={18} />
             </div>
             <div className="bg-card border border-border rounded-2xl px-5 py-4">
               <div className="flex gap-1.5">

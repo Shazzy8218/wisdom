@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Bookmark, BookmarkCheck, Bot, Sparkles, Share2, Play, CheckCircle2, AlertTriangle, Zap, ChevronDown } from "lucide-react";
+import { Bookmark, BookmarkCheck, Share2, CheckCircle2, AlertTriangle, Zap, ChevronDown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import type { FeedCard as FeedCardType } from "@/lib/feed-cards";
 import { toggleSaveCard, getSavedCards } from "@/lib/feed-cards";
+import OwlIcon from "@/components/OwlIcon";
 
 interface Props {
   card: FeedCardType;
@@ -180,7 +181,7 @@ export default function FeedCard({ card, onComplete }: Props) {
 
         <div className="editorial-divider mx-5" />
 
-        {/* Visual section — the hero */}
+        {/* Visual section */}
         <div className="p-5">
           <VisualBlock card={card} />
         </div>
@@ -243,7 +244,7 @@ export default function FeedCard({ card, onComplete }: Props) {
         <div className="flex items-center justify-between p-4">
           <div className="flex items-center gap-3">
             <span className="flex items-center gap-1 text-caption text-muted-foreground">
-              <Sparkles className="h-3 w-3 text-accent-gold" /> +{card.tokens}
+              ✦ +{card.tokens}
             </span>
             <span className="text-caption text-text-tertiary">+{card.xp} XP</span>
             {completed && (
@@ -254,7 +255,7 @@ export default function FeedCard({ card, onComplete }: Props) {
           </div>
           <div className="flex items-center gap-1">
             <button onClick={handleAskAI} className="rounded-lg p-2 text-primary hover:bg-primary/10 transition-colors flex items-center gap-1">
-              <Bot className="h-4 w-4" /><span className="text-[10px] font-semibold">Ask AI</span>
+              <OwlIcon size={16} /><span className="text-[10px] font-semibold">Ask Owl</span>
             </button>
             <button onClick={handleSave} className="rounded-lg p-2 text-muted-foreground hover:text-foreground hover:bg-surface-hover transition-colors">
               {saved ? <BookmarkCheck className="h-4 w-4 text-primary" /> : <Bookmark className="h-4 w-4" />}
