@@ -5,6 +5,10 @@ import { GAMES } from "@/lib/data";
 
 const GAME_ROUTES: Record<string, string> = {
   "hallucination-hunter": "/games/hallucination-hunter",
+  "prompt-puzzle": "/games/prompt-puzzle",
+  "output-duel": "/games/output-duel",
+  "time-trial": "/games/time-trial",
+  "prompt-surgery": "/games/prompt-surgery",
 };
 
 export default function Games() {
@@ -28,6 +32,7 @@ export default function Games() {
                 <p className="text-caption text-muted-foreground mt-0.5">{game.description}</p>
                 <div className="flex items-center gap-2 mt-2">
                   <span className="section-label">Level {game.level}</span>
+                  {route && <span className="text-micro text-accent-green font-semibold">● Playable</span>}
                   {!route && <span className="text-micro text-text-tertiary italic">Coming soon</span>}
                 </div>
               </div>

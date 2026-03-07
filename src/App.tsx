@@ -21,6 +21,11 @@ import Library from "./pages/Library";
 import Playground from "./pages/Playground";
 import Settings from "./pages/Settings";
 import HallucinationHunter from "./pages/HallucinationHunter";
+import PromptPuzzle from "./pages/PromptPuzzle";
+import OutputDuel from "./pages/OutputDuel";
+import TimeTrial from "./pages/TimeTrial";
+import PromptSurgery from "./pages/PromptSurgery";
+import CategoryHub from "./pages/CategoryHub";
 
 const queryClient = new QueryClient();
 
@@ -43,6 +48,11 @@ const App = () => {
               <Route path="/mastery" element={<MasteryChart />} />
               <Route path="/games" element={<Games />} />
               <Route path="/games/hallucination-hunter" element={<HallucinationHunter />} />
+              <Route path="/games/prompt-puzzle" element={<PromptPuzzle />} />
+              <Route path="/games/output-duel" element={<OutputDuel />} />
+              <Route path="/games/time-trial" element={<TimeTrial />} />
+              <Route path="/games/prompt-surgery" element={<PromptSurgery />} />
+              <Route path="/category/:categoryId" element={<CategoryHub />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/wallet" element={<WisdomWallet />} />
               <Route path="/store" element={<TokenStore />} />
