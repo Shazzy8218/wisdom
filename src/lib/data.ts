@@ -128,10 +128,10 @@ export const MASTERY_CATEGORIES = [
 ];
 
 export const TRACKS = [
-  { id: "basics", name: "AI Basics", icon: "🧠", lessons: 12, completed: 3, color: "from-blue-500/20 to-blue-600/5" },
-  { id: "prompting", name: "Prompting & Communication", icon: "✍️", lessons: 15, completed: 5, color: "from-primary/20 to-primary/5" },
-  { id: "productivity", name: "Productivity & Business", icon: "⚡", lessons: 10, completed: 2, color: "from-amber-500/20 to-amber-600/5" },
-  { id: "creativity", name: "Creativity", icon: "🎨", lessons: 8, completed: 1, color: "from-purple-500/20 to-purple-600/5" },
+  { id: "basics", name: "AI Basics", icon: "🧠", lessons: 12, completed: 0, color: "from-blue-500/20 to-blue-600/5" },
+  { id: "prompting", name: "Prompting & Communication", icon: "✍️", lessons: 15, completed: 0, color: "from-primary/20 to-primary/5" },
+  { id: "productivity", name: "Productivity & Business", icon: "⚡", lessons: 10, completed: 0, color: "from-amber-500/20 to-amber-600/5" },
+  { id: "creativity", name: "Creativity", icon: "🎨", lessons: 8, completed: 0, color: "from-purple-500/20 to-purple-600/5" },
   { id: "daily-life", name: "AI for Daily Life", icon: "🏠", lessons: 14, completed: 0, color: "from-green-500/20 to-green-600/5" },
   { id: "money", name: "AI for Money", icon: "💵", lessons: 10, completed: 0, color: "from-emerald-500/20 to-emerald-600/5" },
   { id: "business", name: "AI for Business", icon: "🏢", lessons: 12, completed: 0, color: "from-cyan-500/20 to-cyan-600/5" },
