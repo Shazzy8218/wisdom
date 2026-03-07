@@ -91,6 +91,14 @@ export default function Settings() {
 
       <div className="editorial-divider mx-5 mb-6" />
 
+      {/* AI Connection Test */}
+      <div className="px-5 mb-6">
+        <h2 className="section-label mb-4">AI Connection Test</h2>
+        <AIConnectionTest />
+      </div>
+
+      <div className="editorial-divider mx-5 mb-6" />
+
       {/* Danger Zone */}
       <div className="px-5">
         <h2 className="section-label mb-4 text-primary">Danger Zone</h2>
