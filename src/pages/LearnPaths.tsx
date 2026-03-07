@@ -1,15 +1,17 @@
 import { motion } from "framer-motion";
-import { ChevronRight, Lock } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { TRACKS } from "@/lib/data";
 
 export default function LearnPaths() {
   return (
     <div className="min-h-screen pb-24">
-      <div className="px-5 pt-12 pb-6">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary mb-1">Learning Paths</p>
-        <h1 className="font-display text-2xl font-bold text-foreground">Master AI Skills</h1>
-        <p className="text-sm text-muted-foreground mt-1">Choose a track and start learning.</p>
+      <div className="px-5 pt-14 pb-6">
+        <p className="section-label text-primary mb-2">Learning Paths</p>
+        <h1 className="font-display text-h1 text-foreground">Master AI<br/>Skills</h1>
+        <p className="text-body text-muted-foreground mt-2">Choose a track and start learning.</p>
       </div>
+
+      <div className="editorial-divider mx-5 mb-6" />
 
       <div className="px-5 space-y-3">
         {TRACKS.map((track, i) => (
@@ -17,15 +19,15 @@ export default function LearnPaths() {
             key={track.id}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.06 }}
-            className={`glass-card p-5 bg-gradient-to-br ${track.color} hover:border-primary/20 transition-colors cursor-pointer`}
+            transition={{ delay: i * 0.05, duration: 0.35 }}
+            className="glass-card p-5 hover:border-primary/20 transition-all duration-200 cursor-pointer"
           >
             <div className="flex items-start gap-4">
-              <span className="text-3xl">{track.icon}</span>
+              <span className="text-2xl mt-0.5">{track.icon}</span>
               <div className="flex-1">
-                <h3 className="font-display text-base font-bold text-foreground">{track.name}</h3>
-                <p className="text-xs text-muted-foreground mt-1">{track.lessons} lessons · {track.completed} completed</p>
-                <div className="mt-3 h-1.5 w-full rounded-full bg-secondary overflow-hidden">
+                <h3 className="font-display text-body-lg font-bold text-foreground">{track.name}</h3>
+                <p className="text-caption text-muted-foreground mt-1">{track.lessons} lessons · {track.completed} completed</p>
+                <div className="mt-4 h-1 w-full rounded-full bg-secondary overflow-hidden">
                   <motion.div
                     className="h-full rounded-full bg-primary"
                     initial={{ width: 0 }}
@@ -34,7 +36,7 @@ export default function LearnPaths() {
                   />
                 </div>
               </div>
-              <ChevronRight className="h-5 w-5 text-text-tertiary mt-1" />
+              <ChevronRight className="h-4 w-4 text-text-tertiary mt-1" />
             </div>
           </motion.div>
         ))}
