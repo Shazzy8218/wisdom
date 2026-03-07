@@ -19,19 +19,29 @@ export default function Games() {
       <div className="px-5 space-y-3">
         {GAMES.map((game, i) => {
           const route = GAME_ROUTES[game.id];
-          const content = (
+          const cardClass = "glass-card p-5 flex items-center gap-4 cursor-pointer hover:border-primary/20 transition-all duration-200 block";
+          const inner = (
             <>
-                <span className="text-2xl">{game.icon}</span>
-                <div className="flex-1 min-w-0">
-                  <h3 className="text-body font-semibold text-foreground">{game.name}</h3>
-                  <p className="text-caption text-muted-foreground mt-0.5">{game.description}</p>
-                  <div className="flex items-center gap-2 mt-2">
-                    <span className="section-label">Level {game.level}</span>
-                    {!route && <span className="text-micro text-text-tertiary italic">Coming soon</span>}
-                  </div>
+              <span className="text-2xl">{game.icon}</span>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-body font-semibold text-foreground">{game.name}</h3>
+                <p className="text-caption text-muted-foreground mt-0.5">{game.description}</p>
+                <div className="flex items-center gap-2 mt-2">
+                  <span className="section-label">Level {game.level}</span>
+                  {!route && <span className="text-micro text-text-tertiary italic">Coming soon</span>}
                 </div>
-                <ChevronRight className="h-4 w-4 text-text-tertiary" />
-              </Wrapper>
+              </div>
+              <ChevronRight className="h-4 w-4 text-text-tertiary" />
+            </>
+          );
+          return (
+            <motion.div key={game.id} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.05, duration: 0.35 }}>
+              {route ? (
+                <Link to={route} className={cardClass}>{inner}</Link>
+              ) : (
+                <div className={cardClass}>{inner}</div>
+              )}
             </motion.div>
           );
         })}
