@@ -5,6 +5,10 @@ export interface StarterLesson {
   hook: string;
   difficulty: string;
   content?: string;
+  mentalModel?: string;
+  commonMistakes?: string;
+  upgrade?: string;
+  bragLine?: string;
   interaction?: "tap-reveal" | "choice";
   options?: string[];
   correctAnswer?: number;
