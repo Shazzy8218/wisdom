@@ -26,6 +26,8 @@ import OutputDuel from "./pages/OutputDuel";
 import TimeTrial from "./pages/TimeTrial";
 import PromptSurgery from "./pages/PromptSurgery";
 import CategoryHub from "./pages/CategoryHub";
+import ModuleView from "./pages/ModuleView";
+import LessonView from "./pages/LessonView";
 
 const queryClient = new QueryClient();
 
@@ -53,6 +55,8 @@ const App = () => {
               <Route path="/games/time-trial" element={<TimeTrial />} />
               <Route path="/games/prompt-surgery" element={<PromptSurgery />} />
               <Route path="/category/:categoryId" element={<CategoryHub />} />
+              <Route path="/category/:categoryId/module" element={<ModuleView />} />
+              <Route path="/category/:categoryId/lesson" element={<LessonView />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/wallet" element={<WisdomWallet />} />
               <Route path="/store" element={<TokenStore />} />

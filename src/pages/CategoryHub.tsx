@@ -110,11 +110,12 @@ export default function CategoryHub() {
                 <p className="section-label mb-3">{selectedLevel} Modules</p>
                 <div className="space-y-1.5">
                   {track.levels.find(l => l.level === selectedLevel)?.modules.map((mod, i) => (
-                    <div key={i} className="glass-card p-3.5 flex items-center gap-3">
+                    <Link key={i} to={`/category/${categoryId}/module?level=${selectedLevel}&mod=${i}`}
+                      className="glass-card p-3.5 flex items-center gap-3 hover:border-primary/20 transition-all block">
                       <span className="text-micro font-bold text-primary w-5">{i + 1}</span>
                       <p className="text-caption text-foreground flex-1">{mod}</p>
                       <ChevronRight className="h-3 w-3 text-text-tertiary" />
-                    </div>
+                    </Link>
                   ))}
                 </div>
               </div>
