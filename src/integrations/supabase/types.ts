@@ -47,6 +47,75 @@ export type Database = {
         }
         Relationships: []
       }
+      user_progress: {
+        Row: {
+          completed_lessons: Json
+          completed_modules: Json
+          created_at: string
+          favorites: Json
+          feed_seen: Json
+          generated_lesson_ids: Json
+          id: string
+          last_active_date: string
+          lessons_today: number
+          mastery_scores: Json
+          quiz_scores: Json
+          saved_notes: Json
+          seen_quotes: Json
+          streak: number
+          token_history: Json
+          tokens: number
+          unlocked_items: Json
+          updated_at: string
+          user_id: string
+          xp: number
+        }
+        Insert: {
+          completed_lessons?: Json
+          completed_modules?: Json
+          created_at?: string
+          favorites?: Json
+          feed_seen?: Json
+          generated_lesson_ids?: Json
+          id?: string
+          last_active_date?: string
+          lessons_today?: number
+          mastery_scores?: Json
+          quiz_scores?: Json
+          saved_notes?: Json
+          seen_quotes?: Json
+          streak?: number
+          token_history?: Json
+          tokens?: number
+          unlocked_items?: Json
+          updated_at?: string
+          user_id: string
+          xp?: number
+        }
+        Update: {
+          completed_lessons?: Json
+          completed_modules?: Json
+          created_at?: string
+          favorites?: Json
+          feed_seen?: Json
+          generated_lesson_ids?: Json
+          id?: string
+          last_active_date?: string
+          lessons_today?: number
+          mastery_scores?: Json
+          quiz_scores?: Json
+          saved_notes?: Json
+          seen_quotes?: Json
+          streak?: number
+          token_history?: Json
+          tokens?: number
+          unlocked_items?: Json
+          updated_at?: string
+          user_id?: string
+          xp?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
