@@ -5,11 +5,13 @@ import { GAMES } from "@/lib/data";
 export default function Games() {
   return (
     <div className="min-h-screen pb-24">
-      <div className="px-5 pt-12 pb-6">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary mb-1">Games</p>
-        <h1 className="font-display text-2xl font-bold text-foreground">Learn by Playing</h1>
-        <p className="text-sm text-muted-foreground mt-1">Interactive challenges to sharpen your AI skills.</p>
+      <div className="px-5 pt-14 pb-6">
+        <p className="section-label text-primary mb-2">Games</p>
+        <h1 className="font-display text-h1 text-foreground">Learn by<br/>Playing</h1>
+        <p className="text-body text-muted-foreground mt-2">Interactive challenges to sharpen your AI skills.</p>
       </div>
+
+      <div className="editorial-divider mx-5 mb-6" />
 
       <div className="px-5 space-y-3">
         {GAMES.map((game, i) => (
@@ -17,19 +19,19 @@ export default function Games() {
             key={game.id}
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.06 }}
-            className="glass-card p-4 flex items-center gap-4 cursor-pointer hover:border-primary/20 transition-colors"
+            transition={{ delay: i * 0.05, duration: 0.35 }}
+            className="glass-card p-5 flex items-center gap-4 cursor-pointer hover:border-primary/20 transition-all duration-200"
           >
-            <span className="text-3xl">{game.icon}</span>
+            <span className="text-2xl">{game.icon}</span>
             <div className="flex-1 min-w-0">
-              <h3 className="text-sm font-semibold text-foreground">{game.name}</h3>
-              <p className="text-xs text-muted-foreground mt-0.5">{game.description}</p>
+              <h3 className="text-body font-semibold text-foreground">{game.name}</h3>
+              <p className="text-caption text-muted-foreground mt-0.5">{game.description}</p>
               <div className="flex items-center gap-2 mt-2">
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-text-tertiary">Level {game.level}</span>
+                <span className="section-label">Level {game.level}</span>
                 {game.bestScore > 0 && (
                   <>
                     <span className="text-text-tertiary">·</span>
-                    <span className="flex items-center gap-1 text-[10px] text-accent-gold">
+                    <span className="flex items-center gap-1 text-micro text-accent-gold font-semibold">
                       <Trophy className="h-3 w-3" /> {game.bestScore}
                     </span>
                   </>

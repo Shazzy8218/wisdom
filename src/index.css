@@ -37,14 +37,17 @@
     --radius: 1rem;
 
     --surface: 0 0% 5.5%;
-    --surface-hover: 0 0% 8%;
+    --surface-2: 0 0% 8%;
+    --surface-hover: 0 0% 10%;
     --text-secondary: 0 0% 72%;
     --text-tertiary: 0 0% 45%;
     --divider: 0 0% 100% / 0.12;
     --accent-red: 355 78% 50%;
+    --accent-red-dark: 355 78% 30%;
     --accent-red-glow: 355 78% 50% / 0.2;
     --accent-gold: 45 90% 55%;
     --accent-green: 145 60% 45%;
+    --neutral-gray: 0 0% 64%;
 
     --sidebar-background: 0 0% 3%;
     --sidebar-foreground: 0 0% 72%;
@@ -102,7 +105,16 @@
 
   .stat-number {
     font-family: 'Space Grotesk', monospace;
-    @apply text-4xl font-bold tracking-tight;
+    @apply font-bold tracking-tight;
+  }
+
+  .section-label {
+    @apply text-[10px] font-semibold uppercase tracking-[0.25em] text-muted-foreground;
+  }
+
+  .hero-number {
+    font-family: 'Space Grotesk', monospace;
+    @apply text-5xl font-bold tracking-tighter leading-none;
   }
 
   .hide-scrollbar::-webkit-scrollbar {
@@ -111,5 +123,18 @@
   .hide-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;
+  }
+
+  .film-grain {
+    position: relative;
+  }
+  .film-grain::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+    opacity: 0.4;
+    mix-blend-mode: overlay;
   }
 }

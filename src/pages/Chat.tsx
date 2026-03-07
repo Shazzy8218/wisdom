@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, Sparkles, Bot, User } from "lucide-react";
+import { Send, Sparkles, Bot } from "lucide-react";
 
 interface Message {
   id: string;
@@ -31,7 +31,6 @@ export default function Chat() {
     setInput("");
     setIsTyping(true);
 
-    // Simulated response (replace with real AI integration via Lovable Cloud)
     setTimeout(() => {
       const response: Message = {
         id: (Date.now() + 1).toString(),
@@ -46,35 +45,36 @@ export default function Chat() {
   return (
     <div className="flex flex-col h-screen">
       {/* Header */}
-      <div className="px-5 pt-12 pb-4 border-b border-border">
+      <div className="px-5 pt-14 pb-4 border-b border-border">
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10">
+          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10">
             <Bot className="h-5 w-5 text-primary" />
           </div>
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">AI Coach</p>
-            <h1 className="font-display text-lg font-bold text-foreground">Wisdom Tutor</h1>
+            <p className="section-label text-primary">AI Coach</p>
+            <h1 className="font-display text-h3 text-foreground">Wisdom Tutor</h1>
           </div>
         </div>
       </div>
 
       {/* Messages */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 py-4 space-y-4 hide-scrollbar">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 py-6 space-y-5 hide-scrollbar">
         <AnimatePresence initial={false}>
           {messages.map((msg) => (
             <motion.div
               key={msg.id}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
               className={`flex gap-3 ${msg.role === "user" ? "justify-end" : ""}`}
             >
               {msg.role === "assistant" && (
-                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary/10 mt-0.5">
-                  <Sparkles className="h-3.5 w-3.5 text-primary" />
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-primary/10 mt-0.5">
+                  <Sparkles className="h-4 w-4 text-primary" />
                 </div>
               )}
               <div
-                className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
+                className={`max-w-[85%] rounded-2xl px-5 py-4 text-body leading-relaxed ${
                   msg.role === "user"
                     ? "bg-primary text-primary-foreground"
                     : "bg-card border border-border text-foreground"
@@ -100,11 +100,11 @@ export default function Chat() {
 
         {isTyping && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex gap-3">
-            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary/10 mt-0.5">
-              <Sparkles className="h-3.5 w-3.5 text-primary" />
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-primary/10 mt-0.5">
+              <Sparkles className="h-4 w-4 text-primary" />
             </div>
-            <div className="bg-card border border-border rounded-2xl px-4 py-3">
-              <div className="flex gap-1">
+            <div className="bg-card border border-border rounded-2xl px-5 py-4">
+              <div className="flex gap-1.5">
                 <span className="h-2 w-2 rounded-full bg-muted-foreground animate-pulse" />
                 <span className="h-2 w-2 rounded-full bg-muted-foreground animate-pulse [animation-delay:0.2s]" />
                 <span className="h-2 w-2 rounded-full bg-muted-foreground animate-pulse [animation-delay:0.4s]" />
@@ -115,19 +115,19 @@ export default function Chat() {
       </div>
 
       {/* Input */}
-      <div className="border-t border-border px-4 py-3 pb-24 bg-background">
-        <div className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2">
+      <div className="border-t border-border px-5 py-4 pb-24 bg-background">
+        <div className="flex items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3">
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSend()}
             placeholder="Ask your AI Coach..."
-            className="flex-1 bg-transparent text-sm text-foreground placeholder:text-text-tertiary outline-none"
+            className="flex-1 bg-transparent text-body text-foreground placeholder:text-text-tertiary outline-none"
           />
           <button
             onClick={handleSend}
             disabled={!input.trim()}
-            className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground disabled:opacity-30 transition-opacity"
+            className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground disabled:opacity-20 transition-opacity"
           >
             <Send className="h-4 w-4" />
           </button>

@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, MessageCircle, Bookmark, ChevronRight, CheckCircle2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Sparkles, MessageCircle, Bookmark, CheckCircle2 } from "lucide-react";
 
 interface MicroLessonCardProps {
   lesson: {
@@ -40,24 +39,24 @@ export default function MicroLessonCard({ lesson }: MicroLessonCardProps) {
       className="glass-card overflow-hidden"
     >
       {/* Header */}
-      <div className="p-5 pb-3">
-        <div className="flex items-center gap-2 mb-2">
-          <span className="text-[10px] font-semibold uppercase tracking-widest text-primary">{lesson.track}</span>
-          <span className="text-text-tertiary">·</span>
-          <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">{lesson.difficulty}</span>
+      <div className="p-6 pb-4">
+        <div className="flex items-center gap-2 mb-3">
+          <span className="section-label text-primary">{lesson.track}</span>
+          <span className="text-text-tertiary text-micro">·</span>
+          <span className="section-label">{lesson.difficulty}</span>
         </div>
-        <h3 className="font-display text-lg font-bold leading-tight text-foreground">{lesson.title}</h3>
-        <p className="mt-1 text-sm text-muted-foreground">{lesson.hook}</p>
+        <h3 className="font-display text-h3 text-foreground leading-tight">{lesson.title}</h3>
+        <p className="mt-2 text-body text-muted-foreground">{lesson.hook}</p>
       </div>
 
-      <div className="editorial-divider mx-5" />
+      <div className="editorial-divider mx-6" />
 
       {/* Content */}
-      <div className="p-5">
+      <div className="p-6">
         {lesson.interaction === "tap-reveal" && !revealed ? (
           <button
             onClick={() => setRevealed(true)}
-            className="w-full rounded-xl bg-secondary p-4 text-center text-sm font-medium text-muted-foreground transition-colors hover:bg-surface-hover"
+            className="w-full rounded-2xl bg-surface-2 p-5 text-center text-body font-medium text-muted-foreground transition-colors hover:bg-surface-hover border border-border"
           >
             Tap to reveal the lesson →
           </button>
@@ -65,7 +64,7 @@ export default function MicroLessonCard({ lesson }: MicroLessonCardProps) {
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="text-sm leading-relaxed text-text-secondary"
+            className="text-body leading-relaxed text-text-secondary"
           >
             {lesson.content}
           </motion.div>
@@ -73,22 +72,22 @@ export default function MicroLessonCard({ lesson }: MicroLessonCardProps) {
 
         {/* Choice interaction */}
         {lesson.interaction === "choice" && lesson.options && (
-          <div className="mt-4 space-y-2">
+          <div className="mt-5 space-y-2">
             {lesson.options.map((opt, idx) => (
               <button
                 key={idx}
                 onClick={() => handleOptionSelect(idx)}
                 disabled={selectedOption !== null}
-                className={`w-full rounded-xl border p-3 text-left text-sm transition-all ${
+                className={`w-full rounded-2xl border p-4 text-left text-body transition-all duration-200 ${
                   selectedOption === null
-                    ? "border-border bg-secondary hover:border-primary/30 hover:bg-surface-hover"
+                    ? "border-border bg-surface-2 hover:border-primary/30 hover:bg-surface-hover"
                     : selectedOption === idx
                     ? idx === lesson.correctAnswer
                       ? "border-accent-green/50 bg-accent-green/10 text-foreground"
                       : "border-destructive/50 bg-destructive/10"
                     : idx === lesson.correctAnswer && selectedOption !== null
                     ? "border-accent-green/50 bg-accent-green/10"
-                    : "border-border bg-secondary opacity-50"
+                    : "border-border bg-surface-2 opacity-40"
                 }`}
               >
                 {opt}
@@ -98,28 +97,28 @@ export default function MicroLessonCard({ lesson }: MicroLessonCardProps) {
         )}
 
         {/* Try It Now */}
-        <div className="mt-4 rounded-xl border border-primary/20 bg-primary/5 p-3">
-          <p className="text-xs font-semibold uppercase tracking-wider text-primary mb-1">Try It Now</p>
-          <p className="text-sm text-muted-foreground">{lesson.tryPrompt}</p>
+        <div className="mt-5 rounded-2xl border border-primary/15 bg-primary/5 p-4">
+          <p className="section-label text-primary mb-2">Try It Now</p>
+          <p className="text-body text-muted-foreground">{lesson.tryPrompt}</p>
         </div>
       </div>
 
-      <div className="editorial-divider mx-5" />
+      <div className="editorial-divider mx-6" />
 
       {/* Footer */}
-      <div className="flex items-center justify-between p-4">
-        <div className="flex items-center gap-3">
-          <span className="flex items-center gap-1 text-xs text-muted-foreground">
+      <div className="flex items-center justify-between p-5">
+        <div className="flex items-center gap-4">
+          <span className="flex items-center gap-1.5 text-caption text-muted-foreground">
             <Sparkles className="h-3.5 w-3.5 text-accent-gold" />
-            +{lesson.tokens} tokens
+            +{lesson.tokens}
           </span>
-          <span className="text-xs text-muted-foreground">+{lesson.xp} XP</span>
+          <span className="text-caption text-text-tertiary">+{lesson.xp} XP</span>
         </div>
-        <div className="flex items-center gap-2">
-          <button className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-surface-hover hover:text-foreground">
+        <div className="flex items-center gap-1">
+          <button className="rounded-xl p-2 text-text-tertiary transition-colors hover:bg-surface-hover hover:text-foreground">
             <MessageCircle className="h-4 w-4" />
           </button>
-          <button className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-surface-hover hover:text-foreground">
+          <button className="rounded-xl p-2 text-text-tertiary transition-colors hover:bg-surface-hover hover:text-foreground">
             <Bookmark className="h-4 w-4" />
           </button>
           {completed && (
