@@ -1,15 +1,21 @@
 import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
-import { ChevronRight, Target, Gamepad2, BarChart3, Wallet, ShoppingBag, TrendingDown, Share2, Sparkles } from "lucide-react";
+import { ChevronRight, Target, Gamepad2, BarChart3, Wallet, ShoppingBag, TrendingDown, Share2, Sparkles, Clock, Zap } from "lucide-react";
 import { Link } from "react-router-dom";
 import StatBlock from "@/components/StatBlock";
 import { QUOTES, MICRO_LESSONS } from "@/lib/data";
 import { useProgress } from "@/hooks/useProgress";
 import { CATEGORY_TRACKS } from "@/lib/categories";
+import { useLiveClock } from "@/hooks/useLiveClock";
+import { useUserProfile } from "@/hooks/useUserProfile";
 
 export default function Index() {
   const [quote, setQuote] = useState("");
   const { progress } = useProgress();
+  const clock = useLiveClock();
+  const { profile, updateProfile } = useUserProfile();
+  const [showNameInput, setShowNameInput] = useState(false);
+  const [nameValue, setNameValue] = useState("");
 
   useEffect(() => {
     const seen = JSON.parse(localStorage.getItem("wisdom-seen-quotes") || "[]") as number[];
@@ -29,18 +35,14 @@ export default function Index() {
     ? Math.round(Object.values(progress.masteryScores).reduce((a, b) => a + b, 0) / Object.values(progress.masteryScores).length)
     : 0;
 
-  // Find weakest category
   const weakestCategory = useMemo(() => {
-    if (Object.keys(progress.masteryScores).length === 0) {
-      return CATEGORY_TRACKS[0]; // Default to first track
-    }
+    if (Object.keys(progress.masteryScores).length === 0) return CATEGORY_TRACKS[0];
     const sorted = CATEGORY_TRACKS
       .map(t => ({ track: t, score: progress.masteryScores[t.id] || 0 }))
       .sort((a, b) => a.score - b.score);
     return sorted[0]?.track;
   }, [progress.masteryScores]);
 
-  // Wisdom of the Day - pick a random lesson
   const wisdomOfDay = useMemo(() => {
     const dayIndex = Math.floor(Date.now() / 86400000) % CATEGORY_TRACKS.length;
     const track = CATEGORY_TRACKS[dayIndex];
@@ -48,7 +50,6 @@ export default function Index() {
     return { track, lesson };
   }, []);
 
-  // Referral code
   const referralCode = useMemo(() => {
     let code = localStorage.getItem("wisdom-referral-code");
     if (!code) {
@@ -67,21 +68,76 @@ export default function Index() {
     }
   };
 
+  const handleSetName = () => {
+    if (nameValue.trim()) {
+      updateProfile({ displayName: nameValue.trim() });
+      setShowNameInput(false);
+      setNameValue("");
+    }
+  };
+
+  const displayGreeting = profile.displayName
+    ? `${clock.greeting}, ${profile.displayName}`
+    : clock.greeting;
+
   return (
     <div className="min-h-screen pb-24">
-      {/* Header */}
-      <div className="px-5 pt-14 pb-8">
-        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="section-label text-primary mb-2">
-          Wisdom AI
-        </motion.p>
+      {/* Header with live time */}
+      <div className="px-5 pt-14 pb-2">
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center justify-between mb-1">
+          <p className="section-label text-primary">Wisdom AI</p>
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <Clock className="h-3 w-3" />
+            <span className="text-micro font-mono">{clock.timeStr}</span>
+          </div>
+        </motion.div>
         <motion.h1 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
           className="font-display text-h1 text-foreground">
-          Good evening
+          {displayGreeting}
         </motion.h1>
+        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.15 }}
+          className="text-caption text-muted-foreground mt-1">
+          {clock.dateStr}
+        </motion.p>
+
+        {/* Day progress bar */}
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }} className="mt-3 mb-2">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-micro text-muted-foreground">Day progress</span>
+            <span className="text-micro text-muted-foreground font-mono">{clock.dayProgress}%</span>
+          </div>
+          <div className="h-1 w-full rounded-full bg-surface-2 overflow-hidden">
+            <motion.div
+              className="h-full rounded-full bg-primary/60"
+              initial={{ width: 0 }}
+              animate={{ width: `${clock.dayProgress}%` }}
+              transition={{ duration: 1, ease: "easeOut" }}
+            />
+          </div>
+          <p className="text-micro text-muted-foreground/60 mt-1 italic">Time is passing — learn something today.</p>
+        </motion.div>
+
+        {/* Set name prompt if no name */}
+        {!profile.displayName && !showNameInput && (
+          <motion.button initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.25 }}
+            onClick={() => setShowNameInput(true)}
+            className="mt-2 text-caption text-primary underline underline-offset-2">
+            Set your name for a personalized experience →
+          </motion.button>
+        )}
+        {showNameInput && (
+          <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} className="mt-2 flex gap-2">
+            <input value={nameValue} onChange={e => setNameValue(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && handleSetName()}
+              placeholder="Your name" autoFocus
+              className="flex-1 rounded-xl bg-surface-2 border border-border px-3 py-2 text-caption text-foreground placeholder:text-muted-foreground outline-none focus:border-primary/40" />
+            <button onClick={handleSetName} className="rounded-xl bg-primary px-4 py-2 text-caption text-primary-foreground font-medium">Save</button>
+          </motion.div>
+        )}
       </div>
 
       {/* Quote */}
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="mx-5 mb-8">
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }} className="mx-5 mb-6 mt-4">
         <div className="editorial-divider mb-4" />
         <p className="text-body italic leading-relaxed text-muted-foreground">"{quote}"</p>
         <div className="editorial-divider mt-4" />
@@ -95,7 +151,23 @@ export default function Index() {
         <StatBlock label="Mastery" value={`${masteryAvg}%`} icon="📊" delay={0.2} />
       </div>
 
-      {/* Quick Access Icon Cards - 4 cards in 2x2 */}
+      {/* Focus Sprint */}
+      <div className="px-5 mb-6">
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.23 }}>
+          <Link to="/feed" className="glass-card p-4 flex items-center gap-3 group hover:border-accent-gold/20 transition-all block border-accent-gold/10">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-accent-gold/10">
+              <Zap className="h-5 w-5 text-accent-gold" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-caption font-semibold text-foreground">10-Minute Wisdom Sprint</p>
+              <p className="text-micro text-muted-foreground">Quick learning session · earn bonus tokens</p>
+            </div>
+            <ChevronRight className="h-4 w-4 text-text-tertiary" />
+          </Link>
+        </motion.div>
+      </div>
+
+      {/* Quick Access Icon Cards */}
       <div className="grid grid-cols-2 gap-3 px-5 mb-6">
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}>
           <Link to="/wallet" className="glass-card p-4 flex items-center gap-3 group hover:border-accent-gold/20 transition-all block">
@@ -179,7 +251,7 @@ export default function Index() {
         </motion.div>
       </div>
 
-      {/* Your Weakest Category */}
+      {/* Weakest Category */}
       {weakestCategory && (
         <div className="px-5 mb-6">
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.43 }}>
@@ -199,7 +271,7 @@ export default function Index() {
         </div>
       )}
 
-      {/* Share the App */}
+      {/* Share */}
       <div className="px-5 mb-6">
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.46 }}>
           <button onClick={handleShareApp}

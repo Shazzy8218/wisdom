@@ -9,6 +9,7 @@ import {
   loadChatThreads, createThread, addMessageToThread, renameThread, deleteThread, getThread,
   type ChatThread,
 } from "@/lib/chat-history";
+import { getUserProfileForAI } from "@/hooks/useUserProfile";
 
 const TUTOR_MODES = [
   { id: "default", label: "Teach Me", icon: "📖" },
@@ -95,6 +96,7 @@ export default function Chat() {
     await streamChat({
       messages: newMessages.map(({ role, content }) => ({ role, content })),
       mode,
+      context: getUserProfileForAI(),
       onDelta: (chunk) => {
         assistantContent += chunk;
         setMessages((prev) => {
@@ -138,6 +140,7 @@ export default function Chat() {
     await streamChat({
       messages: trimmed.map(({ role, content }) => ({ role, content })),
       mode,
+      context: getUserProfileForAI(),
       onDelta: (chunk) => {
         assistantContent += chunk;
         setMessages((prev) => {
