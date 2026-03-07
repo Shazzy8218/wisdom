@@ -28,6 +28,12 @@ serve(async (req) => {
     
     let contextInfo = "";
     if (context) {
+      if (context.user_name) contextInfo += `\nThe user's name is: ${context.user_name}. Use this when they ask about their name or when greeting them.`;
+      if (context.user_plan) contextInfo += `\nUser plan: ${context.user_plan}`;
+      if (context.learning_style) contextInfo += `\nUser's preferred learning style: ${context.learning_style}`;
+      if (context.streak) contextInfo += `\nUser's current streak: ${context.streak} days`;
+      if (context.mastery) contextInfo += `\nUser's overall mastery: ${context.mastery}%`;
+      if (context.tokens) contextInfo += `\nUser's wisdom tokens: ${context.tokens}`;
       if (context.screen) contextInfo += `\nUser is currently on: ${context.screen}`;
       if (context.lessonTitle) contextInfo += `\nCurrent lesson: ${context.lessonTitle}`;
       if (context.selectedText) contextInfo += `\nUser highlighted text: "${context.selectedText}"`;
