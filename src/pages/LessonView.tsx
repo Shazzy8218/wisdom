@@ -262,7 +262,7 @@ export default function LessonView() {
         <div className="glass-card p-4 flex items-center justify-between mb-5">
           <div className="flex items-center gap-4">
             <span className="flex items-center gap-1.5 text-caption text-muted-foreground">
-              <Sparkles className="h-3.5 w-3.5 text-accent-gold" /> +{lesson.tokens || 10}
+              ✦ +{lesson.tokens || 10}
             </span>
             <span className="text-caption text-muted-foreground">+{lesson.xp || 50} XP</span>
           </div>

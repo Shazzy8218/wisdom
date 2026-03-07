@@ -1,12 +1,13 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
-import { Loader2, Sparkles, Zap, Brain, BarChart3, SlidersHorizontal } from "lucide-react";
+import { Loader2, Zap, Brain, BarChart3, SlidersHorizontal, RefreshCw } from "lucide-react";
 import FeedCard from "@/components/FeedCard";
 import { STARTER_FEED, getSeenCardIds, markCardSeen, type FeedCard as FeedCardT } from "@/lib/feed-cards";
 import { useProgress } from "@/hooks/useProgress";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { generateFeedCard } from "@/lib/ai-stream";
 import HiddenOwl from "@/components/HiddenOwl";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type FeedMode = "normal" | "nerd" | "quick";
 
@@ -15,23 +16,72 @@ export default function LearnFeed() {
   const { profile } = useUserProfile();
   const [cards, setCards] = useState<FeedCardT[]>([]);
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [mode, setMode] = useState<FeedMode>("normal");
   const [showModePanel, setShowModePanel] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const loadingRef = useRef(false);
 
-  // Initialize with unseen starter cards, shuffled by lowest-mastery categories first
+  // Initialize with unseen starter cards + generate if needed
   useEffect(() => {
     const seen = getSeenCardIds();
     const unseen = STARTER_FEED.filter(c => !seen.includes(c.id));
-    const allCards = unseen.length > 0 ? unseen : [...STARTER_FEED]; // show all if all seen
-
-    // Prioritize lowest mastery categories
     const scores = progress.masteryScores || {};
-    allCards.sort((a, b) => (scores[a.category] || 0) - (scores[b.category] || 0));
 
-    setCards(allCards);
+    if (unseen.length > 0) {
+      // Sort by lowest mastery
+      unseen.sort((a, b) => (scores[a.category] || 0) - (scores[b.category] || 0));
+      setCards(unseen);
+      setInitialLoading(false);
+    } else {
+      // All starter cards seen — generate fresh ones
+      setCards([]);
+      generateBatch(3);
+    }
+
+    // Always scroll to top
+    setTimeout(() => {
+      scrollRef.current?.scrollTo({ top: 0 });
+    }, 50);
   }, []);
+
+  const generateBatch = useCallback(async (count: number) => {
+    if (loadingRef.current) return;
+    loadingRef.current = true;
+    setLoading(true);
+    setError(null);
+
+    const seen = getSeenCardIds();
+    const newCards: FeedCardT[] = [];
+
+    for (let i = 0; i < count; i++) {
+      try {
+        const card = await generateFeedCard({
+          mode,
+          learningStyle: profile.learningStyle,
+          excludeIds: [...seen, ...newCards.map(c => c.id)],
+        });
+        if (card && card.id) {
+          newCards.push(card);
+        }
+      } catch (err) {
+        console.error("Failed to generate feed card:", err);
+        if (i === 0) {
+          setError(err instanceof Error ? err.message : "Failed to generate content");
+        }
+        break;
+      }
+    }
+
+    if (newCards.length > 0) {
+      setCards(prev => [...prev, ...newCards]);
+      setError(null);
+    }
+    setLoading(false);
+    setInitialLoading(false);
+    loadingRef.current = false;
+  }, [mode, profile.learningStyle]);
 
   const handleComplete = useCallback((id: string, xp: number, tokens: number) => {
     markCardSeen(id);
@@ -45,21 +95,8 @@ export default function LearnFeed() {
 
   const loadMore = useCallback(async () => {
     if (loadingRef.current) return;
-    loadingRef.current = true;
-    setLoading(true);
-    try {
-      const card = await generateFeedCard({
-        mode,
-        learningStyle: profile.learningStyle,
-        excludeIds: cards.map(c => c.id),
-      });
-      setCards(prev => [...prev, card]);
-    } catch (err) {
-      console.error("Failed to generate feed card:", err);
-    }
-    setLoading(false);
-    loadingRef.current = false;
-  }, [mode, profile.learningStyle, cards]);
+    await generateBatch(2);
+  }, [generateBatch]);
 
   // Auto-load when near bottom
   useEffect(() => {
@@ -92,7 +129,7 @@ export default function LearnFeed() {
           <div className="flex items-center gap-3">
             <HiddenOwl locationId="feed-header" size={16} />
             <span className="flex items-center gap-1 text-caption text-muted-foreground">
-              <Sparkles className="h-3 w-3 text-accent-gold" /> {progress.tokens}
+              ✦ {progress.tokens}
             </span>
             <button onClick={() => setShowModePanel(!showModePanel)}
               className="rounded-xl p-2 bg-surface-2 border border-border hover:border-primary/30 transition-colors">
@@ -120,14 +157,45 @@ export default function LearnFeed() {
         )}
       </div>
 
-      {/* Scroll container - snap scroll */}
+      {/* Scroll container */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto snap-y snap-mandatory hide-scrollbar pb-24">
+        {/* Initial loading skeleton */}
+        {initialLoading && cards.length === 0 && (
+          <div className="min-h-[calc(100vh-8rem)] snap-start flex flex-col justify-center px-4 py-6">
+            <div className="glass-card max-w-lg mx-auto w-full p-5 space-y-4">
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-8 w-3/4" />
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-32 w-full rounded-2xl" />
+              <Skeleton className="h-20 w-full" />
+              <div className="flex gap-2">
+                <Skeleton className="h-8 w-20" />
+                <Skeleton className="h-8 w-20" />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Cards */}
         {cards.map(card => (
           <FeedCard key={card.id} card={card} onComplete={handleComplete} />
         ))}
 
-        {/* Loading */}
-        {loading && (
+        {/* Error state */}
+        {error && !loading && (
+          <div className="min-h-[50vh] snap-start flex items-center justify-center">
+            <div className="flex flex-col items-center gap-3 text-center px-8">
+              <p className="text-caption text-destructive">{error}</p>
+              <button onClick={() => generateBatch(2)}
+                className="glass-card px-6 py-3 flex items-center gap-2 text-caption font-semibold text-primary hover:border-primary/30 transition-all">
+                <RefreshCw className="h-4 w-4" /> Tap to retry
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Loading more */}
+        {loading && !initialLoading && (
           <div className="min-h-[50vh] snap-start flex items-center justify-center">
             <div className="flex flex-col items-center gap-3">
               <Loader2 className="h-6 w-6 text-primary animate-spin" />
@@ -136,13 +204,15 @@ export default function LearnFeed() {
           </div>
         )}
 
-        {/* Load more trigger */}
-        <div className="snap-start flex items-center justify-center py-12">
-          <button onClick={loadMore} disabled={loading}
-            className="glass-card px-6 py-3 flex items-center gap-2 text-caption font-semibold text-primary hover:border-primary/30 transition-all">
-            <Sparkles className="h-4 w-4" /> Generate More
-          </button>
-        </div>
+        {/* Load more trigger — only if not loading and has cards */}
+        {!loading && cards.length > 0 && (
+          <div className="snap-start flex items-center justify-center py-12">
+            <button onClick={() => generateBatch(2)} disabled={loading}
+              className="glass-card px-6 py-3 flex items-center gap-2 text-caption font-semibold text-primary hover:border-primary/30 transition-all">
+              ✦ Generate More
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

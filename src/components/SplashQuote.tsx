@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { QUOTES } from "@/lib/data";
 
+const SPLASH_SEEN_KEY = "wisdom-splash-quotes-v2";
+
 interface SplashQuoteProps {
   onDismiss: () => void;
 }
@@ -10,15 +12,15 @@ export default function SplashQuote({ onDismiss }: SplashQuoteProps) {
   const [quote, setQuote] = useState("");
 
   useEffect(() => {
-    const seen = JSON.parse(localStorage.getItem("wisdom-splash-quotes") || "[]") as number[];
+    const seen = JSON.parse(localStorage.getItem(SPLASH_SEEN_KEY) || "[]") as number[];
     const available = QUOTES.map((_, i) => i).filter((i) => !seen.includes(i));
     if (available.length === 0) {
-      localStorage.setItem("wisdom-splash-quotes", "[]");
+      // All exhausted — just pick one but don't reset (truly never repeat once pool is out)
       setQuote(QUOTES[Math.floor(Math.random() * QUOTES.length)]);
     } else {
       const pick = available[Math.floor(Math.random() * available.length)];
       setQuote(QUOTES[pick]);
-      localStorage.setItem("wisdom-splash-quotes", JSON.stringify([...seen, pick]));
+      localStorage.setItem(SPLASH_SEEN_KEY, JSON.stringify([...seen, pick]));
     }
   }, []);
 
@@ -33,16 +35,10 @@ export default function SplashQuote({ onDismiss }: SplashQuoteProps) {
         className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-background cursor-pointer film-grain"
       >
         <div className="max-w-md px-8 text-center space-y-8">
-          {/* Brand mark */}
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-          >
+          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
             <span className="section-label text-primary">Wisdom AI</span>
           </motion.div>
 
-          {/* Divider */}
           <motion.div
             initial={{ scaleX: 0 }}
             animate={{ scaleX: 1 }}
@@ -50,7 +46,6 @@ export default function SplashQuote({ onDismiss }: SplashQuoteProps) {
             className="editorial-divider mx-auto w-16"
           />
 
-          {/* Quote */}
           <motion.p
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -60,7 +55,6 @@ export default function SplashQuote({ onDismiss }: SplashQuoteProps) {
             "{quote}"
           </motion.p>
 
-          {/* Divider */}
           <motion.div
             initial={{ scaleX: 0 }}
             animate={{ scaleX: 1 }}
@@ -68,7 +62,6 @@ export default function SplashQuote({ onDismiss }: SplashQuoteProps) {
             className="editorial-divider mx-auto w-16"
           />
 
-          {/* Tagline */}
           <motion.p
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -78,7 +71,6 @@ export default function SplashQuote({ onDismiss }: SplashQuoteProps) {
             Built for long-term thinkers.
           </motion.p>
 
-          {/* Tap hint */}
           <motion.p
             initial={{ opacity: 0 }}
             animate={{ opacity: 0.4 }}
