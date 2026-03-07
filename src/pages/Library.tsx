@@ -1,11 +1,12 @@
 import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
-import { BookOpen, MessageCircle, Bookmark, Search, Sparkles, Copy, Play, Star, Archive, Quote, Image } from "lucide-react";
+import { BookOpen, MessageCircle, Search, Sparkles, Copy, Play, Star, Quote, Brain, Layers } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-import { loadChatThreads, type ChatThread } from "@/lib/chat-history";
+import { loadChatThreads } from "@/lib/chat-history";
+import { loadSnapshots, type WisdomSnapshot } from "@/lib/wisdom-snapshots";
 import { useNavigate } from "react-router-dom";
 
-type Tab = "prompts" | "lessons" | "threads" | "quotes" | "visuals";
+type Tab = "prompts" | "snapshots" | "threads" | "quotes";
 
 const PROMPT_PACKS = [
   { id: "w1", title: "Email Response Template", category: "Work", prompt: "Write a professional email to [recipient] about [topic]. Keep it concise, polite, and actionable. Include a clear subject line.", tags: ["email", "professional"] },
@@ -36,12 +37,6 @@ const WISDOM_QUOTES = [
   { id: "q10", text: "The expert in anything was once a beginner.", author: "Helen Hayes" },
 ];
 
-const SAVED_LESSONS = [
-  { id: "sl1", title: "The 3-Part Prompt Formula", track: "AI Basics", date: "Today" },
-  { id: "sl2", title: "Constraint Prompting", track: "Prompting", date: "Yesterday" },
-  { id: "sl3", title: "SOP Generator", track: "Business", date: "3 days ago" },
-];
-
 export default function Library() {
   const [tab, setTab] = useState<Tab>("prompts");
   const [search, setSearch] = useState("");
@@ -51,6 +46,7 @@ export default function Library() {
   const navigate = useNavigate();
 
   const chatThreads = useMemo(() => loadChatThreads(), []);
+  const snapshots = useMemo(() => loadSnapshots(), []);
 
   const toggleFavorite = (id: string) => {
     const updated = favorites.includes(id) ? favorites.filter(f => f !== id) : [...favorites, id];
@@ -73,12 +69,11 @@ export default function Library() {
 
   const tabs: { id: Tab; label: string; icon: typeof BookOpen }[] = [
     { id: "prompts", label: "Prompts", icon: Sparkles },
-    { id: "lessons", label: "Lessons", icon: BookOpen },
+    { id: "snapshots", label: "Snapshots", icon: Brain },
     { id: "threads", label: "Q&A", icon: MessageCircle },
     { id: "quotes", label: "Quotes", icon: Quote },
   ];
 
-  // Group prompts by category
   const categories = [...new Set(filteredPrompts.map(p => p.category))];
 
   return (
@@ -111,8 +106,8 @@ export default function Library() {
 
       <div className="editorial-divider mx-5 mb-6" />
 
-      {/* Content */}
       <div className="px-5 space-y-2">
+        {/* Prompts Tab */}
         {tab === "prompts" && (
           <>
             {categories.map(cat => (
@@ -156,20 +151,43 @@ export default function Library() {
           </>
         )}
 
-        {tab === "lessons" && SAVED_LESSONS.map((l, i) => (
-          <motion.div key={l.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.04 }}
-            className="glass-card p-4 hover:border-primary/10 transition-all cursor-pointer">
-            <div className="flex items-center gap-3">
-              <BookOpen className="h-4 w-4 text-muted-foreground shrink-0" />
-              <div className="flex-1 min-w-0">
-                <p className="text-body font-medium text-foreground">{l.title}</p>
-                <p className="text-micro text-muted-foreground">{l.track} · {l.date}</p>
-              </div>
+        {/* Wisdom Snapshots Tab */}
+        {tab === "snapshots" && (
+          snapshots.length > 0 ? (
+            <div className="space-y-3">
+              <p className="text-caption text-muted-foreground">{snapshots.length} wisdom cards collected</p>
+              {snapshots.map((s, i) => (
+                <motion.div key={s.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.04 }}
+                  className="glass-card p-5 border-accent-gold/10 hover:border-accent-gold/20 transition-all">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Brain className="h-4 w-4 text-accent-gold" />
+                    <span className="section-label text-accent-gold">{s.category}</span>
+                  </div>
+                  <h4 className="text-body font-semibold text-foreground mb-2">{s.title}</h4>
+                  {s.mentalModel && (
+                    <div className="bg-accent-gold/5 border border-accent-gold/15 rounded-xl p-3 mb-2">
+                      <p className="text-micro font-semibold text-accent-gold mb-1">🧠 Mental Model</p>
+                      <p className="text-caption text-foreground leading-relaxed">{s.mentalModel.split(".").slice(0, 2).join(".")}</p>
+                    </div>
+                  )}
+                  <p className="text-caption text-muted-foreground mb-2">💡 {s.keyInsight}</p>
+                  {s.bragLine && (
+                    <p className="text-caption italic text-foreground border-t border-border pt-2 mt-2">"{s.bragLine}"</p>
+                  )}
+                </motion.div>
+              ))}
             </div>
-          </motion.div>
-        ))}
+          ) : (
+            <div className="text-center py-12">
+              <Layers className="h-8 w-8 text-text-tertiary mx-auto mb-3" />
+              <p className="text-body text-muted-foreground">No Wisdom Snapshots yet.</p>
+              <p className="text-caption text-text-tertiary mt-1">Complete lessons to collect wisdom cards.</p>
+            </div>
+          )
+        )}
 
+        {/* Q&A Threads Tab */}
         {tab === "threads" && (
           chatThreads.length > 0 ? (
             chatThreads.map((t, i) => (
@@ -195,6 +213,7 @@ export default function Library() {
           )
         )}
 
+        {/* Quotes Tab */}
         {tab === "quotes" && filteredQuotes.map((q, i) => (
           <motion.div key={q.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.04 }}
