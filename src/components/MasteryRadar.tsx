@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { Link } from "react-router-dom";
 import { MASTERY_CATEGORIES, getLevelLabel } from "@/lib/data";
 import ProgressRing from "./ProgressRing";
 
@@ -26,21 +27,21 @@ export default function MasteryRadar() {
         {MASTERY_CATEGORIES.map((cat, i) => {
           const isActive = cat.score > 0;
           return (
-            <motion.button
-              key={cat.id}
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.025 }}
-              className={`glass-card p-4 flex items-center gap-3 text-left transition-all duration-200 ${
-                isActive ? "hover:border-primary/20" : "opacity-60 hover:opacity-80"
-              }`}
-            >
-              <ProgressRing value={cat.score} size={42} strokeWidth={2.5} />
-              <div className="min-w-0 flex-1">
-                <p className="text-caption font-semibold text-foreground truncate">{cat.name}</p>
-                <p className="text-micro text-muted-foreground uppercase tracking-wider">{getLevelLabel(cat.score)}</p>
-              </div>
-            </motion.button>
+            <motion.div key={cat.id} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.025 }}>
+              <Link
+                to={`/category/${cat.id}`}
+                className={`glass-card p-4 flex items-center gap-3 text-left transition-all duration-200 block ${
+                  isActive ? "hover:border-primary/20" : "opacity-60 hover:opacity-80"
+                }`}
+              >
+                <ProgressRing value={cat.score} size={42} strokeWidth={2.5} />
+                <div className="min-w-0 flex-1">
+                  <p className="text-caption font-semibold text-foreground truncate">{cat.name}</p>
+                  <p className="text-micro text-muted-foreground uppercase tracking-wider">{getLevelLabel(cat.score)}</p>
+                </div>
+              </Link>
+            </motion.div>
           );
         })}
       </div>

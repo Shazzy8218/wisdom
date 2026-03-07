@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, MessageCircle, Bookmark, CheckCircle2 } from "lucide-react";
+import { motion } from "framer-motion";
+import { Sparkles, MessageCircle, Bookmark, CheckCircle2, Bot } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 interface MicroLessonCardProps {
   lesson: {
@@ -23,6 +24,7 @@ export default function MicroLessonCard({ lesson }: MicroLessonCardProps) {
   const [revealed, setRevealed] = useState(false);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [completed, setCompleted] = useState(false);
+  const navigate = useNavigate();
 
   const handleOptionSelect = (idx: number) => {
     if (selectedOption !== null) return;
@@ -30,6 +32,12 @@ export default function MicroLessonCard({ lesson }: MicroLessonCardProps) {
     if (idx === lesson.correctAnswer) {
       setTimeout(() => setCompleted(true), 600);
     }
+  };
+
+  const handleAskAI = () => {
+    // Navigate to chat with lesson context
+    const query = encodeURIComponent(`Explain more about: ${lesson.title}. Context: ${lesson.hook}`);
+    navigate(`/chat?context=${query}`);
   };
 
   return (
@@ -115,6 +123,11 @@ export default function MicroLessonCard({ lesson }: MicroLessonCardProps) {
           <span className="text-caption text-text-tertiary">+{lesson.xp} XP</span>
         </div>
         <div className="flex items-center gap-1">
+          <button onClick={handleAskAI}
+            className="rounded-xl p-2 text-primary transition-colors hover:bg-primary/10 flex items-center gap-1">
+            <Bot className="h-4 w-4" />
+            <span className="text-micro font-semibold">Ask AI</span>
+          </button>
           <button className="rounded-xl p-2 text-text-tertiary transition-colors hover:bg-surface-hover hover:text-foreground">
             <MessageCircle className="h-4 w-4" />
           </button>
