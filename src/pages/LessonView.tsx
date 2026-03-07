@@ -282,7 +282,7 @@ export default function LessonView() {
         <div className="space-y-2 mb-5">
           <button onClick={handleAskAI}
             className="w-full glass-card p-4 flex items-center gap-3 hover:border-primary/20 transition-all border-primary/10">
-            <Bot className="h-5 w-5 text-primary" />
+            <OwlIcon size={20} />
             <div className="flex-1 text-left">
               <span className="text-body font-medium text-foreground block">Ask AI about this lesson</span>
               <span className="text-micro text-muted-foreground">Auto-sends context for beginner explanation</span>
