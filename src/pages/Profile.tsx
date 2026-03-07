@@ -32,7 +32,8 @@ export default function Profile() {
 
   return (
     <div className="min-h-screen pb-24">
-      <div className="px-5 pt-14 pb-6">
+      <div className="px-5 pt-14 pb-6 relative">
+        <HiddenOwl locationId="profile-avatar" className="absolute right-6 bottom-8" size={16} />
         <p className="section-label text-primary mb-2">Profile</p>
         <h1 className="font-display text-h1 text-foreground">Your Journey</h1>
       </div>

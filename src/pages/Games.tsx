@@ -15,10 +15,11 @@ const GAME_ROUTES: Record<string, string> = {
 export default function Games() {
   return (
     <div className="min-h-screen pb-24">
-      <div className="px-5 pt-14 pb-6">
+      <div className="px-5 pt-14 pb-6 relative">
         <p className="section-label text-primary mb-2">Games</p>
         <h1 className="font-display text-h1 text-foreground">Learn by<br/>Playing</h1>
         <p className="text-body text-muted-foreground mt-2">Interactive challenges to sharpen your AI skills.</p>
+        <HiddenOwl locationId="games-header" className="absolute right-6 top-16" size={18} />
       </div>
       <div className="editorial-divider mx-5 mb-6" />
       <div className="px-5 space-y-3">

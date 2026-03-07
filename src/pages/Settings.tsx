@@ -184,6 +184,9 @@ export default function Settings() {
           </div>
         </button>
       </div>
+      <div className="px-5 pb-8 flex justify-end">
+        <HiddenOwl locationId="settings-footer" size={14} />
+      </div>
     </div>
   );
 }
