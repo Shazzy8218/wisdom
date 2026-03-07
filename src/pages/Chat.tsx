@@ -96,6 +96,7 @@ export default function Chat() {
     await streamChat({
       messages: newMessages.map(({ role, content }) => ({ role, content })),
       mode,
+      context: getUserProfileForAI(),
       onDelta: (chunk) => {
         assistantContent += chunk;
         setMessages((prev) => {
