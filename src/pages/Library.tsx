@@ -81,6 +81,7 @@ export default function Library() {
     { id: "snapshots", label: "Wisdom Packs", icon: Brain },
     { id: "prompts", label: "Prompts", icon: Sparkles },
     { id: "charts", label: "Charts", icon: BarChart3 },
+    { id: "images", label: "Images", icon: Image },
     { id: "drills", label: "Drills", icon: Zap },
     { id: "threads", label: "Q&A", icon: MessageCircle },
     { id: "quotes", label: "Quotes", icon: Quote },
