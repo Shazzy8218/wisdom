@@ -376,7 +376,7 @@ export default function Library() {
                               <div key={msg.id} className={`rounded-xl p-3 text-caption ${msg.role === "user" ? "bg-primary/10 text-foreground ml-4" : "bg-surface-2 text-foreground mr-4"}`}>
                                 <p className="text-micro font-semibold text-muted-foreground mb-1">{msg.role === "user" ? "You" : "Owl"}</p>
                                 <div className="prose prose-sm max-w-none text-caption">
-                                  <ReactMarkdown>{msg.content.slice(0, 300)}{msg.content.length > 300 ? "…" : ""}</ReactMarkdown>
+                                  <ReactMarkdown>{msg.content.slice(0, 300) + (msg.content.length > 300 ? "…" : "")}</ReactMarkdown>
                                 </div>
                               </div>
                             ))}
