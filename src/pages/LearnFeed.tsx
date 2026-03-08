@@ -23,27 +23,30 @@ export default function LearnFeed() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const loadingRef = useRef(false);
 
-  // Initialize with unseen starter cards + generate if needed
+  // Always start fresh on open — show unseen starters first, then generate new
   useEffect(() => {
     const seen = getSeenCardIds();
     const unseen = STARTER_FEED.filter(c => !seen.includes(c.id));
     const scores = progress.masteryScores || {};
 
     if (unseen.length > 0) {
-      // Sort by lowest mastery
+      // Sort by lowest mastery for personalization
       unseen.sort((a, b) => (scores[a.category] || 0) - (scores[b.category] || 0));
-      setCards(unseen);
+      setCards(unseen.slice(0, 10));
       setInitialLoading(false);
+      // Also pre-generate 2 fresh AI cards
+      generateBatch(2);
     } else {
-      // All starter cards seen — generate fresh ones
+      // All starter cards seen — generate fresh ones immediately
       setCards([]);
-      generateBatch(3);
+      generateBatch(4);
     }
 
     // Always scroll to top
     setTimeout(() => {
       scrollRef.current?.scrollTo({ top: 0 });
     }, 50);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const generateBatch = useCallback(async (count: number) => {
