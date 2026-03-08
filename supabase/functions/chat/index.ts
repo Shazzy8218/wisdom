@@ -70,7 +70,7 @@ OUTPUT FORMAT (required structure):
 ## Practical Application
 [How to use this knowledge]
 
-No rambling — every section must use headers and bullets. Be thorough but structured.${NO_FILLER}${CREATOR_BIO}`,
+No rambling — every section must use headers and bullets. Be thorough but structured.${NO_DISCLAIMERS}${NO_FILLER}${CREATOR_BIO}`,
     model: "google/gemini-3-flash-preview",
   },
 
