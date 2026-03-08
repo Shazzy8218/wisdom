@@ -27,8 +27,9 @@ import { saveGeneratedImage } from "@/lib/image-storage";
 import { supabase } from "@/integrations/supabase/client";
 
 const TUTOR_MODES = [
+  { id: "default", label: "Operator", icon: "🦉" },
   { id: "fast-answer", label: "Fast", icon: "⚡" },
-  { id: "default", label: "Teach Me", icon: "📖" },
+  { id: "teach-me", label: "Teach Me", icon: "📖" },
   { id: "explain-10", label: "ELI10", icon: "🧒" },
   { id: "deep-dive", label: "Deep Dive", icon: "🔬" },
   { id: "blueprint", label: "Blueprint", icon: "🏗️" },
@@ -371,7 +372,7 @@ export default function Chat() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
-  const [mode, setMode] = useState("fast-answer");
+  const [mode, setMode] = useState("default");
   const [showModes, setShowModes] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [threads, setThreads] = useState<ChatThread[]>([]);
