@@ -5,7 +5,7 @@ import OwlIcon from "@/components/OwlIcon";
 import { toast } from "@/hooks/use-toast";
 
 interface CalibrationModalProps {
-  onComplete: (goalMode: string, outputMode: string) => void;
+  onComplete: (goalMode: string, outputMode: string) => Promise<void>;
 }
 
 const goalOptions = [

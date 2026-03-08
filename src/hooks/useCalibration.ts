@@ -12,7 +12,13 @@ const DEFAULT: CalibrationData = { goalMode: "income", outputMode: "blueprints",
 
 export function useCalibration() {
   const { user } = useAuth();
-  const [data, setData] = useState<CalibrationData>(DEFAULT);
+  const [data, setData] = useState<CalibrationData>(() => {
+    const cached = localStorage.getItem("wisdom-calibration-cache");
+    if (cached) {
+      try { return JSON.parse(cached); } catch { /* ignore */ }
+    }
+    return DEFAULT;
+  });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -35,16 +41,27 @@ export function useCalibration() {
   const completeCalibration = useCallback(async (goalMode: string, outputMode: string) => {
     if (!user) throw new Error("Not authenticated");
     
-    const { error } = await supabase.from("profiles").upsert({
-      id: user.id,
-      goal_mode: goalMode,
-      output_mode: outputMode,
-      calibration_done: true,
-      email: user.email || "",
-      display_name: user.email?.split("@")[0] || "Learner",
-    } as any, { onConflict: "id" });
+    // Try update first (profile should exist via trigger)
+    const { error: updateError } = await supabase.from("profiles")
+      .update({
+        goal_mode: goalMode,
+        output_mode: outputMode,
+        calibration_done: true,
+      } as any)
+      .eq("id", user.id);
     
-    if (error) throw error;
+    // If update affected 0 rows, insert
+    if (updateError) {
+      const { error: insertError } = await supabase.from("profiles").insert({
+        id: user.id,
+        goal_mode: goalMode,
+        output_mode: outputMode,
+        calibration_done: true,
+        email: user.email || "",
+        display_name: user.email?.split("@")[0] || "Learner",
+      } as any);
+      if (insertError) throw insertError;
+    }
     
     const newData: CalibrationData = { goalMode: goalMode as any, outputMode: outputMode as any, calibrationDone: true };
     setData(newData);
