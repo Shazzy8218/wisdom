@@ -1,8 +1,9 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronRight, ChevronDown, Search, BookOpen, Flame, Gamepad2, Zap, Sparkles, Loader2, RefreshCw } from "lucide-react";
+import { ChevronRight, ChevronDown, Search, BookOpen, Flame, Gamepad2, Zap, Sparkles, Loader2, RefreshCw, Star, DollarSign } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { MASTERY_CATEGORIES, MICRO_LESSONS, getLevelLabel } from "@/lib/data";
+import { CORE_TRACKS, MONEY_TRACK_IDS, getRecommendedTracks } from "@/lib/core-tracks";
 import { useProgress } from "@/hooks/useProgress";
 import { useGoals } from "@/hooks/useGoals";
 import { useUserProfile } from "@/hooks/useUserProfile";
