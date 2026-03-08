@@ -127,11 +127,19 @@ serve(async (req) => {
       if (context.streak) contextInfo += `\nUser's current streak: ${context.streak} days`;
       if (context.mastery) contextInfo += `\nUser's overall mastery: ${context.mastery}%`;
       if (context.tokens) contextInfo += `\nUser's wisdom tokens: ${context.tokens}`;
+      if (context.xp) contextInfo += `\nUser's XP: ${context.xp}`;
+      if (context.lessons_completed) contextInfo += `\nTotal lessons completed: ${context.lessons_completed}`;
+      if (context.lessons_today) contextInfo += `\nLessons today: ${context.lessons_today}`;
       if (context.screen) contextInfo += `\nUser is currently on: ${context.screen}`;
       if (context.lessonTitle) contextInfo += `\nCurrent lesson: ${context.lessonTitle}`;
       if (context.selectedText) contextInfo += `\nUser highlighted text: "${context.selectedText}"`;
       if (context.cardId) contextInfo += `\nFeed card context: ${context.cardId}`;
-      
+      if (context.learning_goal) contextInfo += `\nUser's active goal: ${context.learning_goal}`;
+      if (context.mastery_breakdown) contextInfo += `\nMastery breakdown: ${context.mastery_breakdown}`;
+      if (context.favorites_count) contextInfo += `\nFavorites saved: ${context.favorites_count}`;
+      if (context.recent_topics) contextInfo += `\nRecent chat topics: ${context.recent_topics}`;
+      if (context.behavioral_hints) contextInfo += `\nBehavioral insights: ${context.behavioral_hints}`;
+
       if (context.goal_mode) {
         contextInfo += context.goal_mode === "income"
           ? `\n\nCALIBRATION — GOAL MODE: INCOME. Prioritize speed, revenue, cash flow. Give short, actionable outputs.`
