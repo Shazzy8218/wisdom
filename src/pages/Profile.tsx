@@ -1,47 +1,41 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { User, Wallet, BookOpen, Settings, Crown, ChevronRight, Sparkles, Wrench, Pencil } from "lucide-react";
-import { Link } from "react-router-dom";
+import { User, Wallet, Settings, Crown, ChevronRight, Sparkles, BarChart3, LogOut, Pencil } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { useProgress } from "@/hooks/useProgress";
-import HiddenOwl from "@/components/HiddenOwl";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function Profile() {
   const { profile, updateProfile } = useUserProfile();
   const { progress } = useProgress();
   const [editing, setEditing] = useState(false);
   const [nameValue, setNameValue] = useState(profile.displayName);
+  const navigate = useNavigate();
 
   const handleSaveName = () => {
     updateProfile({ displayName: nameValue.trim() });
     setEditing(false);
   };
 
-  const masteryAvg = Object.values(progress.masteryScores).length > 0
-    ? Math.round(Object.values(progress.masteryScores).reduce((a, b) => a + b, 0) / Object.values(progress.masteryScores).length)
-    : 0;
-
-  const MENU_ITEMS = [
-    { icon: Wallet, label: "Wisdom Wallet", subtitle: `${progress.tokens} tokens`, to: "/wallet" },
-    { icon: Sparkles, label: "Token Store", subtitle: "Unlock content", to: "/store" },
-    { icon: BookOpen, label: "My Learning", subtitle: `${progress.completedLessons.length} lessons completed`, to: "/library" },
-    { icon: Wrench, label: "Playground", subtitle: "Test & compare prompts", to: "/playground" },
-    { icon: Crown, label: "Upgrade to Pro", subtitle: "Unlock all tracks", to: "/upgrade", accent: true },
-    { icon: Settings, label: "Settings", subtitle: "Memory, notifications", to: "/settings" },
-  ];
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    localStorage.removeItem("wisdom-cloud-progress-loaded");
+    window.location.href = "/";
+  };
 
   return (
     <div className="min-h-screen pb-24">
-      <div className="px-5 pt-14 pb-6 relative">
-        <HiddenOwl locationId="profile-avatar" className="absolute right-6 bottom-8" size={16} />
+      <div className="px-5 pt-14 pb-6">
         <p className="section-label text-primary mb-2">Profile</p>
-        <h1 className="font-display text-h1 text-foreground">Your Journey</h1>
+        <h1 className="font-display text-h1 text-foreground">You</h1>
       </div>
 
+      {/* User Card */}
       <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }}
-        className="mx-5 mb-6 glass-card p-6 flex items-center gap-4">
-        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10">
-          <User className="h-7 w-7 text-primary" />
+        className="mx-5 mb-4 glass-card p-5 flex items-center gap-4">
+        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10">
+          <User className="h-6 w-6 text-primary" />
         </div>
         <div className="flex-1 min-w-0">
           {editing ? (
@@ -61,28 +55,31 @@ export default function Profile() {
               </button>
             </div>
           )}
-          <p className="text-caption text-muted-foreground">{profile.learningStyle} learner · {progress.streak} day streak · {profile.plan === "pro" ? "Pro" : "Free"} Plan</p>
+          <p className="text-caption text-muted-foreground">{profile.plan === "pro" ? "Pro" : "Free"} Plan · {profile.learningStyle} learner</p>
         </div>
       </motion.div>
 
-      <div className="editorial-divider mx-5 mb-6" />
-
-      <div className="grid grid-cols-3 gap-3 px-5 mb-6">
-        {[
-          { val: String(progress.tokens), label: "Tokens" },
-          { val: String(progress.streak), label: "Streak" },
-          { val: `${masteryAvg}%`, label: "Mastery" },
-        ].map((s, i) => (
-          <motion.div key={s.label} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 + i * 0.05 }} className="glass-card p-4 text-center">
-            <p className="font-display text-h2 text-foreground">{s.val}</p>
-            <p className="section-label mt-1">{s.label}</p>
-          </motion.div>
-        ))}
+      {/* Scoreboard Card */}
+      <div className="px-5 mb-4">
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
+          <Link to="/scoreboard"
+            className="glass-card p-5 flex items-center gap-4 hover:border-primary/20 transition-all block border-accent-gold/15">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-accent-gold/10">
+              <BarChart3 className="h-5 w-5 text-accent-gold" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-body font-semibold text-foreground">Scoreboard</p>
+              <p className="text-caption text-muted-foreground">Tokens · Streak · Mastery · Daily Wisdom</p>
+            </div>
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+          </Link>
+        </motion.div>
       </div>
 
-      {/* Learning Style Selector */}
-      <div className="px-5 mb-6">
+      <div className="editorial-divider mx-5 mb-4" />
+
+      {/* Learning Style */}
+      <div className="px-5 mb-4">
         <p className="section-label mb-3">Learning Style</p>
         <div className="flex gap-2">
           {(["visual", "reader", "hands-on"] as const).map(style => (
@@ -98,17 +95,23 @@ export default function Profile() {
         </div>
       </div>
 
-      <div className="editorial-divider mx-5 mb-6" />
+      <div className="editorial-divider mx-5 mb-4" />
 
-      <div className="px-5 space-y-2">
-        {MENU_ITEMS.map((item, i) => (
+      {/* Menu */}
+      <div className="px-5 space-y-1.5">
+        {[
+          { icon: Wallet, label: "Wisdom Wallet", subtitle: `${progress.tokens} tokens`, to: "/wallet" },
+          { icon: Sparkles, label: "Token Store", subtitle: "Unlock content", to: "/store" },
+          { icon: Crown, label: "Upgrade to Pro", subtitle: "Unlock all tracks", to: "/upgrade", accent: true },
+          { icon: Settings, label: "Settings", subtitle: "Memory, privacy, data", to: "/settings" },
+        ].map((item, i) => (
           <motion.div key={item.label} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.25 + i * 0.05 }}>
+            transition={{ delay: 0.15 + i * 0.04 }}>
             <Link to={item.to}
-              className={`w-full glass-card p-5 flex items-center gap-4 text-left transition-all duration-200 block ${
-                item.accent ? "border-primary/20 glow-red hover:border-primary/40" : "hover:border-primary/10"
+              className={`w-full glass-card p-4 flex items-center gap-4 text-left transition-all block ${
+                item.accent ? "border-primary/20 hover:border-primary/40" : "hover:border-primary/10"
               }`}>
-              <item.icon className={`h-5 w-5 ${item.accent ? "text-primary" : "text-text-tertiary"}`} strokeWidth={1.5} />
+              <item.icon className={`h-4.5 w-4.5 ${item.accent ? "text-primary" : "text-text-tertiary"}`} strokeWidth={1.5} />
               <div className="flex-1">
                 <p className={`text-body font-medium ${item.accent ? "text-primary" : "text-foreground"}`}>{item.label}</p>
                 <p className="text-caption text-muted-foreground">{item.subtitle}</p>
@@ -117,6 +120,15 @@ export default function Profile() {
             </Link>
           </motion.div>
         ))}
+      </div>
+
+      {/* Sign Out */}
+      <div className="px-5 mt-6">
+        <button onClick={handleSignOut}
+          className="w-full glass-card p-4 flex items-center gap-4 text-left hover:border-destructive/20 transition-all">
+          <LogOut className="h-4.5 w-4.5 text-destructive/70" strokeWidth={1.5} />
+          <p className="text-body font-medium text-destructive/70">Sign Out</p>
+        </button>
       </div>
     </div>
   );
