@@ -19,23 +19,12 @@ import OwlIcon from "@/components/OwlIcon";
 import OwlHuntTracker from "@/components/OwlHuntTracker";
 
 const TUTOR_MODES = [
+  { id: "fast-answer", label: "Fast", icon: "⚡" },
   { id: "default", label: "Teach Me", icon: "📖" },
   { id: "explain-10", label: "ELI10", icon: "🧒" },
-  { id: "fast-answer", label: "Fast", icon: "⚡" },
   { id: "deep-dive", label: "Deep Dive", icon: "🔬" },
-  { id: "socratic", label: "Socratic", icon: "🤔" },
-  { id: "drills", label: "Drills", icon: "💪" },
-  { id: "workflow", label: "Workflow", icon: "🔗" },
-  { id: "fix-prompt", label: "Fix Prompt", icon: "🔧" },
-  { id: "task", label: "Task Mode", icon: "🎯" },
-  { id: "quote-teach", label: "Quotes", icon: "💎" },
-];
-
-const QUICK_ACTIONS = [
-  { label: "Write / Rewrite", prompt: "Help me write or rewrite: " },
-  { label: "Plan", prompt: "Help me create a plan for: " },
-  { label: "Fix / Improve", prompt: "Help me fix or improve: " },
-  { label: "Learn this", prompt: "Teach me about: " },
+  { id: "blueprint", label: "Blueprint", icon: "🏗️" },
+  { id: "audit", label: "Audit", icon: "🔍" },
 ];
 
 const QUOTE_SEEN_KEY = "wisdom-daily-quote-key";
