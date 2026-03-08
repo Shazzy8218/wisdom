@@ -551,7 +551,59 @@ function generatePrompts(name: string): {label: string; prompt: string; level: "
 }
 
 export function getCategoryTrack(id: string): CategoryTrack | undefined {
-  return CATEGORY_TRACKS.find(t => t.id === id);
+  const found = CATEGORY_TRACKS.find(t => t.id === id);
+  if (found) return found;
+  // Bridge: check core tracks and convert to CategoryTrack format
+  return getCoreTrackAsCategoryTrack(id);
+}
+
+/** Convert a CoreTrackMeta into a CategoryTrack so the same lesson UI works */
+function getCoreTrackAsCategoryTrack(id: string): CategoryTrack | undefined {
+  // Lazy import to avoid circular deps
+  const { CORE_TRACKS } = require("@/lib/core-tracks");
+  const track = CORE_TRACKS.find((t: any) => t.id === id);
+  if (!track) return undefined;
+
+  // Create starter lessons from module names
+  const starterLessons: StarterLesson[] = track.modules.map((mod: string, i: number) => ({
+    title: mod,
+    hook: `Learn ${mod.toLowerCase()} — part of the ${track.name} track.`,
+    difficulty: "beginner",
+    content: `This lesson covers "${mod}" from the ${track.name} track. ${track.description} Use "Ask Owl" or "Go Deeper" to generate a full AI lesson on this topic.`,
+    mentalModel: `Understanding ${mod.toLowerCase()} is essential for ${track.outcome.toLowerCase()}`,
+    commonMistakes: `Skipping the basics of ${mod.toLowerCase()} and jumping to advanced usage without understanding fundamentals.`,
+    upgrade: `${track.moneyAngle}`,
+    bragLine: `I completed ${mod} in the ${track.name} track.`,
+    interaction: "tap-reveal" as const,
+    tryPrompt: `Open AI chat and ask: "Teach me about ${mod} in the context of ${track.name}. Give me 3 practical examples and one exercise."`,
+    xp: 50 + i * 5,
+    tokens: 10 + Math.floor(i / 2) * 2,
+  }));
+
+  return {
+    id: track.id,
+    name: track.name,
+    icon: track.icon,
+    description: track.description,
+    levels: [
+      { level: "Beginner", modules: track.modules },
+      { level: "Intermediate", modules: track.modules.map((m: string) => `${m} — Applied`) },
+      { level: "Advanced", modules: track.modules.map((m: string) => `${m} — Mastery`) },
+    ],
+    starterLessons,
+    workflows: [
+      { title: `${track.name} Workflow`, steps: track.modules.slice(0, 5) },
+    ],
+    prompts: track.modules.slice(0, 4).map((mod: string) => ({
+      label: mod,
+      prompt: `Teach me about ${mod} in the context of ${track.name}. Include practical examples, common mistakes, and an actionable exercise.`,
+      level: "beginner" as const,
+    })),
+    scenario: {
+      title: `Apply ${track.name}`,
+      description: `${track.description} ${track.moneyAngle}`,
+    },
+  };
 }
 
 // Get all module lesson starters for a specific module
