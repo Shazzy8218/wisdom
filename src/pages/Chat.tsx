@@ -94,6 +94,7 @@ export default function Chat() {
   useEffect(() => { setThreads(loadChatThreads()); }, []);
 
   useEffect(() => {
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
     blueprintRef.current?.scrollTo({ top: blueprintRef.current.scrollHeight, behavior: "smooth" });
   }, [messages]);
 
