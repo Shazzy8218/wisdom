@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, Square, RotateCcw, ChevronDown, Plus, History, Pencil, Trash2, Bookmark, Zap } from "lucide-react";
+import { Send, Square, RotateCcw, ChevronDown, Plus, History, Pencil, Trash2, Bookmark } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { streamChat, type Msg } from "@/lib/ai-stream";
 import { parseAndSaveWisdomPack } from "@/lib/wisdom-packs";
@@ -19,23 +19,12 @@ import OwlIcon from "@/components/OwlIcon";
 import OwlHuntTracker from "@/components/OwlHuntTracker";
 
 const TUTOR_MODES = [
+  { id: "fast-answer", label: "Fast", icon: "⚡" },
   { id: "default", label: "Teach Me", icon: "📖" },
   { id: "explain-10", label: "ELI10", icon: "🧒" },
-  { id: "fast-answer", label: "Fast", icon: "⚡" },
   { id: "deep-dive", label: "Deep Dive", icon: "🔬" },
-  { id: "socratic", label: "Socratic", icon: "🤔" },
-  { id: "drills", label: "Drills", icon: "💪" },
-  { id: "workflow", label: "Workflow", icon: "🔗" },
-  { id: "fix-prompt", label: "Fix Prompt", icon: "🔧" },
-  { id: "task", label: "Task Mode", icon: "🎯" },
-  { id: "quote-teach", label: "Quotes", icon: "💎" },
-];
-
-const QUICK_ACTIONS = [
-  { label: "Write / Rewrite", prompt: "Help me write or rewrite: " },
-  { label: "Plan", prompt: "Help me create a plan for: " },
-  { label: "Fix / Improve", prompt: "Help me fix or improve: " },
-  { label: "Learn this", prompt: "Teach me about: " },
+  { id: "blueprint", label: "Blueprint", icon: "🏗️" },
+  { id: "audit", label: "Audit", icon: "🔍" },
 ];
 
 const QUOTE_SEEN_KEY = "wisdom-daily-quote-key";
@@ -73,7 +62,7 @@ export default function Chat() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
-  const [mode, setMode] = useState("default");
+  const [mode, setMode] = useState("fast-answer");
   const [showModes, setShowModes] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [threads, setThreads] = useState<ChatThread[]>([]);
@@ -155,11 +144,6 @@ export default function Chat() {
         if (assistantContent && tid) {
           addMessageToThread(tid, "assistant", assistantContent);
           setThreads(loadChatThreads());
-          // Auto-save wisdom pack from task mode responses
-          if (mode === "task") {
-            const lastUserMsg = newMessages.filter(m => m.role === "user").pop();
-            parseAndSaveWisdomPack(assistantContent, lastUserMsg?.content || text);
-          }
         }
       },
       onError: (err) => {
@@ -331,16 +315,6 @@ export default function Chat() {
               </div>
             </motion.div>
 
-            {/* Quick Actions */}
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-              className="grid grid-cols-2 gap-2 w-full max-w-sm mb-4">
-              {QUICK_ACTIONS.map(action => (
-                <button key={action.label} onClick={() => setInput(action.prompt)}
-                  className="glass-card p-3 text-caption font-medium text-muted-foreground hover:text-foreground hover:border-primary/20 transition-all text-left">
-                  {action.label}
-                </button>
-              ))}
-            </motion.div>
 
             {/* Mode Toggle */}
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}>
