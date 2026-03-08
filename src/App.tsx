@@ -76,7 +76,7 @@ function AppRoutes() {
   return (
     <>
       <ScrollToTop />
-      <div className="mx-auto max-w-lg lg:max-w-none">
+      <div className="mx-auto max-w-lg">
         <Routes>
           {/* Chat is now the default home */}
           <Route path="/" element={<Chat />} />

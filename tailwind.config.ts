@@ -12,7 +12,6 @@ export default {
         sm: "640px",
         md: "768px",
         lg: "1024px",
-        xl: "1280px",
       },
     },
     extend: {
@@ -65,7 +64,6 @@ export default {
           "red-dark": "hsl(var(--accent-red-dark))",
           gold: "hsl(var(--accent-gold))",
           green: "hsl(var(--accent-green))",
-          blue: "hsl(var(--accent-blue))",
         },
         popover: {
           DEFAULT: "hsl(var(--popover))",
