@@ -1,6 +1,6 @@
 // Core AI Mastery Tracks — the guided learning paths for AI mastery + money
 
-import type { CategoryTrack } from "@/lib/categories";
+// CategoryTrack type is in categories.ts — no circular import needed
 
 export interface CoreTrackMeta {
   id: string;
