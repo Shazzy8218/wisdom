@@ -46,12 +46,15 @@ const IMAGE_GEN_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generat
 
 // Detect if user is asking for image generation
 const IMAGE_GEN_PATTERNS = [
-  /\b(generate|create|make|draw|design|produce|render)\b.*\b(image|picture|logo|icon|diagram|illustration|art|graphic|mockup|thumbnail|flowchart|visual|poster|banner|concept)\b/i,
-  /\b(image|picture|logo|icon|diagram|illustration|art|graphic|mockup|thumbnail|flowchart|visual|poster|banner)\b.*\b(generate|create|make|draw|design|produce|render|of|for)\b/i,
-  /^(generate|create|make|draw|design)\b/i,
+  /\b(generate|create|make|draw|design|produce|render|build)\b.*\b(image|picture|logo|icon|diagram|illustration|art|graphic|mockup|thumbnail|flowchart|visual|poster|banner|concept|screenshot|wireframe)\b/i,
+  /\b(image|picture|logo|icon|diagram|illustration|art|graphic|mockup|thumbnail|flowchart|visual|poster|banner|concept)\b.*\b(generate|create|make|draw|design|produce|render|of|for)\b/i,
+  /^(generate|create|make|draw|design)\s/i,
+  /\b(logo|icon|mockup|flowchart|illustration|diagram)\s+(for|of|about|showing|depicting)\b/i,
 ];
 
 function isImageGenRequest(text: string): boolean {
+  // Exclude if it's clearly a question about images rather than a generation request
+  if (/^(what|how|why|can you|do you|are you)\b/i.test(text) && !/\b(generate|create|make|draw|design)\b/i.test(text)) return false;
   return IMAGE_GEN_PATTERNS.some(p => p.test(text));
 }
 

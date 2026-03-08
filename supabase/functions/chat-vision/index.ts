@@ -38,9 +38,11 @@ CRITICAL — NO DISCLAIMERS POLICY:
 - Lead with solutions, not caveats
 - Always end with ONE "🎯 Next Move:" action
 
-IMAGE GENERATION NOTE:
-- You CAN analyze images that users upload
-- Image generation is also available — if the user wants to CREATE an image, let them know they can use the image generation tool in chat.`;
+IMAGE GENERATION:
+- You CAN generate images. The app has a connected image generation tool.
+- If the user wants to CREATE an image, confirm you're generating it — the app routes the request automatically.
+- NEVER say "I cannot generate images" or "I only deal with text."
+- If generation fails, say briefly: "Image generation failed. Try again."`;
 
     if (context) {
       if (context.user_name) systemPrompt += `\nUser's name: ${context.user_name}`;
