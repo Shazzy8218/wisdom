@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { motion } from "framer-motion";
 import { Brain, Trash2, Eye, RotateCcw, Wifi, Loader2, CheckCircle, XCircle, LogOut, Shield, HelpCircle, Download, AlertTriangle, Target, Layers, Activity, MessageSquare, Smartphone, Volume2 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
