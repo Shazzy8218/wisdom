@@ -81,6 +81,18 @@ serve(async (req) => {
       if (context.lessonTitle) contextInfo += `\nCurrent lesson: ${context.lessonTitle}`;
       if (context.selectedText) contextInfo += `\nUser highlighted text: "${context.selectedText}"`;
       if (context.cardId) contextInfo += `\nFeed card context: ${context.cardId}`;
+      
+      // Calibration adaptation
+      if (context.goal_mode) {
+        contextInfo += context.goal_mode === "income"
+          ? `\n\nCALIBRATION — GOAL MODE: INCOME. Prioritize speed, revenue, cash flow. Give short, actionable outputs. Focus on next-step scripts, quick wins, monetization. Time-box suggestions. Be punchy.`
+          : `\n\nCALIBRATION — GOAL MODE: IMPACT. Prioritize systems, scalability, documentation, long-term strategy. Focus on architecture, process design, sustainable growth. Be thorough.`;
+      }
+      if (context.output_mode) {
+        contextInfo += context.output_mode === "blueprints"
+          ? `\nOUTPUT MODE: BLUEPRINTS. Structure outputs as layouts, logic flows, step-by-step plans, diagrams, frameworks. Use headers, numbered steps, decision trees.`
+          : `\nOUTPUT MODE: COMPONENTS. Structure outputs as templates, scripts, code snippets, copy blocks, checklists. Give ready-to-use pieces the user can copy and deploy.`;
+      }
     }
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
