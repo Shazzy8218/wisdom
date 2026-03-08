@@ -534,6 +534,40 @@ export default function Chat() {
       return;
     }
 
+    // Local time/date: instant local result
+    if (route.tool === "localtime" && !hasImage && !hasFile) {
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit", hour12: true });
+      const dateStr = now.toLocaleDateString(undefined, { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      const response = `It's **${timeStr}** on **${dateStr}**.\n\nTimezone: ${tz}`;
+      const userMsg: ChatMessage = { id: Date.now().toString(), role: "user", content: text };
+      const assistantMsg: ChatMessage = { id: `time-${Date.now()}`, role: "assistant", content: response, toolsUsed: ["localtime"] };
+      setMessages(prev => [...prev, userMsg, assistantMsg]);
+      setInput("");
+      let tid = threadId || currentThreadId;
+      if (!tid) { const t = createThread("Time Check"); tid = t.id; setCurrentThreadId(tid); }
+      addMessageToThread(tid, "user", text);
+      addMessageToThread(tid, "assistant", response);
+      setThreads(loadChatThreads());
+      return;
+    }
+
+    // Weather: check if connected
+    if (route.tool === "web" && route.subType === "weather" && !hasImage && !hasFile) {
+      // No weather API connected — give brief response
+      const userMsg: ChatMessage = { id: Date.now().toString(), role: "user", content: text };
+      const assistantMsg: ChatMessage = { id: `weather-${Date.now()}`, role: "assistant", content: "Weather isn't connected yet.", toolsUsed: ["web"] };
+      setMessages(prev => [...prev, userMsg, assistantMsg]);
+      setInput("");
+      let tid = threadId || currentThreadId;
+      if (!tid) { const t = createThread("Weather"); tid = t.id; setCurrentThreadId(tid); }
+      addMessageToThread(tid, "user", text);
+      addMessageToThread(tid, "assistant", "Weather isn't connected yet.");
+      setThreads(loadChatThreads());
+      return;
+    }
+
     // Calculator: instant local result
     if (route.tool === "calculator" && !hasImage && !hasFile) {
       const calcResult = tryCalculate(text);
