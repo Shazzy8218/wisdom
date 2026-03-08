@@ -56,6 +56,54 @@ export type Database = {
         }
         Relationships: []
       }
+      user_goals: {
+        Row: {
+          baseline_value: number
+          completed: boolean
+          created_at: string
+          current_value: number
+          deadline: string | null
+          id: string
+          roadmap: Json
+          target_metric: string
+          target_value: number
+          title: string
+          updated_at: string
+          user_id: string
+          why: string
+        }
+        Insert: {
+          baseline_value?: number
+          completed?: boolean
+          created_at?: string
+          current_value?: number
+          deadline?: string | null
+          id?: string
+          roadmap?: Json
+          target_metric?: string
+          target_value?: number
+          title?: string
+          updated_at?: string
+          user_id: string
+          why?: string
+        }
+        Update: {
+          baseline_value?: number
+          completed?: boolean
+          created_at?: string
+          current_value?: number
+          deadline?: string | null
+          id?: string
+          roadmap?: Json
+          target_metric?: string
+          target_value?: number
+          title?: string
+          updated_at?: string
+          user_id?: string
+          why?: string
+        }
+        Relationships: []
+      }
       user_progress: {
         Row: {
           completed_lessons: Json
