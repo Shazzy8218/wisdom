@@ -9,6 +9,7 @@ import SplashQuote from "@/components/SplashQuote";
 import ScrollToTop from "@/components/ScrollToTop";
 import { useAuth } from "@/hooks/useAuth";
 import { useCalibration } from "@/hooks/useCalibration";
+import { useCloudSync } from "@/hooks/useCloudSync";
 import CalibrationModal from "@/components/CalibrationModal";
 import Chat from "./pages/Chat";
 import Learn from "./pages/Learn";
@@ -44,6 +45,7 @@ const queryClient = new QueryClient();
 function AppRoutes() {
   const { user, loading } = useAuth();
   const { calibration, loading: calLoading, completeCalibration } = useCalibration();
+  useCloudSync();
   const [splashDismissed, setSplashDismissed] = useState(false);
 
   if (loading) {

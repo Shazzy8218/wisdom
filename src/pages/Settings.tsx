@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { motion } from "framer-motion";
 import { Brain, Trash2, Eye, RotateCcw, Wifi, Loader2, CheckCircle, XCircle, LogOut, Shield, HelpCircle, Download, AlertTriangle, Target, Layers, Activity, MessageSquare, Smartphone, Volume2 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useProgress } from "@/hooks/useProgress";
 import { useCalibration } from "@/hooks/useCalibration";
 import HiddenOwl from "@/components/HiddenOwl";
+const PersistenceDebugPanel = lazy(() => import("@/components/PersistenceDebug"));
 
 interface MemoryToggle {
   id: string;
@@ -429,6 +430,21 @@ export default function Settings() {
           </div>
         </button>
       </div>
+
+      {/* Debug Panel */}
+      <div className="px-5 pb-4">
+        <details className="group">
+          <summary className="text-micro text-muted-foreground cursor-pointer hover:text-foreground transition-colors">
+            🔧 Developer: Persistence Debug
+          </summary>
+          <div className="mt-2">
+            <Suspense fallback={<div className="text-xs text-muted-foreground p-2">Loading…</div>}>
+              <PersistenceDebugPanel />
+            </Suspense>
+          </div>
+        </details>
+      </div>
+
       <div className="px-5 pb-8 flex justify-end">
         <HiddenOwl locationId="settings-footer" size={14} />
       </div>

@@ -28,6 +28,7 @@ export async function loadCloudProgressOnLogin() {
   if (cloudLoaded) return;
   const cloud = await fetchCloudProgress();
   if (cloud) {
+    // Only update if cloud has data — never overwrite with empty defaults
     cachedProgress = cloud;
     saveCacheProgress(cloud);
     notifyAll();
