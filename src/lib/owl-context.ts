@@ -57,6 +57,8 @@ export interface OwlContext {
   cardId?: string;
   // Image
   has_image?: string;
+  // Analytics
+  recommendation_context?: string;
 }
 
 export function buildOwlContext(extras?: Record<string, string>): Record<string, string> {

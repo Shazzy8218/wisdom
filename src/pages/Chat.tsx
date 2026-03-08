@@ -12,6 +12,9 @@ import {
   type ChatThread,
 } from "@/lib/chat-history";
 import { buildOwlContext, detectToolsUsed, type ToolUsed } from "@/lib/owl-context";
+import { getAnalytics, getRecommendationContext } from "@/lib/analytics-engine";
+import NextMoveCard from "@/components/NextMoveCard";
+import InsightCard from "@/components/InsightCard";
 import { useLiveClock } from "@/hooks/useLiveClock";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { useProgress } from "@/hooks/useProgress";
@@ -613,6 +616,7 @@ export default function Chat() {
     let assistantContent = "";
 
     const owlContext = buildOwlContext();
+    owlContext.recommendation_context = getRecommendationContext();
     const toolsUsed: string[] = detectToolsUsed(owlContext, hasImage);
     if (hasFile && !toolsUsed.includes("vision")) toolsUsed.push("vision");
     if (route.tool === "web") toolsUsed.push("web");
@@ -1026,8 +1030,22 @@ export default function Chat() {
               </div>
             </motion.div>
 
+            {/* Proactive Suggestions */}
+            {(() => {
+              const analytics = getAnalytics();
+              const topSuggestion = analytics.suggestions[0];
+              const topInsight = analytics.insights[0];
+              return (
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.15 }}
+                  className="w-full max-w-sm mb-4 space-y-3">
+                  {topSuggestion && <NextMoveCard suggestion={topSuggestion} delay={0.15} />}
+                  {topInsight && <InsightCard insight={topInsight} delay={0.2} />}
+                </motion.div>
+              );
+            })()}
+
             {/* Quick Actions */}
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.25 }}
               className="w-full max-w-sm mb-6">
               <div className="flex flex-wrap gap-2 justify-center">
                 {QUICK_ACTIONS.map((action, i) => (

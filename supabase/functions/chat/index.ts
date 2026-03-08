@@ -157,6 +157,7 @@ serve(async (req) => {
       if (context.favorites_count) contextInfo += `\nFavorites saved: ${context.favorites_count}`;
       if (context.recent_topics) contextInfo += `\nRecent chat topics: ${context.recent_topics}`;
       if (context.behavioral_hints) contextInfo += `\nBehavioral insights: ${context.behavioral_hints}`;
+      if (context.recommendation_context) contextInfo += `\n\nPROACTIVE ANALYTICS (use this to guide advice): ${context.recommendation_context}`;
 
       if (context.goal_mode) {
         contextInfo += context.goal_mode === "income"

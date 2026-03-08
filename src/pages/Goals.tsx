@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import { Target, ChevronLeft, Plus, Trash2, CheckCircle, Circle, TrendingUp, Flame, Coins, Clock } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
@@ -6,11 +6,16 @@ import { useGoals } from "@/hooks/useGoals";
 import { useProgress } from "@/hooks/useProgress";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "@/hooks/use-toast";
+import { getAnalytics } from "@/lib/analytics-engine";
+import WeeklyReviewCard from "@/components/WeeklyReviewCard";
+import NextMoveCard from "@/components/NextMoveCard";
+import InsightCard from "@/components/InsightCard";
 
 export default function Goals() {
   const { goals, primaryGoal, createGoal, updateGoal, deleteGoal } = useGoals();
   const { progress } = useProgress();
   const navigate = useNavigate();
+  const analytics = useMemo(() => getAnalytics(), [progress]);
   const [showCreate, setShowCreate] = useState(false);
   const [title, setTitle] = useState("");
   const [metric, setMetric] = useState("mastery");
@@ -55,6 +60,9 @@ export default function Goals() {
     if (!g || g.targetValue === g.baselineValue) return 0;
     return Math.min(100, Math.round(((g.currentValue - g.baselineValue) / (g.targetValue - g.baselineValue)) * 100));
   };
+
+  const goalRecommendation = analytics.suggestions.find(s => s.type === "recommended" || s.type === "next-move");
+  const driftInsight = analytics.insights.find(i => i.type === "drift");
 
   return (
     <div className="min-h-screen pb-24">
@@ -140,6 +148,27 @@ export default function Goals() {
             </div>
           </div>
         </motion.div>
+      )}
+
+      {/* Goal Drift Warning */}
+      {driftInsight && (
+        <div className="px-5 mb-4">
+          <InsightCard insight={driftInsight} delay={0.05} />
+        </div>
+      )}
+
+      {/* Goal-aligned Recommendation */}
+      {goalRecommendation && (
+        <div className="px-5 mb-4">
+          <NextMoveCard suggestion={goalRecommendation} delay={0.1} />
+        </div>
+      )}
+
+      {/* Weekly Review */}
+      {analytics.weeklyReview && (
+        <div className="px-5 mb-5">
+          <WeeklyReviewCard review={analytics.weeklyReview} delay={0.15} />
+        </div>
       )}
 
       {/* Other Goals */}
