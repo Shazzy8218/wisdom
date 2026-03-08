@@ -31,6 +31,7 @@ const WISDOM_QUOTES = [
 
 export default function Library() {
   const [tab, setTab] = useState<Tab>("snapshots");
+  const [editedPrompts, setEditedPrompts] = useState<Record<string, string>>({});
   const [search, setSearch] = useState("");
   const [favorites, setFavorites] = useState<string[]>(() => {
     try { return JSON.parse(localStorage.getItem("wisdom-favorites") || "[]"); } catch { return []; }
@@ -262,8 +263,17 @@ export default function Library() {
                                 <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }}
                                   className="overflow-hidden mt-3">
                                   <div className="rounded-xl bg-surface-2 p-3 mb-3">
-                                    <p className="text-caption text-foreground font-mono whitespace-pre-wrap">{p.prompt}</p>
+                                    <textarea
+                                      value={editedPrompts[p.id] ?? p.prompt}
+                                      onChange={(e) => setEditedPrompts(prev => ({ ...prev, [p.id]: e.target.value }))}
+                                      onClick={(e) => e.stopPropagation()}
+                                      className="w-full bg-transparent text-caption text-foreground font-mono whitespace-pre-wrap outline-none resize-none min-h-[80px]"
+                                      rows={4}
+                                    />
                                   </div>
+                                  {editedPrompts[p.id] && editedPrompts[p.id] !== p.prompt && (
+                                    <p className="text-micro text-primary mb-2">✏️ Edited — your changes will be sent to Chat</p>
+                                  )}
                                   <div className="flex flex-wrap gap-1 mb-3">
                                     {p.tags.map(tag => (
                                       <span key={tag} className="rounded-lg bg-primary/10 px-2 py-0.5 text-micro text-primary">#{tag}</span>
@@ -273,11 +283,11 @@ export default function Library() {
                               )}
                             </AnimatePresence>
                             <div className="flex gap-2 mt-3">
-                              <button onClick={(e) => { e.stopPropagation(); copyToClipboard(p.prompt); }}
+                              <button onClick={(e) => { e.stopPropagation(); copyToClipboard(editedPrompts[p.id] ?? p.prompt); }}
                                 className="flex items-center gap-1 rounded-lg bg-surface-2 px-2.5 py-1.5 text-micro font-medium text-muted-foreground hover:bg-surface-hover transition-colors">
                                 <Copy className="h-3 w-3" /> Copy
                               </button>
-                              <button onClick={(e) => { e.stopPropagation(); navigate(`/?context=${encodeURIComponent(p.prompt)}&autoSend=true`); }}
+                              <button onClick={(e) => { e.stopPropagation(); navigate(`/?context=${encodeURIComponent(editedPrompts[p.id] ?? p.prompt)}&autoSend=true`); }}
                                 className="flex items-center gap-1 rounded-lg bg-primary/10 px-2.5 py-1.5 text-micro font-medium text-primary hover:bg-primary/20 transition-colors">
                                 <Play className="h-3 w-3" /> Use in Chat
                               </button>
