@@ -44,8 +44,8 @@ const IMAGE_STYLES = [
 const QUOTE_SEEN_KEY = "wisdom-daily-quote-key";
 
 const IMAGE_GEN_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-chat-image`;
-
-// Detect if user is asking for image generation
+const WEB_SEARCH_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/owl-web-search`;
+const DOC_GEN_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/owl-generate-doc`;
 const IMAGE_GEN_PATTERNS = [
   /\b(generate|create|make|draw|design|produce|render|build)\b.*\b(image|picture|logo|icon|diagram|illustration|art|graphic|mockup|thumbnail|flowchart|visual|poster|banner|concept|screenshot|wireframe)\b/i,
   /\b(image|picture|logo|icon|diagram|illustration|art|graphic|mockup|thumbnail|flowchart|visual|poster|banner|concept)\b.*\b(generate|create|make|draw|design|produce|render|of|for)\b/i,
