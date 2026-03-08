@@ -85,7 +85,6 @@ export function parseAndSaveWisdomPack(assistantContent: string, userPrompt: str
 
   // Also save as wisdom snapshot
   try {
-    const { saveWisdomSnapshot } = require("@/lib/wisdom-snapshots");
     saveWisdomSnapshot({
       id: pack.id,
       title: userPrompt.slice(0, 60),
