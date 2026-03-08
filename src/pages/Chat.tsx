@@ -94,10 +94,10 @@ function extractCharts(content: string): { text: string; charts: ChartData[] } {
   return { text: text.trim(), charts };
 }
 
-// Tool indicator badges — add "imagegen"
-type ExtToolUsed = ToolUsed | "imagegen";
+// Tool indicator badges
+type ExtToolUsed = OwlTool | "profile" | "memory" | "mastery" | "goals" | "vision";
 
-const TOOL_ICONS: Record<ExtToolUsed, { icon: React.ReactNode; label: string }> = {
+const TOOL_ICON_MAP: Record<string, { icon: React.ReactNode; label: string }> = {
   profile: { icon: <User className="h-2.5 w-2.5" />, label: "Profile" },
   memory: { icon: <Brain className="h-2.5 w-2.5" />, label: "Memory" },
   chart: { icon: <BarChart3 className="h-2.5 w-2.5" />, label: "Chart" },
@@ -105,17 +105,25 @@ const TOOL_ICONS: Record<ExtToolUsed, { icon: React.ReactNode; label: string }> 
   goals: { icon: <Target className="h-2.5 w-2.5" />, label: "Goals" },
   mastery: { icon: <BarChart3 className="h-2.5 w-2.5" />, label: "Mastery" },
   imagegen: { icon: <Wand2 className="h-2.5 w-2.5" />, label: "Image Gen" },
+  web: { icon: <Globe className="h-2.5 w-2.5" />, label: "Web" },
+  docgen: { icon: <FileDown className="h-2.5 w-2.5" />, label: "Doc Gen" },
+  calculator: { icon: <Calculator className="h-2.5 w-2.5" />, label: "Calculator" },
+  reminder: { icon: <Clock className="h-2.5 w-2.5" />, label: "Reminder" },
+  chat: { icon: <Brain className="h-2.5 w-2.5" />, label: "Chat" },
 };
 
-function ToolBadges({ tools }: { tools: ExtToolUsed[] }) {
+function ToolBadges({ tools }: { tools: string[] }) {
   if (tools.length === 0) return null;
   return (
     <div className="flex flex-wrap gap-1 mt-1.5">
-      {tools.map(t => (
-        <span key={t} className="inline-flex items-center gap-0.5 rounded-md bg-primary/10 px-1.5 py-0.5 text-[10px] text-primary font-medium">
-          {TOOL_ICONS[t].icon} {TOOL_ICONS[t].label}
-        </span>
-      ))}
+      {tools.map(t => {
+        const info = TOOL_ICON_MAP[t] || { icon: null, label: t };
+        return (
+          <span key={t} className="inline-flex items-center gap-0.5 rounded-md bg-primary/10 px-1.5 py-0.5 text-[10px] text-primary font-medium">
+            {info.icon} {info.label}
+          </span>
+        );
+      })}
     </div>
   );
 }
