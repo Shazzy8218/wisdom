@@ -14,6 +14,102 @@ export type Database = {
   }
   public: {
     Tables: {
+      chat_messages: {
+        Row: {
+          content: string
+          id: string
+          role: string
+          thread_id: string
+          timestamp: number
+          user_id: string
+        }
+        Insert: {
+          content?: string
+          id: string
+          role?: string
+          thread_id: string
+          timestamp?: number
+          user_id: string
+        }
+        Update: {
+          content?: string
+          id?: string
+          role?: string
+          thread_id?: string
+          timestamp?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      chat_threads: {
+        Row: {
+          archived: boolean
+          created_at: number
+          id: string
+          lesson_id: string | null
+          title: string
+          updated_at: number
+          user_id: string
+        }
+        Insert: {
+          archived?: boolean
+          created_at?: number
+          id: string
+          lesson_id?: string | null
+          title?: string
+          updated_at?: number
+          user_id: string
+        }
+        Update: {
+          archived?: boolean
+          created_at?: number
+          id?: string
+          lesson_id?: string | null
+          title?: string
+          updated_at?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      personalized_lessons: {
+        Row: {
+          completed: boolean
+          content: string
+          generated_at: number
+          hook: string
+          id: string
+          source: string
+          source_thread_id: string | null
+          title: string
+          try_prompt: string
+          user_id: string
+        }
+        Insert: {
+          completed?: boolean
+          content?: string
+          generated_at?: number
+          hook?: string
+          id: string
+          source?: string
+          source_thread_id?: string | null
+          title?: string
+          try_prompt?: string
+          user_id: string
+        }
+        Update: {
+          completed?: boolean
+          content?: string
+          generated_at?: number
+          hook?: string
+          id?: string
+          source?: string
+          source_thread_id?: string | null
+          title?: string
+          try_prompt?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           calibration_done: boolean
