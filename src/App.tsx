@@ -8,13 +8,14 @@ import BottomNav from "@/components/BottomNav";
 import SplashQuote from "@/components/SplashQuote";
 import ScrollToTop from "@/components/ScrollToTop";
 import { useAuth } from "@/hooks/useAuth";
-import Index from "./pages/Index";
+import Chat from "./pages/Chat";
+import Learn from "./pages/Learn";
 import LearnFeed from "./pages/LearnFeed";
 import LearnPaths from "./pages/LearnPaths";
-import Chat from "./pages/Chat";
 import MasteryChart from "./pages/MasteryChart";
 import Games from "./pages/Games";
 import Profile from "./pages/Profile";
+import Scoreboard from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import WisdomWallet from "./pages/WisdomWallet";
 import TokenStore from "./pages/TokenStore";
@@ -69,10 +70,11 @@ function AppRoutes() {
       <ScrollToTop />
       <div className="mx-auto max-w-lg">
         <Routes>
-          <Route path="/" element={<Index />} />
+          {/* Chat is now the default home */}
+          <Route path="/" element={<Chat />} />
+          <Route path="/learn" element={<Learn />} />
           <Route path="/feed" element={<LearnFeed />} />
           <Route path="/paths" element={<LearnPaths />} />
-          <Route path="/chat" element={<Chat />} />
           <Route path="/mastery" element={<MasteryChart />} />
           <Route path="/games" element={<Games />} />
           <Route path="/games/hallucination-hunter" element={<HallucinationHunter />} />
@@ -84,6 +86,7 @@ function AppRoutes() {
           <Route path="/category/:categoryId/module" element={<ModuleView />} />
           <Route path="/category/:categoryId/lesson" element={<LessonView />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/scoreboard" element={<Scoreboard />} />
           <Route path="/wallet" element={<WisdomWallet />} />
           <Route path="/store" element={<TokenStore />} />
           <Route path="/upgrade" element={<Upgrade />} />
@@ -94,6 +97,7 @@ function AppRoutes() {
           <Route path="/support" element={<Support />} />
           <Route path="/drills" element={<LiveFireDrills />} />
           <Route path="/auth" element={<Navigate to="/" replace />} />
+          <Route path="/chat" element={<Navigate to="/" replace />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
         <BottomNav />
