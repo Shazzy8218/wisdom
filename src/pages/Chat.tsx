@@ -147,7 +147,10 @@ interface ChatMessage extends Msg {
   generatedStyle?: string;
   fileName?: string;
   fileType?: AttachmentType;
-  toolsUsed?: ExtToolUsed[];
+  toolsUsed?: string[];
+  citations?: string[];
+  docDownload?: { content: string; fileName: string; mimeType: string; format: string };
+  webSource?: string;
 }
 
 const VISION_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-vision`;
