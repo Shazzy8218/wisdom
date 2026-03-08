@@ -372,7 +372,7 @@ export default function Chat() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
-  const [mode, setMode] = useState("fast-answer");
+  const [mode, setMode] = useState("default");
   const [showModes, setShowModes] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [threads, setThreads] = useState<ChatThread[]>([]);
