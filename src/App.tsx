@@ -8,6 +8,8 @@ import BottomNav from "@/components/BottomNav";
 import SplashQuote from "@/components/SplashQuote";
 import ScrollToTop from "@/components/ScrollToTop";
 import { useAuth } from "@/hooks/useAuth";
+import { useCalibration } from "@/hooks/useCalibration";
+import CalibrationModal from "@/components/CalibrationModal";
 import Chat from "./pages/Chat";
 import Learn from "./pages/Learn";
 import LearnFeed from "./pages/LearnFeed";
@@ -40,6 +42,7 @@ const queryClient = new QueryClient();
 
 function AppRoutes() {
   const { user, loading } = useAuth();
+  const { calibration, loading: calLoading, completeCalibration } = useCalibration();
   const [splashDismissed, setSplashDismissed] = useState(false);
 
   if (loading) {
@@ -63,6 +66,11 @@ function AppRoutes() {
         <Route path="*" element={<Navigate to="/auth" replace />} />
       </Routes>
     );
+  }
+
+  // Show calibration modal for first-time users
+  if (!calLoading && user && !calibration.calibrationDone) {
+    return <CalibrationModal onComplete={completeCalibration} />;
   }
 
   return (

@@ -1,0 +1,60 @@
+import { useState, useEffect, useCallback } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "./useAuth";
+
+export interface CalibrationData {
+  goalMode: "income" | "impact";
+  outputMode: "blueprints" | "components";
+  calibrationDone: boolean;
+}
+
+const DEFAULT: CalibrationData = { goalMode: "income", outputMode: "blueprints", calibrationDone: false };
+
+export function useCalibration() {
+  const { user } = useAuth();
+  const [data, setData] = useState<CalibrationData>(DEFAULT);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!user) { setLoading(false); return; }
+    supabase.from("profiles").select("goal_mode, output_mode, calibration_done").eq("id", user.id).single()
+      .then(({ data: row }) => {
+        if (row) {
+          const d = {
+            goalMode: (row as any).goal_mode || "income",
+            outputMode: (row as any).output_mode || "blueprints",
+            calibrationDone: (row as any).calibration_done || false,
+          };
+          setData(d);
+          // Cache for AI context
+          localStorage.setItem("wisdom-calibration-cache", JSON.stringify(d));
+        }
+        setLoading(false);
+      });
+  }, [user]);
+
+  const completeCalibration = useCallback(async (goalMode: string, outputMode: string) => {
+    if (!user) return;
+    await supabase.from("profiles").update({
+      goal_mode: goalMode,
+      output_mode: outputMode,
+      calibration_done: true,
+    } as any).eq("id", user.id);
+    setData({ goalMode: goalMode as any, outputMode: outputMode as any, calibrationDone: true });
+  }, [user]);
+
+  const updateCalibration = useCallback(async (updates: Partial<Pick<CalibrationData, "goalMode" | "outputMode">>) => {
+    if (!user) return;
+    const dbUpdates: any = {};
+    if (updates.goalMode) dbUpdates.goal_mode = updates.goalMode;
+    if (updates.outputMode) dbUpdates.output_mode = updates.outputMode;
+    await supabase.from("profiles").update(dbUpdates).eq("id", user.id);
+    setData(prev => ({
+      ...prev,
+      ...(updates.goalMode ? { goalMode: updates.goalMode } : {}),
+      ...(updates.outputMode ? { outputMode: updates.outputMode } : {}),
+    }));
+  }, [user]);
+
+  return { calibration: data, loading, completeCalibration, updateCalibration };
+}

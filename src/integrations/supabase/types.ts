@@ -16,33 +16,42 @@ export type Database = {
     Tables: {
       profiles: {
         Row: {
+          calibration_done: boolean
           created_at: string
           display_name: string
           email: string | null
+          goal_mode: string
           id: string
           last_login_at: string
           learning_goal: string | null
           learning_style: string
+          output_mode: string
           plan: string
         }
         Insert: {
+          calibration_done?: boolean
           created_at?: string
           display_name?: string
           email?: string | null
+          goal_mode?: string
           id: string
           last_login_at?: string
           learning_goal?: string | null
           learning_style?: string
+          output_mode?: string
           plan?: string
         }
         Update: {
+          calibration_done?: boolean
           created_at?: string
           display_name?: string
           email?: string | null
+          goal_mode?: string
           id?: string
           last_login_at?: string
           learning_goal?: string | null
           learning_style?: string
+          output_mode?: string
           plan?: string
         }
         Relationships: []

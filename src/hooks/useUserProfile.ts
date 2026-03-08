@@ -70,6 +70,17 @@ export function useUserProfile() {
 
 export function getUserProfileForAI(): Record<string, string> {
   const p = loadProfile();
+  // Load calibration from profiles cache
+  let goalMode = "income";
+  let outputMode = "blueprints";
+  try {
+    const cached = localStorage.getItem("wisdom-calibration-cache");
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      goalMode = parsed.goalMode || "income";
+      outputMode = parsed.outputMode || "blueprints";
+    }
+  } catch {}
   return {
     user_name: p.displayName || "",
     user_plan: p.plan,
@@ -77,5 +88,7 @@ export function getUserProfileForAI(): Record<string, string> {
     streak: String(p.streak),
     mastery: String(p.mastery),
     tokens: String(p.tokens),
+    goal_mode: goalMode,
+    output_mode: outputMode,
   };
 }
