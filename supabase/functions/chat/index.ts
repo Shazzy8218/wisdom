@@ -314,9 +314,11 @@ serve(async (req) => {
 
     const modeConfig = TUTOR_MODES[mode] || TUTOR_MODES["default"];
     
-    // Build tone overlay
-    const tonePref = context?.tone_preference || "ruthless";
-    const toneOverlay = TONE_OVERLAYS[tonePref] || TONE_OVERLAYS["ruthless"];
+    // Build tone overlay — default to "wise" for new/generic users, "ruthless" only when goal is set
+    const hasActiveGoal = !!(context?.learning_goal || context?.goal_mode);
+    const defaultTone = hasActiveGoal ? "ruthless" : "wise";
+    const tonePref = context?.tone_preference || defaultTone;
+    const toneOverlay = TONE_OVERLAYS[tonePref] || TONE_OVERLAYS["wise"];
     
     let contextInfo = "";
     if (context) {
