@@ -271,11 +271,17 @@ async function generateImage(prompt: string, style?: string): Promise<{ imageDat
 }
 
 // Quick action chips
-const QUICK_ACTIONS = [
-  { label: "📷 Explain an image", prompt: "", action: "image" as const },
-  { label: "🎨 Generate image", prompt: "", action: "imagegen" as const },
+interface QuickAction {
+  label: string;
+  prompt: string;
+  action?: "image" | "file" | "imagegen";
+}
+
+const QUICK_ACTIONS: QuickAction[] = [
+  { label: "📷 Explain an image", prompt: "", action: "image" },
+  { label: "🎨 Generate image", prompt: "", action: "imagegen" },
   { label: "📊 Chart my progress", prompt: "Chart my mastery % by category" },
-  { label: "📄 Analyze a file", prompt: "", action: "file" as const },
+  { label: "📄 Analyze a file", prompt: "", action: "file" },
   { label: "🎯 What should I learn next?", prompt: "What should I learn next based on my progress?" },
   { label: "🔥 My stats", prompt: "Show me my current stats: streak, tokens, mastery, and progress" },
 ];
