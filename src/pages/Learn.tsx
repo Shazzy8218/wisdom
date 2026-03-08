@@ -1,8 +1,9 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronRight, ChevronDown, Search, BookOpen, Flame, Gamepad2, Zap, Sparkles, Loader2, RefreshCw } from "lucide-react";
+import { ChevronRight, ChevronDown, Search, BookOpen, Flame, Gamepad2, Zap, Sparkles, Loader2, RefreshCw, Star, DollarSign } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { MASTERY_CATEGORIES, MICRO_LESSONS, getLevelLabel } from "@/lib/data";
+import { CORE_TRACKS, MONEY_TRACK_IDS, getRecommendedTracks } from "@/lib/core-tracks";
 import { useProgress } from "@/hooks/useProgress";
 import { useGoals } from "@/hooks/useGoals";
 import { useUserProfile } from "@/hooks/useUserProfile";
@@ -262,6 +263,84 @@ export default function Learn() {
             <item.icon className="h-3.5 w-3.5" /> {item.label}
           </Link>
         ))}
+      </div>
+
+      {/* Recommended Core Tracks */}
+      <div className="px-5 mb-6">
+        <div className="flex items-center gap-2 mb-1">
+          <Star className="h-3.5 w-3.5 text-primary" />
+          <p className="section-label text-primary">Recommended for You</p>
+        </div>
+        <p className="text-caption text-muted-foreground mb-3">
+          Based on your goal: <span className="text-primary font-semibold capitalize">{calibration.goalMode}</span>
+        </p>
+        <div className="space-y-1.5">
+          {getRecommendedTracks(calibration.goalMode, calibration.outputMode).slice(0, 3).map((track, i) => (
+            <motion.div key={track.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.02 }}>
+              <Link to={`/track/${track.id}`} className="glass-card p-3.5 flex items-center gap-3 hover:border-primary/20 transition-all block">
+                <span className="text-lg">{track.icon}</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-body font-medium text-foreground">{track.name}</p>
+                  <p className="text-micro text-muted-foreground line-clamp-1">{track.tagline}</p>
+                </div>
+                <span className="text-[9px] font-bold text-primary bg-primary/10 rounded-md px-1.5 py-0.5 uppercase tracking-wider">Core</span>
+                <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
+              </Link>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+
+      <div className="editorial-divider mx-5 mb-4" />
+
+      {/* Start with AI Mastery */}
+      <div className="px-5 mb-6">
+        <div className="flex items-center gap-2 mb-1">
+          <Sparkles className="h-3.5 w-3.5 text-primary" />
+          <p className="section-label text-primary">Core Learning</p>
+        </div>
+        <h2 className="font-display text-h3 text-foreground mb-3">Start with AI Mastery</h2>
+        <div className="space-y-1.5">
+          {CORE_TRACKS.filter(t => !MONEY_TRACK_IDS.includes(t.id)).map((track, i) => (
+            <motion.div key={track.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.02 }}>
+              <Link to={`/track/${track.id}`} className="glass-card p-3.5 flex items-center gap-3 hover:border-primary/20 transition-all block">
+                <span className="text-lg">{track.icon}</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-body font-medium text-foreground">{track.name}</p>
+                  <p className="text-micro text-muted-foreground line-clamp-1">{track.tagline}</p>
+                </div>
+                <span className="text-[9px] font-bold text-primary bg-primary/10 rounded-md px-1.5 py-0.5">{track.modules.length} modules</span>
+                <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
+              </Link>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+
+      <div className="editorial-divider mx-5 mb-4" />
+
+      {/* Make Money With AI */}
+      <div className="px-5 mb-6">
+        <div className="flex items-center gap-2 mb-1">
+          <DollarSign className="h-3.5 w-3.5 text-primary" />
+          <p className="section-label text-primary">Income & Leverage</p>
+        </div>
+        <h2 className="font-display text-h3 text-foreground mb-3">Make Money With AI</h2>
+        <div className="space-y-1.5">
+          {CORE_TRACKS.filter(t => MONEY_TRACK_IDS.includes(t.id)).map((track, i) => (
+            <motion.div key={track.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.02 }}>
+              <Link to={`/track/${track.id}`} className="glass-card p-3.5 flex items-center gap-3 hover:border-primary/20 transition-all block">
+                <span className="text-lg">{track.icon}</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-body font-medium text-foreground">{track.name}</p>
+                  <p className="text-micro text-muted-foreground line-clamp-1">{track.tagline}</p>
+                </div>
+                <span className="text-[9px] font-bold text-accent-gold bg-accent-gold/10 rounded-md px-1.5 py-0.5 uppercase tracking-wider">Money</span>
+                <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
+              </Link>
+            </motion.div>
+          ))}
+        </div>
       </div>
 
       <div className="editorial-divider mx-5 mb-4" />
