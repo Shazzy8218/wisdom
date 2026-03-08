@@ -17,6 +17,8 @@ import { useProgress } from "@/hooks/useProgress";
 import { QUOTES } from "@/lib/data";
 import OwlIcon from "@/components/OwlIcon";
 import OwlHuntTracker from "@/components/OwlHuntTracker";
+import ChartRenderer, { type ChartData } from "@/components/ChartRenderer";
+import { saveChart, isChartSaved } from "@/lib/chart-storage";
 
 const TUTOR_MODES = [
   { id: "fast-answer", label: "Fast", icon: "⚡" },
@@ -49,6 +51,22 @@ function getDailyQuote(): string {
   return quote;
 }
 
+// Extract chart JSON blocks from message content
+function extractCharts(content: string): { text: string; charts: ChartData[] } {
+  const charts: ChartData[] = [];
+  const text = content.replace(/```chart\s*\n?([\s\S]*?)```/g, (_, json) => {
+    try {
+      const parsed = JSON.parse(json.trim());
+      if (parsed.type && parsed.series) {
+        charts.push(parsed as ChartData);
+        return ""; // remove the chart block from text
+      }
+    } catch {}
+    return _; // if parse fails, leave it
+  });
+  return { text: text.trim(), charts };
+}
+
 interface ChatMessage extends Msg {
   id: string;
 }
@@ -70,6 +88,7 @@ export default function Chat() {
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
   const [savedQuote, setSavedQuote] = useState(false);
+  const [savedChartIds, setSavedChartIds] = useState<Set<string>>(new Set());
   const scrollRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const autoSentRef = useRef(false);
@@ -225,8 +244,38 @@ export default function Chat() {
     }
   };
 
+  const handleSaveChart = (chart: ChartData, msgId: string) => {
+    saveChart(chart);
+    setSavedChartIds(prev => new Set([...prev, msgId]));
+    toast({ title: "📊 Chart saved to Library!" });
+  };
+
   const currentMode = TUTOR_MODES.find(m => m.id === mode) || TUTOR_MODES[0];
   const hasMessages = messages.length > 0;
+
+  const renderMessageContent = (msg: ChatMessage) => {
+    if (msg.role !== "assistant") return <p>{msg.content}</p>;
+
+    const { text, charts } = extractCharts(msg.content);
+
+    return (
+      <>
+        {text && (
+          <div className="prose prose-invert prose-sm max-w-none [&_p]:my-1 [&_ul]:my-1 [&_ol]:my-1 [&_li]:my-0.5 [&_h1]:text-lg [&_h2]:text-base [&_h3]:text-sm [&_code]:bg-surface-2 [&_code]:px-1 [&_code]:rounded [&_pre]:bg-surface-2 [&_pre]:p-3 [&_pre]:rounded-xl [&_strong]:text-foreground">
+            <ReactMarkdown>{text}</ReactMarkdown>
+          </div>
+        )}
+        {charts.map((chart, i) => (
+          <ChartRenderer
+            key={`${msg.id}-chart-${i}`}
+            data={chart}
+            onSave={() => handleSaveChart(chart, `${msg.id}-${i}`)}
+            saved={savedChartIds.has(`${msg.id}-${i}`)}
+          />
+        ))}
+      </>
+    );
+  };
 
   return (
     <div className="flex flex-col h-screen">
@@ -385,13 +434,7 @@ export default function Chat() {
                   <div className={`max-w-[85%] rounded-2xl px-4 py-3 text-body leading-relaxed ${
                     msg.role === "user" ? "bg-primary text-primary-foreground" : "bg-card border border-border text-foreground"
                   }`}>
-                    {msg.role === "assistant" ? (
-                      <div className="prose prose-invert prose-sm max-w-none [&_p]:my-1 [&_ul]:my-1 [&_ol]:my-1 [&_li]:my-0.5 [&_h1]:text-lg [&_h2]:text-base [&_h3]:text-sm [&_code]:bg-surface-2 [&_code]:px-1 [&_code]:rounded [&_pre]:bg-surface-2 [&_pre]:p-3 [&_pre]:rounded-xl [&_strong]:text-foreground">
-                        <ReactMarkdown>{msg.content}</ReactMarkdown>
-                      </div>
-                    ) : (
-                      <p>{msg.content}</p>
-                    )}
+                    {renderMessageContent(msg)}
                   </div>
                 </motion.div>
               ))}
