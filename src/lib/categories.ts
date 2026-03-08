@@ -563,21 +563,79 @@ function getCoreTrackAsCategoryTrack(id: string): CategoryTrack | undefined {
   const track = CORE_TRACKS.find(t => t.id === id);
   if (!track) return undefined;
 
-  // Create starter lessons from module names
-  const starterLessons: StarterLesson[] = track.modules.map((mod, i) => ({
-    title: mod,
-    hook: `Learn ${mod.toLowerCase()} — part of the ${track.name} track.`,
-    difficulty: "beginner",
-    content: `This lesson covers "${mod}" from the ${track.name} track. ${track.description} Use "Ask Owl" or "Go Deeper" to generate a full AI lesson on this topic.`,
-    mentalModel: `Understanding ${mod.toLowerCase()} is essential for ${track.outcome.toLowerCase()}`,
-    commonMistakes: `Skipping the basics of ${mod.toLowerCase()} and jumping to advanced usage without understanding fundamentals.`,
-    upgrade: `${track.moneyAngle}`,
-    bragLine: `I completed ${mod} in the ${track.name} track.`,
-    interaction: "tap-reveal" as const,
-    tryPrompt: `Open AI chat and ask: "Teach me about ${mod} in the context of ${track.name}. Give me 3 practical examples and one exercise."`,
-    xp: 50 + i * 5,
-    tokens: 10 + Math.floor(i / 2) * 2,
-  }));
+  // Create starter lessons for ALL 3 difficulty levels
+  const starterLessons: StarterLesson[] = [];
+  
+  track.modules.forEach((mod, i) => {
+    // Beginner lesson
+    starterLessons.push({
+      title: mod,
+      hook: `Master the fundamentals of ${mod.toLowerCase()} — the foundation of ${track.name}.`,
+      difficulty: "beginner",
+      content: `${mod} is a core skill in ${track.name}. Here's what you need to know:\n\n1. The basics: ${mod} helps you ${track.outcome.toLowerCase()}\n2. Why it matters: ${track.moneyAngle}\n3. Getting started: Focus on understanding the core concept before trying advanced techniques.\n\nPractical example: Start by identifying one area in your daily work where ${mod.toLowerCase()} applies. Apply the simplest version of this concept today.`,
+      mentalModel: `Think of ${mod.toLowerCase()} as a tool in your toolkit. At the beginner level, you learn WHAT it does and WHEN to use it. The key insight: ${track.outcome.toLowerCase()}`,
+      commonMistakes: `1) Trying to master everything at once — focus on one sub-skill first. 2) Not practicing with real examples — theory without application doesn't stick. 3) Skipping fundamentals — ${mod.toLowerCase()} builds on basic understanding.`,
+      upgrade: `Once you understand the basics: ${track.moneyAngle}`,
+      bragLine: `I understand the fundamentals of ${mod} and how it creates real value.`,
+      interaction: "choice" as const,
+      options: [
+        `Understanding the core concept and applying it practically`,
+        `Memorizing every detail before starting`,
+        `Skipping to advanced techniques immediately`,
+        `Waiting until you feel "ready" to begin`,
+      ],
+      correctAnswer: 0,
+      tryPrompt: `Open AI chat and ask: "Explain ${mod} in the context of ${track.name}. Give me the simplest explanation, one real-world example, and one thing I can try right now."`,
+      xp: 50 + i * 5,
+      tokens: 10 + Math.floor(i / 2) * 2,
+    });
+
+    // Intermediate lesson
+    starterLessons.push({
+      title: `${mod} — Applied`,
+      hook: `Apply ${mod.toLowerCase()} to real scenarios — move from theory to execution.`,
+      difficulty: "intermediate",
+      content: `Now that you understand ${mod.toLowerCase()}, it's time to apply it strategically.\n\nAt this level, you should:\n1. Use ${mod.toLowerCase()} in real work situations, not just practice exercises\n2. Combine it with other skills from the ${track.name} track\n3. Start measuring results — what changed after you applied this?\n4. Build repeatable processes around it\n\nThe money angle: ${track.moneyAngle} At the intermediate level, you start seeing real returns from consistent application.`,
+      mentalModel: `Intermediate mastery = consistent application + measuring results. You're not just doing ${mod.toLowerCase()} — you're building systems around it. Think: "How can I do this faster, better, and more consistently?"`,
+      commonMistakes: `1) Staying in "learning mode" forever — at this stage, you need to execute. 2) Not tracking results — if you can't measure improvement, you can't prove value. 3) Working in isolation — combine ${mod.toLowerCase()} with other skills for compound results.`,
+      upgrade: `At the intermediate level, start building templates and workflows around ${mod.toLowerCase()}. Systemize what works so you can repeat it.`,
+      bragLine: `I apply ${mod} systematically and measure the results.`,
+      interaction: "choice" as const,
+      options: [
+        `Apply consistently, measure results, and build systems`,
+        `Keep reading more theory before acting`,
+        `Try it once and move to the next topic`,
+        `Only use it when someone tells you to`,
+      ],
+      correctAnswer: 0,
+      tryPrompt: `Ask AI: "Give me a real-world workflow for applying ${mod} in ${track.name}. Include: step-by-step process, common pitfalls, and how to measure success."`,
+      xp: 65 + i * 5,
+      tokens: 14 + Math.floor(i / 2) * 2,
+    });
+
+    // Advanced lesson
+    starterLessons.push({
+      title: `${mod} — Mastery`,
+      hook: `Master ${mod.toLowerCase()} at a strategic level — teach it, optimize it, profit from it.`,
+      difficulty: "advanced",
+      content: `Advanced mastery of ${mod.toLowerCase()} means you can:\n\n1. Teach it to others clearly and effectively\n2. Identify edge cases and handle them confidently\n3. Combine it with multiple other skills for compound advantage\n4. Create original approaches and frameworks\n5. Use it to generate revenue or significant value\n\nStrategic insight: ${track.moneyAngle}\n\nAt this level, ${mod.toLowerCase()} becomes a competitive advantage — something that sets you apart professionally.`,
+      mentalModel: `Mastery = the ability to teach, adapt, and innovate. You don't just use ${mod.toLowerCase()} — you understand WHY it works, can modify it for new situations, and can teach others. This is where expertise becomes leverage.`,
+      commonMistakes: `1) Assuming mastery means perfection — it means adaptability. 2) Not teaching others — teaching is the fastest path to deeper understanding. 3) Ignoring new developments — even experts must keep learning. 4) Not monetizing your expertise — mastery without application is wasted potential.`,
+      upgrade: `At mastery level, you should be packaging your ${mod.toLowerCase()} knowledge into something sellable: courses, templates, consulting, or products.`,
+      bragLine: `I've mastered ${mod} and use it as a competitive advantage.`,
+      interaction: "choice" as const,
+      options: [
+        `Teach it, adapt it, innovate with it, and create value`,
+        `Just know more facts than other people`,
+        `Never change your approach once it works`,
+        `Keep it to yourself as a secret advantage`,
+      ],
+      correctAnswer: 0,
+      tryPrompt: `Ask AI: "I want to become an expert in ${mod} within ${track.name}. Give me: 3 advanced scenarios with solutions, 2 edge cases most people miss, and a framework I can teach others."`,
+      xp: 80 + i * 5,
+      tokens: 18 + Math.floor(i / 2) * 2,
+    });
+  });
 
   return {
     id: track.id,
