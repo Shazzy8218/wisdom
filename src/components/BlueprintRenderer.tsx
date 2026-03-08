@@ -188,8 +188,6 @@ export default function BlueprintRenderer({ content, aggressiveMode }: Blueprint
   return <MarkdownBlock content={content} />;
 }
 
-import React from "react";
-
 const MarkdownBlock = React.forwardRef<HTMLDivElement, { content: string }>(({ content }, ref) => {
   return (
     <div ref={ref} className="prose prose-invert prose-sm max-w-none font-mono text-sm leading-relaxed
