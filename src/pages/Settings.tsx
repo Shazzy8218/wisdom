@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Brain, Trash2, Eye, RotateCcw, Wifi, Loader2, CheckCircle, XCircle, LogOut, Shield, HelpCircle, Download, AlertTriangle, Target, Layers, Activity, MessageSquare, Smartphone } from "lucide-react";
+import { Brain, Trash2, Eye, RotateCcw, Wifi, Loader2, CheckCircle, XCircle, LogOut, Shield, HelpCircle, Download, AlertTriangle, Target, Layers, Activity, MessageSquare, Smartphone, Volume2 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
 import { streamChat, generateLesson, generateGameQuestion } from "@/lib/ai-stream";
@@ -27,8 +27,12 @@ const MEMORY_TOGGLES: MemoryToggle[] = [
 
 const SETTINGS_KEY = "wisdom-settings";
 
-function loadSettings(): Record<string, boolean> {
-  try { return JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}"); } catch { return {}; }
+function loadSettings(): Record<string, any> {
+  try { 
+    const s = JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}");
+    if (!s.tonePreference) s.tonePreference = localStorage.getItem("wisdom-tone-preference") || "ruthless";
+    return s;
+  } catch { return { tonePreference: "ruthless" }; }
 }
 
 function saveSettings(s: Record<string, boolean>) {
@@ -263,6 +267,39 @@ export default function Settings() {
             <OwlKnowledgeView />
           </motion.div>
         )}
+      </div>
+
+      <div className="editorial-divider mx-5 mb-6" />
+
+      {/* Owl Tone Preference */}
+      <div className="px-5 mb-6">
+        <div className="flex items-center gap-2 mb-4">
+          <Volume2 className="h-4 w-4 text-primary" />
+          <h2 className="section-label text-primary">Owl Tone</h2>
+        </div>
+        <p className="text-caption text-muted-foreground mb-4">How Owl talks to you. Same sharp mind, different delivery.</p>
+        <div className="grid grid-cols-2 gap-2">
+          {([
+            { id: "ruthless", label: "🗡️ Ruthless Mentor", desc: "Maximum directness. No cushioning." },
+            { id: "calm", label: "♟️ Calm Strategist", desc: "Quiet authority. Same precision." },
+            { id: "wise", label: "🦉 Wise Friend", desc: "Warm but honest. Zero fluff." },
+            { id: "balanced", label: "⚖️ Balanced", desc: "Adapts to the moment." },
+          ] as const).map(tone => {
+            const current = settings.tonePreference || "ruthless";
+            return (
+              <button key={tone.id} onClick={() => {
+                localStorage.setItem("wisdom-tone-preference", tone.id);
+                setSettings(prev => { const next = { ...prev, tonePreference: tone.id as any }; saveSettings(next); return next; });
+              }}
+                className={`rounded-xl p-3 text-left transition-all ${
+                  current === tone.id ? "bg-primary text-primary-foreground" : "glass-card hover:border-primary/20"
+                }`}>
+                <p className="text-caption font-medium">{tone.label}</p>
+                <p className={`text-micro mt-0.5 ${current === tone.id ? "text-primary-foreground/70" : "text-muted-foreground"}`}>{tone.desc}</p>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       <div className="editorial-divider mx-5 mb-6" />
