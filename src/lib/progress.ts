@@ -105,6 +105,48 @@ function rowToProgress(row: any): UserProgress {
   };
 }
 
+/** Merge two progress objects, keeping the richer data */
+function mergeProgress(cloud: UserProgress, local: UserProgress): UserProgress {
+  const merged = { ...cloud };
+  // Keep whichever has more completed lessons
+  if (local.completedLessons.length > cloud.completedLessons.length) {
+    merged.completedLessons = [...new Set([...cloud.completedLessons, ...local.completedLessons])];
+  }
+  if (local.completedModules.length > cloud.completedModules.length) {
+    merged.completedModules = [...new Set([...cloud.completedModules, ...local.completedModules])];
+  }
+  // Keep higher numeric values
+  merged.tokens = Math.max(cloud.tokens, local.tokens);
+  merged.xp = Math.max(cloud.xp, local.xp);
+  merged.streak = Math.max(cloud.streak, local.streak);
+  // Merge mastery scores (keep highest per category)
+  for (const [k, v] of Object.entries(local.masteryScores)) {
+    merged.masteryScores[k] = Math.max(merged.masteryScores[k] || 0, v);
+  }
+  // Merge quiz scores
+  for (const [k, v] of Object.entries(local.quizScores)) {
+    merged.quizScores[k] = Math.max(merged.quizScores[k] || 0, v);
+  }
+  // Merge arrays (union)
+  merged.feedSeen = [...new Set([...cloud.feedSeen, ...local.feedSeen])];
+  merged.favorites = [...new Set([...cloud.favorites, ...local.favorites])];
+  merged.seenQuotes = [...new Set([...cloud.seenQuotes, ...local.seenQuotes])];
+  merged.unlockedItems = [...new Set([...cloud.unlockedItems, ...local.unlockedItems])];
+  merged.generatedLessonIds = [...new Set([...cloud.generatedLessonIds, ...local.generatedLessonIds])];
+  // Merge notes
+  merged.savedNotes = { ...cloud.savedNotes, ...local.savedNotes };
+  // Keep longer token history
+  if (local.tokenHistory.length > cloud.tokenHistory.length) {
+    merged.tokenHistory = local.tokenHistory;
+  }
+  // Keep most recent date info
+  if (local.lastActiveDate > cloud.lastActiveDate) {
+    merged.lastActiveDate = local.lastActiveDate;
+    merged.lessonsToday = local.lessonsToday;
+  }
+  return merged;
+}
+
 export async function fetchCloudProgress(): Promise<UserProgress | null> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
@@ -115,10 +157,42 @@ export async function fetchCloudProgress(): Promise<UserProgress | null> {
     .eq("user_id", user.id)
     .maybeSingle();
 
-  if (error || !data) return null;
-  const p = rowToProgress(data);
-  saveCacheProgress(p);
-  return p;
+  if (error) return null;
+  
+  // If no row exists, create one (handles users created before trigger existed)
+  if (!data) {
+    const defaults = getDefaultProgress();
+    defaults.lastActiveDate = new Date().toISOString().split("T")[0];
+    const row = { user_id: user.id, ...progressToRow(defaults) };
+    const { data: inserted, error: insertErr } = await supabase
+      .from("user_progress")
+      .insert(row)
+      .select()
+      .single();
+    if (insertErr || !inserted) return defaults;
+    const p = rowToProgress(inserted);
+    saveCacheProgress(p);
+    return p;
+  }
+
+  const cloudProgress = rowToProgress(data);
+  const localProgress = loadCachedProgress();
+  
+  // Merge: if local has richer data (user was using app before cloud sync), merge it
+  const hasLocalData = localProgress.completedLessons.length > 0 || localProgress.tokens > 0 || localProgress.xp > 0;
+  if (hasLocalData) {
+    const merged = mergeProgress(cloudProgress, localProgress);
+    saveCacheProgress(merged);
+    // Save merged back to cloud
+    await supabase
+      .from("user_progress")
+      .update(progressToRow(merged))
+      .eq("user_id", user.id);
+    return merged;
+  }
+  
+  saveCacheProgress(cloudProgress);
+  return cloudProgress;
 }
 
 export async function saveCloudProgress(progress: UserProgress): Promise<void> {
@@ -127,10 +201,11 @@ export async function saveCloudProgress(progress: UserProgress): Promise<void> {
 
   saveCacheProgress(progress);
 
+  // Use upsert to handle missing rows
   await supabase
     .from("user_progress")
-    .update(progressToRow(progress))
-    .eq("user_id", user.id);
+    .upsert({ user_id: user.id, ...progressToRow(progress) }, { onConflict: "user_id" })
+    .select();
 }
 
 export async function resetCloudProgress(): Promise<UserProgress> {
