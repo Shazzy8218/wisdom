@@ -2,7 +2,7 @@
 
 import { loadCachedProgress } from "@/lib/progress";
 import { loadChatThreads } from "@/lib/chat-history";
-import { CATEGORIES } from "@/lib/categories";
+import { CATEGORY_TRACKS } from "@/lib/categories";
 
 const SETTINGS_KEY = "wisdom-settings";
 
