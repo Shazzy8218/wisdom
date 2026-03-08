@@ -1,4 +1,5 @@
 // Auto-save Wisdom Packs from Task Mode AI responses
+import { saveWisdomSnapshot } from "@/lib/wisdom-snapshots";
 
 export interface WisdomPack {
   id: string;
