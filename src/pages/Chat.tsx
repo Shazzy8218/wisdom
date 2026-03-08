@@ -441,7 +441,7 @@ export default function Chat() {
           )}
 
           {/* Input */}
-          <div className="border-t border-border p-3 pb-24 lg:pb-3 bg-card/50">
+          <div className="border-t border-border p-3 pb-20 lg:pb-3 bg-card/50 shrink-0">
             <div className="flex items-end gap-2 rounded-lg border border-border bg-surface-2 p-2">
               <textarea
                 ref={inputRef}
