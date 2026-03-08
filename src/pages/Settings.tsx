@@ -244,6 +244,51 @@ export default function Settings() {
 
       <div className="editorial-divider mx-5 mb-6" />
 
+      {/* Calibration Preferences */}
+      <div className="px-5 mb-6">
+        <div className="flex items-center gap-2 mb-4">
+          <Target className="h-4 w-4 text-primary" />
+          <h2 className="section-label text-primary">Calibration</h2>
+        </div>
+        <p className="text-caption text-muted-foreground mb-4">These shape how Owl responds to you.</p>
+        
+        <div className="space-y-3">
+          <div className="glass-card p-4">
+            <p className="text-body font-medium text-foreground mb-2">Goal Mode</p>
+            <div className="flex gap-2">
+              {(["income", "impact"] as const).map(mode => (
+                <button key={mode} onClick={() => updateCalibration({ goalMode: mode })}
+                  className={`flex-1 rounded-xl px-3 py-2.5 text-caption font-medium transition-all ${
+                    calibration.goalMode === mode
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-surface-2 text-muted-foreground hover:bg-surface-hover"
+                  }`}>
+                  {mode === "income" ? "💰 Income" : "🚀 Impact"}
+                </button>
+              ))}
+            </div>
+          </div>
+          
+          <div className="glass-card p-4">
+            <p className="text-body font-medium text-foreground mb-2">Output Mode</p>
+            <div className="flex gap-2">
+              {(["blueprints", "components"] as const).map(mode => (
+                <button key={mode} onClick={() => updateCalibration({ outputMode: mode })}
+                  className={`flex-1 rounded-xl px-3 py-2.5 text-caption font-medium transition-all ${
+                    calibration.outputMode === mode
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-surface-2 text-muted-foreground hover:bg-surface-hover"
+                  }`}>
+                  {mode === "blueprints" ? "📐 Blueprints" : "🧩 Components"}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="editorial-divider mx-5 mb-6" />
+
       {/* Display */}
       <div className="px-5 mb-6">
         <h2 className="section-label mb-4">Display</h2>
