@@ -49,7 +49,7 @@ export default function Index() {
     return vals.length > 0 ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : 0;
   }, [progress.masteryScores]);
 
-  const todayXP = progress.lessonsToday * 25;
+  const todayXP = progress.xp;
   const nextLesson = MICRO_LESSONS[0];
 
   const displayGreeting = profile.displayName
