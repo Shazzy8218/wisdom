@@ -12,6 +12,9 @@ import {
   type ChatThread,
 } from "@/lib/chat-history";
 import { buildOwlContext, detectToolsUsed, type ToolUsed } from "@/lib/owl-context";
+import { getAnalytics, getRecommendationContext } from "@/lib/analytics-engine";
+import NextMoveCard from "@/components/NextMoveCard";
+import InsightCard from "@/components/InsightCard";
 import { useLiveClock } from "@/hooks/useLiveClock";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { useProgress } from "@/hooks/useProgress";
