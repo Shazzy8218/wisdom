@@ -112,6 +112,7 @@ const TOOL_ICON_MAP: Record<string, { icon: React.ReactNode; label: string }> = 
   docgen: { icon: <FileDown className="h-2.5 w-2.5" />, label: "Doc Gen" },
   calculator: { icon: <Calculator className="h-2.5 w-2.5" />, label: "Calculator" },
   reminder: { icon: <Clock className="h-2.5 w-2.5" />, label: "Reminder" },
+  localtime: { icon: <Clock className="h-2.5 w-2.5" />, label: "Using local device time" },
   chat: { icon: <Brain className="h-2.5 w-2.5" />, label: "Chat" },
 };
 
