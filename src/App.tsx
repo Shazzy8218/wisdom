@@ -81,7 +81,8 @@ function AppRoutes() {
         <Routes>
           {/* Chat is now the default home */}
           <Route path="/" element={<Chat />} />
-          <Route path="/learn" element={<Learn />} />
+          <Route path="/courses" element={<Courses />} />
+          <Route path="/learn" element={<Navigate to="/courses" replace />} />
           <Route path="/feed" element={<LearnFeed />} />
           <Route path="/paths" element={<LearnPaths />} />
           <Route path="/mastery" element={<MasteryChart />} />
