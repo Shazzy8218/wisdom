@@ -517,15 +517,37 @@ export default function Chat() {
   const sendMessage = useCallback(async (text: string, threadId?: string) => {
     if ((!text.trim() && pendingAttachments.length === 0) || isStreaming || isGeneratingImage) return;
 
-    // Check if this is an image generation request
-    if (text.trim() && pendingAttachments.length === 0 && isImageGenRequest(text)) {
+    const attachments = [...pendingAttachments];
+    const hasImage = attachments.some(a => a.type === "image");
+    const hasFile = attachments.some(a => a.type === "file");
+
+    // Route to the right tool
+    const route = routeToTool(text, hasImage, hasFile);
+
+    // Image generation: handle separately
+    if (route.tool === "imagegen" && !hasImage && !hasFile) {
       await handleImageGen(text);
       return;
     }
 
-    const attachments = [...pendingAttachments];
-    const hasImage = attachments.some(a => a.type === "image");
-    const hasFile = attachments.some(a => a.type === "file");
+    // Calculator: instant local result
+    if (route.tool === "calculator" && !hasImage && !hasFile) {
+      const calcResult = tryCalculate(text);
+      if (calcResult) {
+        const userMsg: ChatMessage = { id: Date.now().toString(), role: "user", content: text };
+        const assistantMsg: ChatMessage = { id: `calc-${Date.now()}`, role: "assistant", content: calcResult, toolsUsed: ["calculator"] };
+        setMessages(prev => [...prev, userMsg, assistantMsg]);
+        setInput("");
+        let tid = threadId || currentThreadId;
+        if (!tid) { const t = createThread("Calculation"); tid = t.id; setCurrentThreadId(tid); }
+        addMessageToThread(tid, "user", text);
+        addMessageToThread(tid, "assistant", calcResult);
+        setThreads(loadChatThreads());
+        return;
+      }
+      // Fall through to chat if calc fails
+    }
+
     let imageUrl: string | undefined;
     let imagePreview: string | undefined;
     let fileName: string | undefined;
@@ -591,10 +613,70 @@ export default function Chat() {
     let assistantContent = "";
 
     const owlContext = buildOwlContext();
-    const toolsUsed: ExtToolUsed[] = detectToolsUsed(owlContext, hasImage);
+    const toolsUsed: string[] = detectToolsUsed(owlContext, hasImage);
     if (hasFile && !toolsUsed.includes("vision")) toolsUsed.push("vision");
+    if (route.tool === "web") toolsUsed.push("web");
+    if (route.tool === "docgen") toolsUsed.push("docgen");
     if (newMessages.some(m => m.content?.toLowerCase().includes("chart") || m.content?.toLowerCase().includes("graph"))) {
       if (!toolsUsed.includes("chart")) toolsUsed.push("chart");
+    }
+
+    // === WEB SEARCH TOOL ===
+    if (route.tool === "web" && !hasImage && !hasFile) {
+      // Show loading
+      const loadingId = `loading-${Date.now()}`;
+      setMessages(prev => [...prev, { id: loadingId, role: "assistant", content: `🌐 Searching the web…`, toolsUsed: ["web"] }]);
+
+      const webResult = await webSearch(text, route.subType);
+      
+      let responseContent = webResult.content;
+      if (webResult.citations.length > 0) {
+        responseContent += "\n\n**Sources:**\n" + webResult.citations.map((c, i) => `${i + 1}. ${c}`).join("\n");
+      }
+      if (webResult.note) {
+        responseContent += `\n\n_${webResult.note}_`;
+      }
+
+      const webMsg: ChatMessage = {
+        id: `web-${Date.now()}`,
+        role: "assistant",
+        content: responseContent,
+        toolsUsed: ["web"],
+        citations: webResult.citations,
+        webSource: webResult.source,
+      };
+      setMessages(prev => prev.filter(m => m.id !== loadingId).concat(webMsg));
+      setIsStreaming(false);
+      abortRef.current = null;
+      if (tid) { addMessageToThread(tid, "assistant", responseContent); setThreads(loadChatThreads()); }
+      return;
+    }
+
+    // === DOCUMENT GENERATION TOOL ===
+    if (route.tool === "docgen" && !hasImage && !hasFile) {
+      const format = route.subType || "pdf";
+      const loadingId = `loading-${Date.now()}`;
+      const formatLabel = format === "csv" ? "spreadsheet" : format === "slides" ? "slide deck" : "document";
+      setMessages(prev => [...prev, { id: loadingId, role: "assistant", content: `📄 Generating ${formatLabel}…`, toolsUsed: ["docgen"] }]);
+
+      const docResult = await generateDoc(text, format, owlContext);
+
+      if (docResult.success && docResult.content) {
+        const docMsg: ChatMessage = {
+          id: `doc-${Date.now()}`,
+          role: "assistant",
+          content: `✅ Your ${formatLabel} is ready! Click below to download.`,
+          toolsUsed: ["docgen"],
+          docDownload: { content: docResult.content, fileName: docResult.fileName || `owl-${format}.html`, mimeType: docResult.mimeType || "text/html", format },
+        };
+        setMessages(prev => prev.filter(m => m.id !== loadingId).concat(docMsg));
+      } else {
+        setMessages(prev => prev.map(m => m.id === loadingId ? { ...m, content: docResult.error || "Document generation failed. Try again." } : m));
+      }
+      setIsStreaming(false);
+      abortRef.current = null;
+      if (tid) { addMessageToThread(tid, "assistant", `[Generated ${format}]`); setThreads(loadChatThreads()); }
+      return;
     }
 
     const handleDelta = (chunk: string) => {
