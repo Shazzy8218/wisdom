@@ -78,6 +78,7 @@ export default function Library() {
   const tabs: { id: Tab; label: string; icon: typeof BookOpen }[] = [
     { id: "snapshots", label: "Wisdom Packs", icon: Brain },
     { id: "prompts", label: "Prompts", icon: Sparkles },
+    { id: "charts", label: "Charts", icon: BarChart3 },
     { id: "drills", label: "Drills", icon: Zap },
     { id: "threads", label: "Q&A", icon: MessageCircle },
     { id: "quotes", label: "Quotes", icon: Quote },
