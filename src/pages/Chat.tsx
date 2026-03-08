@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, Square, RotateCcw, ChevronDown, Plus, History, Pencil, Trash2, Bookmark, Zap } from "lucide-react";
+import { Send, Square, RotateCcw, ChevronDown, Plus, History, Pencil, Trash2, Bookmark } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { streamChat, type Msg } from "@/lib/ai-stream";
 import { parseAndSaveWisdomPack } from "@/lib/wisdom-packs";
