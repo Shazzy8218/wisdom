@@ -375,6 +375,48 @@ export default function Library() {
           )
         )}
 
+        {/* Generated Images Tab */}
+        {tab === "images" && (
+          generatedImages.length > 0 ? (
+            <div className="space-y-3">
+              <p className="text-caption text-muted-foreground">{generatedImages.length} images generated</p>
+              {generatedImages.map((img, i) => (
+                <motion.div key={img.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.04 }}>
+                  <div className="glass-card p-4">
+                    <img src={img.imageData} alt={img.prompt} className="rounded-xl w-full mb-3" />
+                    <p className="text-caption text-foreground mb-1 line-clamp-2">{img.prompt}</p>
+                    {img.style && <span className="inline-block rounded-md bg-primary/10 px-2 py-0.5 text-[10px] text-primary font-medium mb-2">{img.style}</span>}
+                    <div className="flex items-center justify-between">
+                      <span className="text-micro text-muted-foreground">{new Date(img.createdAt).toLocaleDateString()}</span>
+                      <div className="flex gap-1.5">
+                        <button onClick={() => { navigator.clipboard.writeText(img.prompt); toast({ title: "Prompt copied!" }); }}
+                          className="p-1.5 rounded-lg hover:bg-surface-hover transition-colors" title="Copy prompt">
+                          <Copy className="h-3 w-3 text-text-tertiary" />
+                        </button>
+                        <button onClick={() => { const a = document.createElement("a"); a.href = img.imageData; a.download = `owl-image-${img.id}.png`; a.click(); }}
+                          className="p-1.5 rounded-lg hover:bg-surface-hover transition-colors" title="Download">
+                          <Download className="h-3 w-3 text-text-tertiary" />
+                        </button>
+                        <button onClick={() => { deleteGeneratedImage(img.id); toast({ title: "Image deleted" }); setTab("snapshots"); setTimeout(() => setTab("images"), 0); }}
+                          className="p-1.5 rounded-lg hover:bg-destructive/10 transition-colors" title="Delete">
+                          <Trash2 className="h-3 w-3 text-text-tertiary" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <Image className="h-8 w-8 text-text-tertiary mx-auto mb-3" />
+              <p className="text-body text-muted-foreground">No generated images yet.</p>
+              <p className="text-caption text-text-tertiary mt-1">Ask Owl to "generate a logo" or "create a diagram".</p>
+            </div>
+          )
+        )}
+
         {/* Drills Tab */}
         {tab === "drills" && (
           savedDrills.length > 0 ? (
