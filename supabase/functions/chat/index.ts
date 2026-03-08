@@ -213,6 +213,11 @@ serve(async (req) => {
       if (context.behavioral_hints) contextInfo += `\nBehavioral insights: ${context.behavioral_hints}`;
       if (context.recommendation_context) contextInfo += `\n\nPROACTIVE ANALYTICS — use to guide advice: ${context.recommendation_context}`;
 
+      // Real-time local context
+      if (context.local_time) contextInfo += `\nUser's current local time: ${context.local_time}`;
+      if (context.local_date) contextInfo += `\nUser's current local date: ${context.local_date}`;
+      if (context.timezone) contextInfo += `\nUser's timezone: ${context.timezone}`;
+
       if (context.goal_mode) {
         contextInfo += context.goal_mode === "income"
           ? `\n\nGOAL MODE: INCOME. Prioritize speed, revenue, cash flow. Short, actionable outputs.`
