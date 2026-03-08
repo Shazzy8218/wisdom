@@ -1,15 +1,17 @@
 import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { BookOpen, MessageCircle, Search, Sparkles, Copy, Play, Star, Quote, Brain, Layers, Trash2, Zap, X, ExternalLink, ChevronRight } from "lucide-react";
+import { BookOpen, MessageCircle, Search, Sparkles, Copy, Play, Star, Quote, Brain, Layers, Trash2, Zap, X, ExternalLink, ChevronRight, BarChart3 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { loadChatThreads, type ChatThread } from "@/lib/chat-history";
 import { loadSnapshots, type WisdomSnapshot } from "@/lib/wisdom-snapshots";
 import { loadWisdomPacks, loadSavedDrills, deleteWisdomPack, type WisdomPack } from "@/lib/wisdom-packs";
+import { loadSavedCharts, deleteChart, type SavedChart } from "@/lib/chart-storage";
+import ChartRenderer from "@/components/ChartRenderer";
 import { useNavigate } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import HiddenOwl from "@/components/HiddenOwl";
 
-type Tab = "snapshots" | "prompts" | "drills" | "threads" | "quotes";
+type Tab = "snapshots" | "prompts" | "drills" | "threads" | "quotes" | "charts";
 
 const PROMPT_PACKS = [
   { id: "w1", title: "Email Response Template", category: "Work", prompt: "Write a professional email to [recipient] about [topic]. Keep it concise, polite, and actionable. Include a clear subject line.", tags: ["email", "professional"] },
