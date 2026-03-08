@@ -26,7 +26,7 @@ OUTPUT FORMAT (strict):
 - 3 bullet action steps max
 - 1 optional clarifying question if truly needed
 
-HARD LIMIT: 90-140 words. No exceptions. Be punchy, actionable, zero fluff.${NO_FILLER}${CREATOR_BIO}`,
+HARD LIMIT: 90-140 words. No exceptions. Be punchy, actionable, zero fluff.${NO_DISCLAIMERS}${NO_FILLER}${CREATOR_BIO}`,
     model: "google/gemini-2.5-flash-lite",
   },
 
