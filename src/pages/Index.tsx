@@ -8,6 +8,9 @@ import { useProgress } from "@/hooks/useProgress";
 import { CATEGORY_TRACKS } from "@/lib/categories";
 import { useLiveClock } from "@/hooks/useLiveClock";
 import { useUserProfile } from "@/hooks/useUserProfile";
+import { getAnalytics } from "@/lib/analytics-engine";
+import NextMoveCard from "@/components/NextMoveCard";
+import InsightCard from "@/components/InsightCard";
 import owlLogo from "@/assets/owl-logo.png";
 import OwlIcon from "@/components/OwlIcon";
 import HiddenOwl from "@/components/HiddenOwl";
@@ -19,7 +22,6 @@ function getUnseenQuote(): string {
   const seen = JSON.parse(localStorage.getItem(QUOTE_SEEN_KEY) || "[]") as number[];
   const available = QUOTES.map((_, i) => i).filter((i) => !seen.includes(i));
   if (available.length === 0) {
-    // All seen — return last one but cycle
     return QUOTES[seen[seen.length - 1] ?? 0];
   }
   const pick = available[Math.floor(Math.random() * available.length)];
@@ -40,6 +42,7 @@ export default function Index() {
   const { progress } = useProgress();
   const clock = useLiveClock();
   const { profile } = useUserProfile();
+  const analytics = useMemo(() => getAnalytics(), [progress]);
 
   const masteryAvg = useMemo(() => {
     const vals = Object.values(progress.masteryScores);
@@ -52,6 +55,10 @@ export default function Index() {
   const displayGreeting = profile.displayName
     ? `${clock.greeting}, ${profile.displayName}`
     : clock.greeting;
+
+  const topSuggestion = analytics.suggestions[0] || null;
+  const focusSuggestion = analytics.suggestions.find(s => s.type === "focus-today") || null;
+  const topInsight = analytics.insights[0] || null;
 
   return (
     <div className="min-h-screen pb-24">
@@ -99,12 +106,19 @@ export default function Index() {
         </motion.div>
       </div>
 
+      {/* Proactive Suggestion — Next Move */}
+      {topSuggestion && (
+        <div className="px-5 mb-4">
+          <NextMoveCard suggestion={topSuggestion} delay={0.12} />
+        </div>
+      )}
+
       {/* Section 2: Daily Wisdom */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.15 }}
-        className="mx-5 mb-8 relative"
+        className="mx-5 mb-6 relative"
       >
         <div className="editorial-divider mb-4" />
         <p className="section-label mb-3">Daily Wisdom</p>
@@ -114,12 +128,26 @@ export default function Index() {
       </motion.div>
 
       {/* Section 3: Scoreboard */}
-      <div className="grid grid-cols-2 gap-3 px-5 mb-8">
+      <div className="grid grid-cols-2 gap-3 px-5 mb-6">
         <StatBlock label="Tokens" value={progress.tokens} icon="✦" accent delay={0.2} />
         <StatBlock label="Streak" value={progress.streak} icon="🔥" delay={0.25} />
         <StatBlock label="Mastery" value={`${masteryAvg}%`} icon="◉" delay={0.3} />
         <StatBlock label="Today" value={todayXP} icon="⚡" delay={0.35} />
       </div>
+
+      {/* Focus Today */}
+      {focusSuggestion && focusSuggestion.id !== topSuggestion?.id && (
+        <div className="px-5 mb-4">
+          <NextMoveCard suggestion={focusSuggestion} delay={0.32} />
+        </div>
+      )}
+
+      {/* Pattern Insight */}
+      {topInsight && (
+        <div className="px-5 mb-4">
+          <InsightCard insight={topInsight} delay={0.35} />
+        </div>
+      )}
 
       {/* Section 4: Quick Actions */}
       <motion.div
