@@ -285,6 +285,60 @@ async function generateImage(prompt: string, style?: string): Promise<{ imageDat
   }
 }
 
+// Web search helper
+async function webSearch(query: string, type?: string): Promise<{ content: string; citations: string[]; source: string; note?: string }> {
+  try {
+    const resp = await fetch(WEB_SEARCH_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+      },
+      body: JSON.stringify({ query, type }),
+    });
+    const data = await resp.json();
+    if (data.success) return { content: data.content, citations: data.citations || [], source: data.source || "web", note: data.note };
+    return { content: data.error || "Web search unavailable.", citations: [], source: "error" };
+  } catch (e: any) {
+    return { content: e.message || "Connection failed", citations: [], source: "error" };
+  }
+}
+
+// Document generation helper
+async function generateDoc(prompt: string, format: string, context?: Record<string, string>): Promise<{ success: boolean; content?: string; fileName?: string; mimeType?: string; format?: string; error?: string }> {
+  try {
+    const resp = await fetch(DOC_GEN_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+      },
+      body: JSON.stringify({ prompt, format, context }),
+    });
+    return await resp.json();
+  } catch (e: any) {
+    return { success: false, error: e.message || "Connection failed" };
+  }
+}
+
+// Calculator helper
+function tryCalculate(text: string): string | null {
+  const mathMatch = text.match(/(?:calculate|compute|what is|how much is)\s+([\d\s\+\-\*\/\.\(\)\%\^]+)/i);
+  if (!mathMatch) {
+    // Try raw expression
+    const rawMatch = text.match(/^[\d\s\+\-\*\/\.\(\)\%\^]+$/);
+    if (!rawMatch) return null;
+  }
+  try {
+    const expr = (mathMatch?.[1] || text).replace(/\^/g, "**").replace(/%/g, "/100");
+    const result = Function(`"use strict"; return (${expr})`)();
+    if (typeof result === "number" && isFinite(result)) {
+      return `**Result:** ${result.toLocaleString()}`;
+    }
+  } catch {}
+  return null;
+}
+
 // Quick action chips
 interface QuickAction {
   label: string;
@@ -293,11 +347,14 @@ interface QuickAction {
 }
 
 const QUICK_ACTIONS: QuickAction[] = [
-  { label: "📷 Explain an image", prompt: "", action: "image" },
+  { label: "🌐 Search the web", prompt: "Search the web for the latest AI news today" },
   { label: "🎨 Generate image", prompt: "", action: "imagegen" },
   { label: "📊 Chart my progress", prompt: "Chart my mastery % by category" },
-  { label: "📄 Analyze a file", prompt: "", action: "file" },
-  { label: "🎯 What should I learn next?", prompt: "What should I learn next based on my progress?" },
+  { label: "📄 Create a PDF", prompt: "Create a PDF: one-page business plan template" },
+  { label: "📷 Analyze an image", prompt: "", action: "image" },
+  { label: "🎯 What should I learn?", prompt: "What should I learn next based on my progress?" },
+  { label: "🌤️ Weather", prompt: "What's the weather in New York today?" },
+  { label: "💰 Bitcoin price", prompt: "What's the current Bitcoin price?" },
   { label: "🔥 My stats", prompt: "Show me my current stats: streak, tokens, mastery, and progress" },
 ];
 
