@@ -38,7 +38,7 @@ OUTPUT FORMAT:
 - 1 concrete example
 - Key takeaway in bold
 
-HARD LIMIT: 180-240 words. One example only. No rambling.${NO_FILLER}${CREATOR_BIO}`,
+HARD LIMIT: 180-240 words. One example only. No rambling.${NO_DISCLAIMERS}${NO_FILLER}${CREATOR_BIO}`,
     model: "google/gemini-2.5-flash-lite",
   },
 
