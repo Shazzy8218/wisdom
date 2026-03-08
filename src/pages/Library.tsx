@@ -1,17 +1,18 @@
 import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { BookOpen, MessageCircle, Search, Sparkles, Copy, Play, Star, Quote, Brain, Layers, Trash2, Zap, X, ExternalLink, ChevronRight, BarChart3 } from "lucide-react";
+import { BookOpen, MessageCircle, Search, Sparkles, Copy, Play, Star, Quote, Brain, Layers, Trash2, Zap, X, ExternalLink, ChevronRight, BarChart3, Image, Download } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { loadChatThreads, type ChatThread } from "@/lib/chat-history";
 import { loadSnapshots, type WisdomSnapshot } from "@/lib/wisdom-snapshots";
 import { loadWisdomPacks, loadSavedDrills, deleteWisdomPack, type WisdomPack } from "@/lib/wisdom-packs";
 import { loadSavedCharts, deleteChart, type SavedChart } from "@/lib/chart-storage";
+import { loadGeneratedImages, deleteGeneratedImage, type GeneratedImage } from "@/lib/image-storage";
 import ChartRenderer from "@/components/ChartRenderer";
 import { useNavigate } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import HiddenOwl from "@/components/HiddenOwl";
 
-type Tab = "snapshots" | "prompts" | "drills" | "threads" | "quotes" | "charts";
+type Tab = "snapshots" | "prompts" | "drills" | "threads" | "quotes" | "charts" | "images";
 
 const PROMPT_PACKS = [
   { id: "w1", title: "Email Response Template", category: "Work", prompt: "Write a professional email to [recipient] about [topic]. Keep it concise, polite, and actionable. Include a clear subject line.", tags: ["email", "professional"] },
@@ -49,6 +50,7 @@ export default function Library() {
   const wisdomPacks = useMemo(() => loadWisdomPacks(), [tab]);
   const savedDrills = useMemo(() => loadSavedDrills(), [tab]);
   const savedCharts = useMemo(() => loadSavedCharts(), [tab]);
+  const generatedImages = useMemo(() => loadGeneratedImages(), [tab]);
   const savedQuotes: string[] = useMemo(() => {
     try { return JSON.parse(localStorage.getItem("wisdom-saved-quotes") || "[]"); } catch { return []; }
   }, [tab]);
@@ -79,6 +81,7 @@ export default function Library() {
     { id: "snapshots", label: "Wisdom Packs", icon: Brain },
     { id: "prompts", label: "Prompts", icon: Sparkles },
     { id: "charts", label: "Charts", icon: BarChart3 },
+    { id: "images", label: "Images", icon: Image },
     { id: "drills", label: "Drills", icon: Zap },
     { id: "threads", label: "Q&A", icon: MessageCircle },
     { id: "quotes", label: "Quotes", icon: Quote },
@@ -368,6 +371,48 @@ export default function Library() {
               <BarChart3 className="h-8 w-8 text-text-tertiary mx-auto mb-3" />
               <p className="text-body text-muted-foreground">No saved charts yet.</p>
               <p className="text-caption text-text-tertiary mt-1">Ask Owl to "make a chart" and save it.</p>
+            </div>
+          )
+        )}
+
+        {/* Generated Images Tab */}
+        {tab === "images" && (
+          generatedImages.length > 0 ? (
+            <div className="space-y-3">
+              <p className="text-caption text-muted-foreground">{generatedImages.length} images generated</p>
+              {generatedImages.map((img, i) => (
+                <motion.div key={img.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.04 }}>
+                  <div className="glass-card p-4">
+                    <img src={img.imageData} alt={img.prompt} className="rounded-xl w-full mb-3" />
+                    <p className="text-caption text-foreground mb-1 line-clamp-2">{img.prompt}</p>
+                    {img.style && <span className="inline-block rounded-md bg-primary/10 px-2 py-0.5 text-[10px] text-primary font-medium mb-2">{img.style}</span>}
+                    <div className="flex items-center justify-between">
+                      <span className="text-micro text-muted-foreground">{new Date(img.createdAt).toLocaleDateString()}</span>
+                      <div className="flex gap-1.5">
+                        <button onClick={() => { navigator.clipboard.writeText(img.prompt); toast({ title: "Prompt copied!" }); }}
+                          className="p-1.5 rounded-lg hover:bg-surface-hover transition-colors" title="Copy prompt">
+                          <Copy className="h-3 w-3 text-text-tertiary" />
+                        </button>
+                        <button onClick={() => { const a = document.createElement("a"); a.href = img.imageData; a.download = `owl-image-${img.id}.png`; a.click(); }}
+                          className="p-1.5 rounded-lg hover:bg-surface-hover transition-colors" title="Download">
+                          <Download className="h-3 w-3 text-text-tertiary" />
+                        </button>
+                        <button onClick={() => { deleteGeneratedImage(img.id); toast({ title: "Image deleted" }); setTab("snapshots"); setTimeout(() => setTab("images"), 0); }}
+                          className="p-1.5 rounded-lg hover:bg-destructive/10 transition-colors" title="Delete">
+                          <Trash2 className="h-3 w-3 text-text-tertiary" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <Image className="h-8 w-8 text-text-tertiary mx-auto mb-3" />
+              <p className="text-body text-muted-foreground">No generated images yet.</p>
+              <p className="text-caption text-text-tertiary mt-1">Ask Owl to "generate a logo" or "create a diagram".</p>
             </div>
           )
         )}

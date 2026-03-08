@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.generate-personalized-lesson]
 verify_jwt = false
+
+[functions.generate-chat-image]
+verify_jwt = false

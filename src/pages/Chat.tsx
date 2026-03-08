@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, Square, RotateCcw, ChevronDown, Plus, History, Pencil, Trash2, Bookmark, Image, X, Brain, BarChart3, User, Target, Eye, FileText, Paperclip } from "lucide-react";
+import { Send, Square, RotateCcw, ChevronDown, Plus, History, Pencil, Trash2, Bookmark, Image, X, Brain, BarChart3, User, Target, Eye, FileText, Paperclip, Wand2, Download, Loader2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { streamChat, type Msg } from "@/lib/ai-stream";
 import { parseAndSaveWisdomPack } from "@/lib/wisdom-packs";
@@ -19,6 +19,7 @@ import OwlIcon from "@/components/OwlIcon";
 import OwlHuntTracker from "@/components/OwlHuntTracker";
 import ChartRenderer, { type ChartData } from "@/components/ChartRenderer";
 import { saveChart } from "@/lib/chart-storage";
+import { saveGeneratedImage } from "@/lib/image-storage";
 import { supabase } from "@/integrations/supabase/client";
 
 const TUTOR_MODES = [
@@ -30,7 +31,29 @@ const TUTOR_MODES = [
   { id: "audit", label: "Audit", icon: "🔍" },
 ];
 
+const IMAGE_STYLES = [
+  { id: "minimal", label: "Minimal", icon: "◻️" },
+  { id: "luxury", label: "Luxury", icon: "✨" },
+  { id: "diagram", label: "Diagram", icon: "📐" },
+  { id: "realistic", label: "Realistic", icon: "📷" },
+  { id: "futuristic", label: "Futuristic", icon: "🚀" },
+  { id: "flat", label: "Flat Vector", icon: "🎨" },
+];
+
 const QUOTE_SEEN_KEY = "wisdom-daily-quote-key";
+
+const IMAGE_GEN_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-chat-image`;
+
+// Detect if user is asking for image generation
+const IMAGE_GEN_PATTERNS = [
+  /\b(generate|create|make|draw|design|produce|render)\b.*\b(image|picture|logo|icon|diagram|illustration|art|graphic|mockup|thumbnail|flowchart|visual|poster|banner|concept)\b/i,
+  /\b(image|picture|logo|icon|diagram|illustration|art|graphic|mockup|thumbnail|flowchart|visual|poster|banner)\b.*\b(generate|create|make|draw|design|produce|render|of|for)\b/i,
+  /^(generate|create|make|draw|design)\b/i,
+];
+
+function isImageGenRequest(text: string): boolean {
+  return IMAGE_GEN_PATTERNS.some(p => p.test(text));
+}
 
 function getDailyQuote(): string {
   const today = new Date().toDateString();
@@ -67,17 +90,20 @@ function extractCharts(content: string): { text: string; charts: ChartData[] } {
   return { text: text.trim(), charts };
 }
 
-// Tool indicator badges
-const TOOL_ICONS: Record<ToolUsed, { icon: React.ReactNode; label: string }> = {
+// Tool indicator badges — add "imagegen"
+type ExtToolUsed = ToolUsed | "imagegen";
+
+const TOOL_ICONS: Record<ExtToolUsed, { icon: React.ReactNode; label: string }> = {
   profile: { icon: <User className="h-2.5 w-2.5" />, label: "Profile" },
   memory: { icon: <Brain className="h-2.5 w-2.5" />, label: "Memory" },
   chart: { icon: <BarChart3 className="h-2.5 w-2.5" />, label: "Chart" },
   vision: { icon: <Eye className="h-2.5 w-2.5" />, label: "Vision" },
   goals: { icon: <Target className="h-2.5 w-2.5" />, label: "Goals" },
   mastery: { icon: <BarChart3 className="h-2.5 w-2.5" />, label: "Mastery" },
+  imagegen: { icon: <Wand2 className="h-2.5 w-2.5" />, label: "Image Gen" },
 };
 
-function ToolBadges({ tools }: { tools: ToolUsed[] }) {
+function ToolBadges({ tools }: { tools: ExtToolUsed[] }) {
   if (tools.length === 0) return null;
   return (
     <div className="flex flex-wrap gap-1 mt-1.5">
@@ -95,7 +121,7 @@ type AttachmentType = "image" | "file";
 
 interface PendingAttachment {
   file: File;
-  preview: string; // object URL for images, empty for files
+  preview: string;
   type: AttachmentType;
   name: string;
 }
@@ -104,15 +130,17 @@ interface ChatMessage extends Msg {
   id: string;
   imageUrl?: string;
   imagePreview?: string;
+  generatedImageUrl?: string;
+  generatedPrompt?: string;
+  generatedStyle?: string;
   fileName?: string;
   fileType?: AttachmentType;
-  toolsUsed?: ToolUsed[];
+  toolsUsed?: ExtToolUsed[];
 }
 
 const VISION_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-vision`;
 
 const IMAGE_EXTS = ["png", "jpg", "jpeg", "gif", "webp", "bmp", "svg"];
-const FILE_EXTS = ["pdf", "doc", "docx", "txt", "csv", "md", "json", "xml"];
 
 function getAttachmentType(file: File): AttachmentType {
   const ext = file.name.split(".").pop()?.toLowerCase() || "";
@@ -143,16 +171,12 @@ async function uploadChatFile(file: File): Promise<string | null> {
 
 async function extractFileText(file: File): Promise<string> {
   const ext = file.name.split(".").pop()?.toLowerCase() || "";
-  // Text-based files: read directly
   if (["txt", "md", "csv", "json", "xml"].includes(ext) || file.type.startsWith("text/")) {
     return await file.text();
   }
-  // For PDF/DOC, we read what we can (text representation)
   if (ext === "pdf" || ext === "doc" || ext === "docx") {
-    // Try to read as text — won't work for binary PDFs but handles some
     try {
       const text = await file.text();
-      // If it looks like binary, return a note
       if (text.includes("%PDF") || text.charCodeAt(0) > 127) {
         return `[Uploaded file: ${file.name} (${(file.size / 1024).toFixed(1)}KB). Binary PDF — Owl is analyzing the document via vision.]`;
       }
@@ -226,9 +250,36 @@ async function streamVision({
   }
 }
 
-// Quick action chips when no messages
-const QUICK_ACTIONS = [
+async function generateImage(prompt: string, style?: string): Promise<{ imageData?: string; text?: string; error?: string }> {
+  try {
+    const resp = await fetch(IMAGE_GEN_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+      },
+      body: JSON.stringify({ prompt, style }),
+    });
+    const data = await resp.json();
+    if (!resp.ok) {
+      return { error: data.error || "Image generation failed. Try again." };
+    }
+    return data;
+  } catch (e: any) {
+    return { error: e.message || "Connection failed" };
+  }
+}
+
+// Quick action chips
+interface QuickAction {
+  label: string;
+  prompt: string;
+  action?: "image" | "file" | "imagegen";
+}
+
+const QUICK_ACTIONS: QuickAction[] = [
   { label: "📷 Explain an image", prompt: "", action: "image" },
+  { label: "🎨 Generate image", prompt: "", action: "imagegen" },
   { label: "📊 Chart my progress", prompt: "Chart my mastery % by category" },
   { label: "📄 Analyze a file", prompt: "", action: "file" },
   { label: "🎯 What should I learn next?", prompt: "What should I learn next based on my progress?" },
@@ -254,6 +305,9 @@ export default function Chat() {
   const [savedQuote, setSavedQuote] = useState(false);
   const [savedChartIds, setSavedChartIds] = useState<Set<string>>(new Set());
   const [pendingAttachments, setPendingAttachments] = useState<PendingAttachment[]>([]);
+  const [showStylePicker, setShowStylePicker] = useState(false);
+  const [selectedStyle, setSelectedStyle] = useState<string | null>(null);
+  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const autoSentRef = useRef(false);
@@ -319,8 +373,83 @@ export default function Chat() {
     });
   };
 
+  // Handle image generation request
+  const handleImageGen = useCallback(async (prompt: string, style?: string) => {
+    if (isStreaming || isGeneratingImage) return;
+
+    const userMsg: ChatMessage = {
+      id: Date.now().toString(),
+      role: "user",
+      content: prompt,
+    };
+    const newMessages = [...messages, userMsg];
+    setMessages(newMessages);
+    setInput("");
+    setIsGeneratingImage(true);
+    setShowStylePicker(false);
+
+    let tid = currentThreadId;
+    if (!tid) {
+      const thread = createThread("Image Generation");
+      tid = thread.id;
+      setCurrentThreadId(tid);
+    }
+    addMessageToThread(tid, "user", prompt);
+
+    // Add loading message
+    const loadingId = `loading-${Date.now()}`;
+    setMessages(prev => [...prev, {
+      id: loadingId,
+      role: "assistant",
+      content: "🎨 Generating your image…",
+      toolsUsed: ["imagegen"],
+    }]);
+
+    const result = await generateImage(prompt, style || selectedStyle || undefined);
+
+    if (result.error && !result.imageData) {
+      setMessages(prev => prev.map(m =>
+        m.id === loadingId
+          ? { ...m, content: result.error || "Image generation failed. Try again." }
+          : m
+      ));
+      toast({ title: "Image generation failed", description: result.error, variant: "destructive" });
+    } else if (result.imageData) {
+      const assistantMsg: ChatMessage = {
+        id: `img-${Date.now()}`,
+        role: "assistant",
+        content: result.text || "Here's your generated image:",
+        generatedImageUrl: result.imageData,
+        generatedPrompt: prompt,
+        generatedStyle: style || selectedStyle || undefined,
+        toolsUsed: ["imagegen"],
+      };
+      setMessages(prev => prev.filter(m => m.id !== loadingId).concat(assistantMsg));
+      if (tid) {
+        addMessageToThread(tid, "assistant", `[Generated image: ${prompt}]`);
+        setThreads(loadChatThreads());
+      }
+    } else {
+      // No image but got text response
+      setMessages(prev => prev.map(m =>
+        m.id === loadingId
+          ? { ...m, content: result.text || "I couldn't generate an image from that prompt. Try rephrasing." }
+          : m
+      ));
+    }
+
+    setIsGeneratingImage(false);
+    setSelectedStyle(null);
+  }, [isStreaming, isGeneratingImage, messages, currentThreadId, selectedStyle]);
+
   const sendMessage = useCallback(async (text: string, threadId?: string) => {
-    if ((!text.trim() && pendingAttachments.length === 0) || isStreaming) return;
+    if ((!text.trim() && pendingAttachments.length === 0) || isStreaming || isGeneratingImage) return;
+
+    // Check if this is an image generation request
+    if (text.trim() && pendingAttachments.length === 0 && isImageGenRequest(text)) {
+      await handleImageGen(text);
+      return;
+    }
 
     const attachments = [...pendingAttachments];
     const hasImage = attachments.some(a => a.type === "image");
@@ -345,18 +474,16 @@ export default function Chat() {
           imagePreview = att.preview;
           fileType = "image";
         } else {
-          // Extract text content for file analysis
           const extracted = await extractFileText(att.file);
           fileTextContent += `\n\n--- File: ${att.name} ---\n${extracted}`;
           fileName = att.name;
           fileType = "file";
-          imageUrl = url; // store URL for reference
+          imageUrl = url;
         }
       }
       setPendingAttachments([]);
     }
 
-    // Build user message content
     let userContent = text || "";
     if (hasFile && fileTextContent) {
       userContent = (userContent || `Analyze this file: ${fileName}`) + fileTextContent;
@@ -392,7 +519,7 @@ export default function Chat() {
     let assistantContent = "";
 
     const owlContext = buildOwlContext();
-    const toolsUsed = detectToolsUsed(owlContext, hasImage);
+    const toolsUsed: ExtToolUsed[] = detectToolsUsed(owlContext, hasImage);
     if (hasFile && !toolsUsed.includes("vision")) toolsUsed.push("vision");
     if (newMessages.some(m => m.content?.toLowerCase().includes("chart") || m.content?.toLowerCase().includes("graph"))) {
       if (!toolsUsed.includes("chart")) toolsUsed.push("chart");
@@ -423,7 +550,6 @@ export default function Chat() {
     };
 
     if (hasImage && imageUrl) {
-      // Use vision endpoint for images
       const visionMsgs = newMessages.map(m => ({
         role: m.role,
         content: m.content,
@@ -438,7 +564,6 @@ export default function Chat() {
         signal: controller.signal,
       });
     } else {
-      // For files, send extracted text through normal chat with richer context
       const chatMsgs = newMessages.map(m => {
         if (m.id === userMsg.id && fileTextContent) {
           return { role: m.role, content: userContent };
@@ -455,16 +580,27 @@ export default function Chat() {
         signal: controller.signal,
       });
     }
-  }, [isStreaming, messages, mode, currentThreadId, pendingAttachments]);
+  }, [isStreaming, isGeneratingImage, messages, mode, currentThreadId, pendingAttachments, handleImageGen]);
 
   const handleSend = useCallback(() => sendMessage(input), [sendMessage, input]);
   const handleStop = () => abortRef.current?.abort();
 
   const handleRegenerate = useCallback(async () => {
-    if (isStreaming) return;
+    if (isStreaming || isGeneratingImage) return;
     const lastUserIdx = [...messages].reverse().findIndex(m => m.role === "user");
     if (lastUserIdx === -1) return;
     const idx = messages.length - 1 - lastUserIdx;
+    const lastUser = messages[idx];
+
+    // If last assistant had a generated image, regenerate it
+    const lastAssistant = messages[messages.length - 1];
+    if (lastAssistant?.generatedPrompt) {
+      const trimmed = messages.slice(0, idx + 1);
+      setMessages(trimmed);
+      await handleImageGen(lastAssistant.generatedPrompt, lastAssistant.generatedStyle);
+      return;
+    }
+
     const trimmed = messages.slice(0, idx + 1);
     setMessages(trimmed);
     setIsStreaming(true);
@@ -491,9 +627,9 @@ export default function Chat() {
       onError: (err) => toast({ title: "AI Error", description: err, variant: "destructive" }),
       signal: controller.signal,
     });
-  }, [isStreaming, messages, mode]);
+  }, [isStreaming, isGeneratingImage, messages, mode, handleImageGen]);
 
-  const handleNewChat = () => { setMessages([]); setCurrentThreadId(null); setShowHistory(false); setPendingAttachments([]); autoSentRef.current = false; };
+  const handleNewChat = () => { setMessages([]); setCurrentThreadId(null); setShowHistory(false); setPendingAttachments([]); setShowStylePicker(false); setSelectedStyle(null); autoSentRef.current = false; };
   const handleOpenThread = (thread: ChatThread) => {
     setCurrentThreadId(thread.id);
     setMessages(thread.messages.map(m => ({ id: m.id, role: m.role, content: m.content })));
@@ -511,6 +647,18 @@ export default function Chat() {
     saveChart(chart); setSavedChartIds(prev => new Set([...prev, msgId])); toast({ title: "📊 Chart saved to Library!" });
   };
 
+  const handleSaveImage = (imageUrl: string, prompt: string, style?: string) => {
+    saveGeneratedImage({ imageData: imageUrl, prompt, style });
+    toast({ title: "🖼️ Image saved to Library!" });
+  };
+
+  const handleDownloadImage = (imageUrl: string, prompt: string) => {
+    const a = document.createElement("a");
+    a.href = imageUrl;
+    a.download = `owl-${prompt.slice(0, 30).replace(/[^a-zA-Z0-9]/g, "-")}.png`;
+    a.click();
+  };
+
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
@@ -523,14 +671,28 @@ export default function Chat() {
       fileInputRef.current?.click();
       return;
     }
+    if (action.action === "imagegen") {
+      setShowStylePicker(true);
+      inputRef.current?.focus();
+      return;
+    }
     if (action.prompt) {
       setInput(action.prompt);
       setTimeout(() => sendMessage(action.prompt), 100);
     }
   };
 
+  const handleImageGenVariation = (prompt: string, variation: string) => {
+    let newPrompt = prompt;
+    if (variation === "minimal") newPrompt = `${prompt}, minimalist style, clean and simple`;
+    else if (variation === "detailed") newPrompt = `${prompt}, highly detailed, intricate`;
+    else if (variation === "different") newPrompt = `${prompt}, alternative version, different approach`;
+    handleImageGen(newPrompt);
+  };
+
   const currentMode = TUTOR_MODES.find(m => m.id === mode) || TUTOR_MODES[0];
   const hasMessages = messages.length > 0;
+  const isBusy = isStreaming || isGeneratingImage;
 
   const renderMessageContent = (msg: ChatMessage) => {
     if (msg.role === "user") {
@@ -556,7 +718,45 @@ export default function Chat() {
     const { text, charts } = extractCharts(msg.content);
     return (
       <>
-        {text && (
+        {/* Generated image */}
+        {msg.generatedImageUrl && (
+          <div className="mb-3">
+            <img src={msg.generatedImageUrl} alt={msg.generatedPrompt || "Generated"} className="rounded-xl max-w-full w-full" />
+            <div className="flex flex-wrap gap-1.5 mt-2">
+              <button onClick={() => handleSaveImage(msg.generatedImageUrl!, msg.generatedPrompt || "", msg.generatedStyle)}
+                className="rounded-lg bg-primary/10 px-2.5 py-1 text-[11px] text-primary font-medium hover:bg-primary/20 transition-colors">
+                💾 Save
+              </button>
+              <button onClick={() => handleDownloadImage(msg.generatedImageUrl!, msg.generatedPrompt || "")}
+                className="rounded-lg bg-primary/10 px-2.5 py-1 text-[11px] text-primary font-medium hover:bg-primary/20 transition-colors">
+                <Download className="h-3 w-3 inline mr-0.5" /> Download
+              </button>
+              <button onClick={() => handleImageGen(msg.generatedPrompt || "")}
+                className="rounded-lg bg-surface-2 px-2.5 py-1 text-[11px] text-muted-foreground font-medium hover:bg-surface-hover transition-colors">
+                🔄 Regenerate
+              </button>
+              <button onClick={() => handleImageGenVariation(msg.generatedPrompt || "", "minimal")}
+                className="rounded-lg bg-surface-2 px-2.5 py-1 text-[11px] text-muted-foreground font-medium hover:bg-surface-hover transition-colors">
+                ◻️ More minimal
+              </button>
+              <button onClick={() => handleImageGenVariation(msg.generatedPrompt || "", "detailed")}
+                className="rounded-lg bg-surface-2 px-2.5 py-1 text-[11px] text-muted-foreground font-medium hover:bg-surface-hover transition-colors">
+                ✨ More detailed
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Loading state for image gen */}
+        {msg.content === "🎨 Generating your image…" && (
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <span className="text-caption">Generating your image…</span>
+          </div>
+        )}
+
+        {/* Text content */}
+        {text && msg.content !== "🎨 Generating your image…" && (
           <div className="prose prose-invert prose-sm max-w-none [&_p]:my-1 [&_ul]:my-1 [&_ol]:my-1 [&_li]:my-0.5 [&_h1]:text-lg [&_h2]:text-base [&_h3]:text-sm [&_code]:bg-surface-2 [&_code]:px-1 [&_code]:rounded [&_pre]:bg-surface-2 [&_pre]:p-3 [&_pre]:rounded-xl [&_strong]:text-foreground">
             <ReactMarkdown>{text}</ReactMarkdown>
           </div>
@@ -759,13 +959,39 @@ export default function Chat() {
           </button>
         </div>
       )}
-      {!isStreaming && hasMessages && messages[messages.length - 1]?.role === "assistant" && (
+      {!isBusy && hasMessages && messages[messages.length - 1]?.role === "assistant" && (
         <div className="flex justify-center pb-2">
           <button onClick={handleRegenerate} className="flex items-center gap-2 rounded-xl bg-surface-2 px-4 py-2 text-caption text-muted-foreground hover:bg-surface-hover transition-colors">
             <RotateCcw className="h-3 w-3" /> Regenerate
           </button>
         </div>
       )}
+
+      {/* Style Picker for Image Gen */}
+      <AnimatePresence>
+        {showStylePicker && (
+          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }}
+            className="overflow-hidden px-5 pb-2">
+            <div className="flex items-center gap-2 mb-1.5">
+              <Wand2 className="h-3.5 w-3.5 text-primary" />
+              <span className="text-micro text-muted-foreground">Image style (optional):</span>
+              <button onClick={() => setShowStylePicker(false)} className="ml-auto p-1 rounded hover:bg-surface-hover">
+                <X className="h-3 w-3 text-muted-foreground" />
+              </button>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {IMAGE_STYLES.map(s => (
+                <button key={s.id} onClick={() => setSelectedStyle(selectedStyle === s.id ? null : s.id)}
+                  className={`rounded-xl px-3 py-1.5 text-micro font-medium transition-all ${
+                    selectedStyle === s.id ? "bg-primary text-primary-foreground" : "bg-surface-2 text-muted-foreground hover:bg-surface-hover"
+                  }`}>
+                  {s.icon} {s.label}
+                </button>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Pending Attachments Preview */}
       {pendingAttachments.length > 0 && (
@@ -793,7 +1019,7 @@ export default function Chat() {
 
       {/* Input */}
       <div className="border-t border-border px-5 py-3 pb-24 bg-background">
-        <div className="flex items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3">
+        <div className="flex items-center gap-2 rounded-2xl border border-border bg-card px-4 py-3">
           <input
             type="file"
             ref={fileInputRef}
@@ -807,11 +1033,18 @@ export default function Chat() {
             title="Attach image or file">
             <Paperclip className="h-4 w-4 text-muted-foreground" />
           </button>
+          <button onClick={() => setShowStylePicker(!showStylePicker)}
+            className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl transition-colors ${
+              showStylePicker || selectedStyle ? "bg-primary/10 text-primary" : "bg-surface-2 hover:bg-surface-hover text-muted-foreground"
+            }`}
+            title="Generate image">
+            <Wand2 className="h-4 w-4" />
+          </button>
           <input ref={inputRef} value={input} onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSend()}
-            placeholder="Ask Owl anything… or attach a file"
+            placeholder={showStylePicker ? "Describe the image you want…" : "Ask Owl anything… or attach a file"}
             className="flex-1 bg-transparent text-body text-foreground placeholder:text-text-tertiary outline-none" />
-          <button onClick={handleSend} disabled={(!input.trim() && pendingAttachments.length === 0) || isStreaming}
+          <button onClick={handleSend} disabled={(!input.trim() && pendingAttachments.length === 0) || isBusy}
             className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground disabled:opacity-20 transition-opacity">
             <Send className="h-4 w-4" />
           </button>
