@@ -40,7 +40,7 @@ CRITICAL — NO DISCLAIMERS POLICY:
 
 IMAGE GENERATION NOTE:
 - You CAN analyze images that users upload
-- If asked to GENERATE/CREATE an image, say briefly: "I can analyze images you upload. Image generation isn't connected yet — but I can help you plan what you need."`;
+- Image generation is also available — if the user wants to CREATE an image, let them know they can use the image generation tool in chat.`;
 
     if (context) {
       if (context.user_name) systemPrompt += `\nUser's name: ${context.user_name}`;
