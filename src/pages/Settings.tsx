@@ -429,6 +429,21 @@ export default function Settings() {
           </div>
         </button>
       </div>
+
+      {/* Debug Panel */}
+      <div className="px-5 pb-4">
+        <details className="group">
+          <summary className="text-micro text-muted-foreground cursor-pointer hover:text-foreground transition-colors">
+            🔧 Developer: Persistence Debug
+          </summary>
+          <div className="mt-2">
+            <Suspense fallback={<div className="text-xs text-muted-foreground p-2">Loading…</div>}>
+              <PersistenceDebugPanel />
+            </Suspense>
+          </div>
+        </details>
+      </div>
+
       <div className="px-5 pb-8 flex justify-end">
         <HiddenOwl locationId="settings-footer" size={14} />
       </div>
