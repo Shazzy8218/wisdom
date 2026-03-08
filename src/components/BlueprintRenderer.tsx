@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { Check, Circle, ArrowRight, TrendingUp, GitBranch, Table2, FileText } from "lucide-react";
 import ReactMarkdown from "react-markdown";
