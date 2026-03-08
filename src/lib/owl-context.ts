@@ -90,11 +90,11 @@ export function buildOwlContext(extras?: Record<string, string>): Record<string,
     const entries = Object.entries(scores).sort(([, a], [, b]) => (b as number) - (a as number));
     if (entries.length > 0) {
       const top = entries.slice(0, 5).map(([k, v]) => {
-        const cat = CATEGORIES.find(c => c.id === k);
+        const cat = CATEGORY_TRACKS.find(c => c.id === k);
         return `${cat?.name || k}: ${v}%`;
       });
       const bottom = entries.slice(-3).map(([k, v]) => {
-        const cat = CATEGORIES.find(c => c.id === k);
+        const cat = CATEGORY_TRACKS.find(c => c.id === k);
         return `${cat?.name || k}: ${v}%`;
       });
       ctx.mastery_breakdown = `Strongest: ${top.join(", ")}. Weakest: ${bottom.join(", ")}`;
