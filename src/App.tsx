@@ -11,7 +11,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useCalibration } from "@/hooks/useCalibration";
 import CalibrationModal from "@/components/CalibrationModal";
 import Chat from "./pages/Chat";
-import Learn from "./pages/Learn";
+import Courses from "./pages/Courses";
 import LearnFeed from "./pages/LearnFeed";
 import LearnPaths from "./pages/LearnPaths";
 import MasteryChart from "./pages/MasteryChart";
