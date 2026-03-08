@@ -35,12 +35,18 @@ export function useCalibration() {
 
   const completeCalibration = useCallback(async (goalMode: string, outputMode: string) => {
     if (!user) return;
-    await supabase.from("profiles").update({
+    const { error } = await supabase.from("profiles").upsert({
+      id: user.id,
       goal_mode: goalMode,
       output_mode: outputMode,
       calibration_done: true,
-    } as any).eq("id", user.id);
-    setData({ goalMode: goalMode as any, outputMode: outputMode as any, calibrationDone: true });
+      email: user.email || "",
+      display_name: user.email?.split("@")[0] || "Learner",
+    } as any, { onConflict: "id" });
+    if (error) console.error("Calibration save error:", error);
+    const newData = { goalMode: goalMode as any, outputMode: outputMode as any, calibrationDone: true };
+    setData(newData);
+    localStorage.setItem("wisdom-calibration-cache", JSON.stringify(newData));
   }, [user]);
 
   const updateCalibration = useCallback(async (updates: Partial<Pick<CalibrationData, "goalMode" | "outputMode">>) => {
