@@ -1,13 +1,12 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, Square, RotateCcw, ChevronDown, Plus, History, Pencil, Trash2, Bookmark, Zap } from "lucide-react";
-import ReactMarkdown from "react-markdown";
+import { Send, Square, RotateCcw, Plus, History, Pencil, Trash2, Bookmark, ChevronDown, Mic, Zap, Shield, PanelRight } from "lucide-react";
 import { streamChat, type Msg } from "@/lib/ai-stream";
 import { parseAndSaveWisdomPack } from "@/lib/wisdom-packs";
 import { toast } from "@/hooks/use-toast";
 import { useSearchParams } from "react-router-dom";
 import {
-  loadChatThreads, createThread, addMessageToThread, renameThread, deleteThread, getThread,
+  loadChatThreads, createThread, addMessageToThread, renameThread, deleteThread,
   type ChatThread,
 } from "@/lib/chat-history";
 import { getUserProfileForAI } from "@/hooks/useUserProfile";
@@ -17,25 +16,19 @@ import { useProgress } from "@/hooks/useProgress";
 import { QUOTES } from "@/lib/data";
 import OwlIcon from "@/components/OwlIcon";
 import OwlHuntTracker from "@/components/OwlHuntTracker";
+import BlueprintRenderer from "@/components/BlueprintRenderer";
+import VaultSidebar from "@/components/VaultSidebar";
 
 const TUTOR_MODES = [
-  { id: "default", label: "Teach Me", icon: "📖" },
-  { id: "explain-10", label: "ELI10", icon: "🧒" },
-  { id: "fast-answer", label: "Fast", icon: "⚡" },
+  { id: "default", label: "Command", icon: "⚡" },
+  { id: "task", label: "Task", icon: "🎯" },
   { id: "deep-dive", label: "Deep Dive", icon: "🔬" },
+  { id: "fast-answer", label: "Fast", icon: "⚡" },
+  { id: "fix-prompt", label: "Fix Prompt", icon: "🔧" },
   { id: "socratic", label: "Socratic", icon: "🤔" },
   { id: "drills", label: "Drills", icon: "💪" },
   { id: "workflow", label: "Workflow", icon: "🔗" },
-  { id: "fix-prompt", label: "Fix Prompt", icon: "🔧" },
-  { id: "task", label: "Task Mode", icon: "🎯" },
   { id: "quote-teach", label: "Quotes", icon: "💎" },
-];
-
-const QUICK_ACTIONS = [
-  { label: "Write / Rewrite", prompt: "Help me write or rewrite: " },
-  { label: "Plan", prompt: "Help me create a plan for: " },
-  { label: "Fix / Improve", prompt: "Help me fix or improve: " },
-  { label: "Learn this", prompt: "Teach me about: " },
 ];
 
 const QUOTE_SEEN_KEY = "wisdom-daily-quote-key";
@@ -76,14 +69,18 @@ export default function Chat() {
   const [mode, setMode] = useState("default");
   const [showModes, setShowModes] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const [showVault, setShowVault] = useState(false);
   const [threads, setThreads] = useState<ChatThread[]>([]);
   const [currentThreadId, setCurrentThreadId] = useState<string | null>(null);
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
   const [savedQuote, setSavedQuote] = useState(false);
+  const [aggressiveMode, setAggressiveMode] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const blueprintRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const autoSentRef = useRef(false);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   const clock = useLiveClock();
   const { profile } = useUserProfile();
@@ -94,24 +91,19 @@ export default function Chat() {
     ? `${clock.greeting}, ${profile.displayName}`
     : clock.greeting;
 
-  useEffect(() => {
-    setThreads(loadChatThreads());
-  }, []);
+  useEffect(() => { setThreads(loadChatThreads()); }, []);
 
   useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+    blueprintRef.current?.scrollTo({ top: blueprintRef.current.scrollHeight, behavior: "smooth" });
   }, [messages]);
 
   useEffect(() => {
     if (contextParam && autoSendParam === "true" && !autoSentRef.current) {
       autoSentRef.current = true;
-      const decoded = decodeURIComponent(contextParam);
       setInput("");
       const thread = createThread("Lesson Q&A", lessonIdParam || undefined);
       setCurrentThreadId(thread.id);
-      setTimeout(() => {
-        sendMessage(decoded, thread.id);
-      }, 500);
+      setTimeout(() => sendMessage(decodeURIComponent(contextParam), thread.id), 500);
     }
   }, [contextParam, autoSendParam]);
 
@@ -155,16 +147,13 @@ export default function Chat() {
         if (assistantContent && tid) {
           addMessageToThread(tid, "assistant", assistantContent);
           setThreads(loadChatThreads());
-          // Auto-save wisdom pack from task mode responses
           if (mode === "task") {
             const lastUserMsg = newMessages.filter(m => m.role === "user").pop();
             parseAndSaveWisdomPack(assistantContent, lastUserMsg?.content || text);
           }
         }
       },
-      onError: (err) => {
-        toast({ title: "AI Error", description: err, variant: "destructive" });
-      },
+      onError: (err) => toast({ title: "System Error", description: err, variant: "destructive" }),
       signal: controller.signal,
     });
   }, [isStreaming, messages, mode, currentThreadId]);
@@ -199,7 +188,7 @@ export default function Chat() {
         });
       },
       onDone: () => { setIsStreaming(false); abortRef.current = null; },
-      onError: (err) => toast({ title: "AI Error", description: err, variant: "destructive" }),
+      onError: (err) => toast({ title: "System Error", description: err, variant: "destructive" }),
       signal: controller.signal,
     });
   }, [isStreaming, messages, mode]);
@@ -218,10 +207,7 @@ export default function Chat() {
   };
 
   const handleRename = (id: string) => {
-    if (renameValue.trim()) {
-      renameThread(id, renameValue.trim());
-      setThreads(loadChatThreads());
-    }
+    if (renameValue.trim()) { renameThread(id, renameValue.trim()); setThreads(loadChatThreads()); }
     setRenamingId(null);
   };
 
@@ -237,68 +223,80 @@ export default function Chat() {
       saved.push(dailyQuote);
       localStorage.setItem("wisdom-saved-quotes", JSON.stringify(saved));
       setSavedQuote(true);
-      toast({ title: "Quote saved!" });
+      toast({ title: "Intel saved." });
     }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); }
   };
 
   const currentMode = TUTOR_MODES.find(m => m.id === mode) || TUTOR_MODES[0];
   const hasMessages = messages.length > 0;
+  const lastAssistant = [...messages].reverse().find(m => m.role === "assistant");
 
   return (
     <div className="flex flex-col h-screen">
-      {/* Header - minimal */}
-      <div className="px-5 pt-12 pb-2 flex items-center justify-between">
+      {/* Command Header */}
+      <header className="px-4 pt-3 pb-2 flex items-center justify-between border-b border-border bg-card/50">
         <div className="flex items-center gap-2">
-          <OwlIcon size={20} />
-          <span className="font-display text-lg font-bold text-foreground">Owl</span>
+          <OwlIcon size={18} />
+          <span className="font-display text-sm font-bold text-primary tracking-wider">WISDOM OWL</span>
+          <span className="text-[9px] font-mono text-muted-foreground tracking-widest ml-1">OS</span>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
           <OwlHuntTracker />
-          <div className="flex items-center gap-1.5 text-micro text-muted-foreground">
-            <span>✦ {progress.tokens}</span>
-            <span>·</span>
-            <span>🔥 {progress.streak}</span>
-          </div>
+          <span className="text-[10px] font-mono text-muted-foreground">
+            {progress.tokens}<span className="text-primary ml-0.5">WT</span>
+          </span>
+          <span className="text-border">·</span>
+          <span className="text-[10px] font-mono text-muted-foreground">
+            🔥{progress.streak}
+          </span>
           <button onClick={() => { setThreads(loadChatThreads()); setShowHistory(!showHistory); }}
-            className="flex h-8 w-8 items-center justify-center rounded-xl bg-surface-2 hover:bg-surface-hover transition-colors">
-            <History className="h-3.5 w-3.5 text-muted-foreground" />
+            className="flex h-7 w-7 items-center justify-center rounded bg-surface-2 hover:bg-surface-hover transition-colors ml-1">
+            <History className="h-3 w-3 text-muted-foreground" />
+          </button>
+          <button onClick={() => setShowVault(!showVault)}
+            className="flex h-7 w-7 items-center justify-center rounded bg-surface-2 hover:bg-surface-hover transition-colors">
+            <PanelRight className="h-3 w-3 text-muted-foreground" />
           </button>
           <button onClick={handleNewChat}
-            className="flex h-8 w-8 items-center justify-center rounded-xl bg-surface-2 hover:bg-surface-hover transition-colors">
-            <Plus className="h-3.5 w-3.5 text-muted-foreground" />
+            className="flex h-7 w-7 items-center justify-center rounded bg-surface-2 hover:bg-surface-hover transition-colors">
+            <Plus className="h-3 w-3 text-muted-foreground" />
           </button>
         </div>
-      </div>
+      </header>
 
-      {/* Chat History Panel */}
+      {/* History Panel */}
       <AnimatePresence>
         {showHistory && (
           <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }}
             className="overflow-hidden border-b border-border bg-card">
-            <div className="px-5 py-3 max-h-64 overflow-y-auto hide-scrollbar">
-              <p className="section-label mb-2">Chat History</p>
+            <div className="px-4 py-3 max-h-56 overflow-y-auto hide-scrollbar">
+              <p className="section-label mb-2">MISSION LOG</p>
               {threads.length === 0 ? (
-                <p className="text-caption text-muted-foreground py-4 text-center">No saved chats yet.</p>
+                <p className="text-xs font-mono text-muted-foreground/50 py-4 text-center">No operations logged.</p>
               ) : (
                 <div className="space-y-1">
                   {threads.slice(0, 20).map(t => (
-                    <div key={t.id} className={`rounded-xl p-3 flex items-center gap-2 transition-all cursor-pointer ${
-                      currentThreadId === t.id ? "bg-primary/10 border border-primary/20" : "bg-surface-2 hover:bg-surface-hover"
+                    <div key={t.id} className={`rounded p-2.5 flex items-center gap-2 transition-all cursor-pointer ${
+                      currentThreadId === t.id ? "bg-primary/5 border border-primary/20" : "bg-surface-2 hover:bg-surface-hover border border-transparent"
                     }`}>
                       {renamingId === t.id ? (
                         <input value={renameValue} onChange={e => setRenameValue(e.target.value)}
                           onBlur={() => handleRename(t.id)} onKeyDown={e => e.key === "Enter" && handleRename(t.id)}
-                          className="flex-1 bg-transparent text-caption text-foreground outline-none" autoFocus />
+                          className="flex-1 bg-transparent text-xs font-mono text-foreground outline-none" autoFocus />
                       ) : (
                         <button onClick={() => handleOpenThread(t)} className="flex-1 text-left min-w-0">
-                          <p className="text-caption font-medium text-foreground truncate">{t.title}</p>
-                          <p className="text-micro text-muted-foreground">{t.messages.length} msgs · {new Date(t.updatedAt).toLocaleDateString()}</p>
+                          <p className="text-xs font-mono text-foreground truncate">{t.title}</p>
+                          <p className="text-[10px] font-mono text-muted-foreground">{t.messages.length} msgs</p>
                         </button>
                       )}
                       <button onClick={() => { setRenamingId(t.id); setRenameValue(t.title); }}
-                        className="shrink-0 p-1 rounded-lg hover:bg-surface-hover"><Pencil className="h-3 w-3 text-text-tertiary" /></button>
+                        className="shrink-0 p-1 rounded hover:bg-surface-hover"><Pencil className="h-2.5 w-2.5 text-muted-foreground" /></button>
                       <button onClick={() => handleDelete(t.id)}
-                        className="shrink-0 p-1 rounded-lg hover:bg-destructive/10"><Trash2 className="h-3 w-3 text-text-tertiary" /></button>
+                        className="shrink-0 p-1 rounded hover:bg-destructive/10"><Trash2 className="h-2.5 w-2.5 text-muted-foreground" /></button>
                     </div>
                   ))}
                 </div>
@@ -308,167 +306,193 @@ export default function Chat() {
         )}
       </AnimatePresence>
 
-      {/* Messages Area */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 py-4 space-y-4 hide-scrollbar">
-        {/* Empty state = Chat Home */}
-        {!hasMessages && (
-          <div className="flex flex-col items-center justify-center min-h-[60vh]">
-            {/* Greeting */}
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-6">
-              <p className="font-display text-xl font-bold text-foreground">{displayGreeting}</p>
-              <p className="text-micro text-muted-foreground mt-1">{clock.dateStr} · {clock.timeStr}</p>
-            </motion.div>
-
-            {/* Daily Quote */}
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-              className="w-full max-w-sm mb-8">
-              <div className="glass-card p-4 text-center">
-                <p className="text-caption italic text-muted-foreground leading-relaxed">"{dailyQuote}"</p>
-                <button onClick={handleSaveQuote}
-                  className={`mt-2 text-micro font-medium transition-colors ${savedQuote ? "text-accent-gold" : "text-text-tertiary hover:text-muted-foreground"}`}>
-                  <Bookmark className="h-3 w-3 inline mr-1" />{savedQuote ? "Saved" : "Save"}
-                </button>
-              </div>
-            </motion.div>
-
-            {/* Quick Actions */}
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-              className="grid grid-cols-2 gap-2 w-full max-w-sm mb-4">
-              {QUICK_ACTIONS.map(action => (
-                <button key={action.label} onClick={() => setInput(action.prompt)}
-                  className="glass-card p-3 text-caption font-medium text-muted-foreground hover:text-foreground hover:border-primary/20 transition-all text-left">
-                  {action.label}
-                </button>
-              ))}
-            </motion.div>
-
-            {/* Mode Toggle */}
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}>
-              <button onClick={() => setShowModes(!showModes)}
-                className="flex items-center gap-2 rounded-xl bg-surface-2 px-3 py-2 text-micro text-muted-foreground hover:bg-surface-hover transition-colors">
-                <span>{currentMode.icon}</span>
-                <span>{currentMode.label}</span>
-                <ChevronDown className={`h-3 w-3 transition-transform ${showModes ? "rotate-180" : ""}`} />
-              </button>
-            </motion.div>
-
-            <AnimatePresence>
-              {showModes && (
-                <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }}
-                  className="overflow-hidden mt-2">
-                  <div className="flex flex-wrap gap-1.5 justify-center max-w-sm">
-                    {TUTOR_MODES.map((m) => (
-                      <button key={m.id} onClick={() => { setMode(m.id); setShowModes(false); }}
-                        className={`rounded-xl px-3 py-1.5 text-micro font-medium transition-all ${mode === m.id ? "bg-primary text-primary-foreground" : "bg-surface-2 text-muted-foreground hover:bg-surface-hover"}`}>
-                        {m.icon} {m.label}
-                      </button>
-                    ))}
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+      {/* Main Split Layout */}
+      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
+        {/* LEFT: Command Input + Thread */}
+        <div className="flex-1 flex flex-col min-w-0 border-r border-border">
+          {/* Mode Bar */}
+          <div className="px-4 py-2 flex items-center gap-2 border-b border-border/50">
+            <button onClick={() => setShowModes(!showModes)}
+              className="flex items-center gap-1.5 rounded bg-surface-2 px-2.5 py-1 text-[10px] font-mono text-muted-foreground hover:bg-surface-hover transition-colors">
+              <span>{currentMode.icon}</span>
+              <span className="uppercase tracking-wider">{currentMode.label}</span>
+              <ChevronDown className={`h-2.5 w-2.5 transition-transform ${showModes ? "rotate-180" : ""}`} />
+            </button>
+            {/* Kill/Scale Toggle */}
+            <button onClick={() => setAggressiveMode(!aggressiveMode)}
+              className={`flex items-center gap-1 rounded px-2.5 py-1 text-[10px] font-mono transition-all ${
+                aggressiveMode
+                  ? "bg-accent-red/10 text-accent-red border border-accent-red/20"
+                  : "bg-surface-2 text-muted-foreground hover:bg-surface-hover border border-transparent"
+              }`}>
+              {aggressiveMode ? <Zap className="h-2.5 w-2.5" /> : <Shield className="h-2.5 w-2.5" />}
+              <span className="uppercase tracking-wider">{aggressiveMode ? "KILL" : "SCALE"}</span>
+            </button>
           </div>
-        )}
 
-        {/* Active Chat Messages */}
-        {hasMessages && (
-          <>
-            {/* Mode pill when chatting */}
-            {!showModes && (
-              <div className="flex justify-center mb-2">
-                <button onClick={() => setShowModes(!showModes)}
-                  className="flex items-center gap-1.5 rounded-xl bg-surface-2 px-3 py-1.5 text-micro text-muted-foreground hover:bg-surface-hover transition-colors">
-                  <span>{currentMode.icon}</span> <span>{currentMode.label}</span>
-                  <ChevronDown className="h-2.5 w-2.5" />
-                </button>
-              </div>
-            )}
-            <AnimatePresence>
-              {showModes && (
-                <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }}
-                  className="overflow-hidden mb-3">
-                  <div className="flex flex-wrap gap-1.5 justify-center">
-                    {TUTOR_MODES.map((m) => (
-                      <button key={m.id} onClick={() => { setMode(m.id); setShowModes(false); }}
-                        className={`rounded-xl px-3 py-1.5 text-micro font-medium transition-all ${mode === m.id ? "bg-primary text-primary-foreground" : "bg-surface-2 text-muted-foreground hover:bg-surface-hover"}`}>
-                        {m.icon} {m.label}
-                      </button>
-                    ))}
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            <AnimatePresence initial={false}>
-              {messages.map((msg) => (
-                <motion.div key={msg.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}
-                  className={`flex gap-3 ${msg.role === "user" ? "justify-end" : ""}`}>
-                  {msg.role === "assistant" && (
-                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-primary/10 mt-0.5">
-                      <OwlIcon size={16} />
-                    </div>
-                  )}
-                  <div className={`max-w-[85%] rounded-2xl px-4 py-3 text-body leading-relaxed ${
-                    msg.role === "user" ? "bg-primary text-primary-foreground" : "bg-card border border-border text-foreground"
-                  }`}>
-                    {msg.role === "assistant" ? (
-                      <div className="prose prose-invert prose-sm max-w-none [&_p]:my-1 [&_ul]:my-1 [&_ol]:my-1 [&_li]:my-0.5 [&_h1]:text-lg [&_h2]:text-base [&_h3]:text-sm [&_code]:bg-surface-2 [&_code]:px-1 [&_code]:rounded [&_pre]:bg-surface-2 [&_pre]:p-3 [&_pre]:rounded-xl [&_strong]:text-foreground">
-                        <ReactMarkdown>{msg.content}</ReactMarkdown>
-                      </div>
-                    ) : (
-                      <p>{msg.content}</p>
-                    )}
-                  </div>
-                </motion.div>
-              ))}
-            </AnimatePresence>
-
-            {isStreaming && messages[messages.length - 1]?.role !== "assistant" && (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex gap-3">
-                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-primary/10 mt-0.5">
-                  <OwlIcon size={16} />
-                </div>
-                <div className="bg-card border border-border rounded-2xl px-4 py-3">
-                  <div className="flex gap-1.5">
-                    <span className="h-2 w-2 rounded-full bg-muted-foreground animate-pulse" />
-                    <span className="h-2 w-2 rounded-full bg-muted-foreground animate-pulse [animation-delay:0.2s]" />
-                    <span className="h-2 w-2 rounded-full bg-muted-foreground animate-pulse [animation-delay:0.4s]" />
-                  </div>
+          <AnimatePresence>
+            {showModes && (
+              <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }}
+                className="overflow-hidden border-b border-border/50">
+                <div className="flex flex-wrap gap-1 p-3">
+                  {TUTOR_MODES.map(m => (
+                    <button key={m.id} onClick={() => { setMode(m.id); setShowModes(false); }}
+                      className={`rounded px-2.5 py-1 text-[10px] font-mono transition-all ${
+                        mode === m.id ? "bg-primary text-primary-foreground" : "bg-surface-2 text-muted-foreground hover:bg-surface-hover"
+                      }`}>
+                      {m.icon} {m.label.toUpperCase()}
+                    </button>
+                  ))}
                 </div>
               </motion.div>
             )}
-          </>
-        )}
+          </AnimatePresence>
+
+          {/* Messages Thread */}
+          <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-3 space-y-3 hide-scrollbar">
+            {!hasMessages && (
+              <div className="flex flex-col items-start justify-center min-h-[50vh] pt-8">
+                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+                  <p className="font-display text-lg font-bold text-foreground">{displayGreeting}</p>
+                  <p className="text-[10px] font-mono text-muted-foreground mt-1 tracking-wider">
+                    {clock.dateStr} · {clock.timeStr}
+                  </p>
+                </motion.div>
+
+                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
+                  className="mt-6 w-full max-w-md">
+                  <div className="neon-border-gold rounded-lg p-4 bg-primary/[0.02]">
+                    <p className="text-[10px] font-mono text-primary/60 uppercase tracking-widest mb-1">DAILY INTEL</p>
+                    <p className="text-sm font-mono italic text-muted-foreground leading-relaxed">"{dailyQuote}"</p>
+                    <button onClick={handleSaveQuote}
+                      className={`mt-2 text-[10px] font-mono transition-colors ${savedQuote ? "text-primary" : "text-muted-foreground/40 hover:text-muted-foreground"}`}>
+                      <Bookmark className="h-2.5 w-2.5 inline mr-1" />{savedQuote ? "SAVED" : "SAVE"}
+                    </button>
+                  </div>
+                </motion.div>
+
+                <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}
+                  className="text-[10px] font-mono text-muted-foreground/30 mt-6 tracking-wider">
+                  AWAITING ORDERS_
+                </motion.p>
+              </div>
+            )}
+
+            {hasMessages && (
+              <AnimatePresence initial={false}>
+                {messages.map((msg) => (
+                  <motion.div key={msg.id} initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className={msg.role === "user" ? "flex justify-end" : ""}>
+                    {msg.role === "user" ? (
+                      <div className="max-w-[85%] rounded-lg px-3 py-2 bg-primary/10 border border-primary/20">
+                        <p className="text-sm font-mono text-foreground">{msg.content}</p>
+                      </div>
+                    ) : (
+                      <div className="flex gap-2">
+                        <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-primary/10 mt-1">
+                          <OwlIcon size={12} />
+                        </div>
+                        <div className="flex-1 text-sm text-foreground/90 lg:hidden">
+                          <BlueprintRenderer content={msg.content} aggressiveMode={aggressiveMode} />
+                        </div>
+                        {/* On desktop, assistant messages show only a summary; full render is on the right pane */}
+                        <div className="flex-1 hidden lg:block">
+                          <p className="text-xs font-mono text-muted-foreground">
+                            Blueprint rendered →
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            )}
+
+            {isStreaming && messages[messages.length - 1]?.role !== "assistant" && (
+              <div className="flex gap-2">
+                <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-primary/10 mt-1">
+                  <OwlIcon size={12} />
+                </div>
+                <div className="flex gap-1.5 py-2">
+                  <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
+                  <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse [animation-delay:0.2s]" />
+                  <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse [animation-delay:0.4s]" />
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Controls */}
+          {isStreaming && (
+            <div className="flex justify-center py-1.5 border-t border-border/50">
+              <button onClick={handleStop} className="flex items-center gap-1.5 rounded bg-surface-2 px-3 py-1 text-[10px] font-mono text-muted-foreground hover:bg-surface-hover transition-colors">
+                <Square className="h-2.5 w-2.5" /> ABORT
+              </button>
+            </div>
+          )}
+          {!isStreaming && hasMessages && messages[messages.length - 1]?.role === "assistant" && (
+            <div className="flex justify-center py-1.5 border-t border-border/50">
+              <button onClick={handleRegenerate} className="flex items-center gap-1.5 rounded bg-surface-2 px-3 py-1 text-[10px] font-mono text-muted-foreground hover:bg-surface-hover transition-colors">
+                <RotateCcw className="h-2.5 w-2.5" /> REGENERATE
+              </button>
+            </div>
+          )}
+
+          {/* Input */}
+          <div className="border-t border-border p-3 pb-24 lg:pb-3 bg-card/50">
+            <div className="flex items-end gap-2 rounded-lg border border-border bg-surface-2 p-2">
+              <textarea
+                ref={inputRef}
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="Submit your plan for a stress test..."
+                rows={1}
+                className="flex-1 bg-transparent text-sm font-mono text-foreground placeholder:text-muted-foreground/30 outline-none resize-none min-h-[36px] max-h-[120px] py-1.5 px-2"
+                style={{ caretColor: "hsl(45, 90%, 55%)" }}
+              />
+              <div className="flex items-center gap-1">
+                <button className="flex h-8 w-8 items-center justify-center rounded bg-surface-hover hover:bg-muted transition-colors"
+                  title="Voice input (coming soon)">
+                  <Mic className="h-3.5 w-3.5 text-muted-foreground" />
+                </button>
+                <button onClick={handleSend} disabled={!input.trim() || isStreaming}
+                  className="flex h-8 w-8 items-center justify-center rounded bg-primary text-primary-foreground disabled:opacity-20 transition-all hover:glow-gold">
+                  <Send className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* RIGHT: Dynamic Blueprint Canvas (desktop only) */}
+        <div className="hidden lg:flex lg:flex-col lg:w-[45%] xl:w-[50%] bg-background">
+          <div className="px-4 py-2 border-b border-border/50 flex items-center justify-between">
+            <span className="text-[10px] font-mono text-muted-foreground tracking-widest">BLUEPRINT CANVAS</span>
+            {lastAssistant && (
+              <span className={`text-[9px] font-mono px-2 py-0.5 rounded ${
+                aggressiveMode ? "bg-accent-red/10 text-accent-red" : "bg-primary/10 text-primary"
+              }`}>
+                {aggressiveMode ? "AGGRESSIVE" : "STRATEGIC"}
+              </span>
+            )}
+          </div>
+          <div ref={blueprintRef} className="flex-1 overflow-y-auto p-4 hide-scrollbar">
+            {lastAssistant ? (
+              <BlueprintRenderer content={lastAssistant.content} aggressiveMode={aggressiveMode} />
+            ) : (
+              <div className="flex flex-col items-center justify-center h-full">
+                <OwlIcon size={32} className="opacity-10 mb-3" />
+                <p className="text-xs font-mono text-muted-foreground/20 tracking-widest">NO ACTIVE BLUEPRINT</p>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
-      {/* Controls */}
-      {isStreaming && (
-        <div className="flex justify-center pb-2">
-          <button onClick={handleStop} className="flex items-center gap-2 rounded-xl bg-surface-2 px-4 py-2 text-caption text-muted-foreground hover:bg-surface-hover transition-colors">
-            <Square className="h-3 w-3" /> Stop
-          </button>
-        </div>
-      )}
-      {!isStreaming && hasMessages && messages[messages.length - 1]?.role === "assistant" && (
-        <div className="flex justify-center pb-2">
-          <button onClick={handleRegenerate} className="flex items-center gap-2 rounded-xl bg-surface-2 px-4 py-2 text-caption text-muted-foreground hover:bg-surface-hover transition-colors">
-            <RotateCcw className="h-3 w-3" /> Regenerate
-          </button>
-        </div>
-      )}
-
-      {/* Input */}
-      <div className="border-t border-border px-5 py-3 pb-24 bg-background">
-        <div className="flex items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3">
-          <input value={input} onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSend()}
-            placeholder="Tell Owl what you want done…" className="flex-1 bg-transparent text-body text-foreground placeholder:text-text-tertiary outline-none" />
-          <button onClick={handleSend} disabled={!input.trim() || isStreaming}
-            className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground disabled:opacity-20 transition-opacity">
-            <Send className="h-4 w-4" />
-          </button>
-        </div>
-      </div>
+      {/* Vault Sidebar */}
+      <VaultSidebar open={showVault} onClose={() => setShowVault(false)} />
     </div>
   );
 }
