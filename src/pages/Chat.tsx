@@ -1030,8 +1030,22 @@ export default function Chat() {
               </div>
             </motion.div>
 
+            {/* Proactive Suggestions */}
+            {(() => {
+              const analytics = getAnalytics();
+              const topSuggestion = analytics.suggestions[0];
+              const topInsight = analytics.insights[0];
+              return (
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.15 }}
+                  className="w-full max-w-sm mb-4 space-y-3">
+                  {topSuggestion && <NextMoveCard suggestion={topSuggestion} delay={0.15} />}
+                  {topInsight && <InsightCard insight={topInsight} delay={0.2} />}
+                </motion.div>
+              );
+            })()}
+
             {/* Quick Actions */}
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.25 }}
               className="w-full max-w-sm mb-6">
               <div className="flex flex-wrap gap-2 justify-center">
                 {QUICK_ACTIONS.map((action, i) => (
