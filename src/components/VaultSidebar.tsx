@@ -84,7 +84,7 @@ export default function VaultSidebar({ open, onClose }: VaultSidebarProps) {
                   <div className="flex items-center justify-between p-2 rounded border border-border">
                     <span className="text-[10px] font-mono text-muted-foreground">MODE</span>
                     <span className="text-xs font-mono font-bold text-primary uppercase">
-                      {profile.goalMode || "income"}
+                      {(profile as any).goalMode || "income"}
                     </span>
                   </div>
                   <div className="flex items-center justify-between p-2 rounded border border-border">
