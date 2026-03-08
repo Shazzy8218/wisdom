@@ -45,6 +45,7 @@ const queryClient = new QueryClient();
 function AppRoutes() {
   const { user, loading } = useAuth();
   const { calibration, loading: calLoading, completeCalibration } = useCalibration();
+  useCloudSync();
   const [splashDismissed, setSplashDismissed] = useState(false);
 
   if (loading) {
