@@ -244,12 +244,22 @@ export function completeLesson(lessonId: string, categoryId: string, tokensEarne
     p.tokenHistory.push({ action: `Lesson: ${lessonId}`, amount: tokensEarned, date: new Date().toISOString() });
     updateMastery(p, categoryId);
   }
+  // Streak logic: only update streak on real completion actions
   const today = new Date().toISOString().split("T")[0];
   if (p.lastActiveDate !== today) {
+    // Check if yesterday was the last active date
     const yesterday = new Date(Date.now() - 86400000).toISOString().split("T")[0];
-    p.streak = p.lastActiveDate === yesterday ? p.streak + 1 : 1;
+    if (p.lastActiveDate === yesterday) {
+      p.streak += 1;
+    } else if (p.lastActiveDate && p.lastActiveDate < yesterday) {
+      // Missed at least one day — streak breaks
+      p.streak = 1;
+    } else if (!p.lastActiveDate) {
+      // First ever activity
+      p.streak = 1;
+    }
     p.lastActiveDate = today;
-    p.lessonsToday = 0;
+    p.lessonsToday = 1; // Reset today counter since it's a new day
   }
   saveProgress(p);
   return p;

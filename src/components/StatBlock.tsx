@@ -10,23 +10,32 @@ interface StatBlockProps {
 }
 
 function AnimatedNumber({ value, delay = 0 }: { value: number; delay: number }) {
-  const [display, setDisplay] = useState(0);
+  const [display, setDisplay] = useState(value);
+  const [hasAnimated, setHasAnimated] = useState(false);
 
   useEffect(() => {
-    const timeout = setTimeout(() => {
-      const duration = 1200;
-      const start = performance.now();
-      const step = (now: number) => {
-        const elapsed = now - start;
-        const progress = Math.min(elapsed / duration, 1);
-        const eased = 1 - Math.pow(1 - progress, 3);
-        setDisplay(Math.round(eased * value));
-        if (progress < 1) requestAnimationFrame(step);
-      };
-      requestAnimationFrame(step);
-    }, delay * 1000);
-    return () => clearTimeout(timeout);
-  }, [value, delay]);
+    if (!hasAnimated) {
+      // First render: show value immediately (no fake "start from 0")
+      setDisplay(value);
+      setHasAnimated(true);
+      return;
+    }
+    // Subsequent updates: animate from previous to new value
+    const prev = display;
+    if (prev === value) return;
+    const duration = 600;
+    const start = performance.now();
+    let raf: number;
+    const step = (now: number) => {
+      const elapsed = now - start;
+      const progress = Math.min(elapsed / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setDisplay(Math.round(prev + (value - prev) * eased));
+      if (progress < 1) raf = requestAnimationFrame(step);
+    };
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
+  }, [value]);
 
   return <>{display}</>;
 }

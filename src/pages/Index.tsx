@@ -49,7 +49,7 @@ export default function Index() {
     return vals.length > 0 ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : 0;
   }, [progress.masteryScores]);
 
-  const todayXP = progress.lessonsToday * 25;
+  const todayXP = progress.xp;
   const nextLesson = MICRO_LESSONS[0];
 
   const displayGreeting = profile.displayName
@@ -129,10 +129,10 @@ export default function Index() {
 
       {/* Section 3: Scoreboard */}
       <div className="grid grid-cols-2 gap-3 px-5 mb-6">
-        <StatBlock label="Tokens" value={progress.tokens} icon="✦" accent delay={0.2} />
-        <StatBlock label="Streak" value={progress.streak} icon="🔥" delay={0.25} />
-        <StatBlock label="Mastery" value={`${masteryAvg}%`} icon="◉" delay={0.3} />
-        <StatBlock label="Today" value={todayXP} icon="⚡" delay={0.35} />
+        <StatBlock label="Tokens" value={progress.tokens} icon="✦" accent delay={0} />
+        <StatBlock label="Streak" value={progress.streak} icon="🔥" delay={0} />
+        <StatBlock label="Mastery" value={`${masteryAvg}%`} icon="◉" delay={0} />
+        <StatBlock label="XP" value={todayXP} icon="⚡" delay={0} />
       </div>
 
       {/* Focus Today */}
