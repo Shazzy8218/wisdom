@@ -1,96 +1,171 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Target, Layers, ArrowRight } from "lucide-react";
+import { Check, Loader2 } from "lucide-react";
 import OwlIcon from "@/components/OwlIcon";
+import { toast } from "@/hooks/use-toast";
 
 interface CalibrationModalProps {
   onComplete: (goalMode: string, outputMode: string) => void;
 }
 
+const goalOptions = [
+  { id: "income", emoji: "💰", label: "Income", desc: "Speed, cash flow, practical wins" },
+  { id: "impact", emoji: "🚀", label: "Impact", desc: "Scalability, legacy, long-term build" },
+];
+
+const outputOptions = [
+  { id: "blueprints", emoji: "📐", label: "Structural Blueprints", desc: "Layouts, systems, flows, strategy" },
+  { id: "components", emoji: "🧩", label: "Raw Components", desc: "Scripts, templates, code, assets" },
+];
+
 export default function CalibrationModal({ onComplete }: CalibrationModalProps) {
-  const [step, setStep] = useState(0);
   const [goalMode, setGoalMode] = useState<string | null>(null);
   const [outputMode, setOutputMode] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
-  const handleFinish = () => {
-    if (goalMode && outputMode) onComplete(goalMode, outputMode);
+  const ready = goalMode && outputMode;
+
+  const handleFinish = async () => {
+    if (!goalMode || !outputMode || saving) return;
+    setSaving(true);
+    try {
+      await onComplete(goalMode, outputMode);
+      const goalLabel = goalOptions.find(g => g.id === goalMode)?.label;
+      const outputLabel = outputOptions.find(o => o.id === outputMode)?.label;
+      toast({ title: `Locked in: ${goalLabel} + ${outputLabel}`, description: "Owl is calibrated to you." });
+    } catch (e) {
+      console.error("Calibration save failed:", e);
+      toast({ title: "Save failed — tap to retry", variant: "destructive" });
+      setSaving(false);
+    }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/95 backdrop-blur-sm px-6">
-      <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-        className="w-full max-w-sm">
-        
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background px-5">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+        className="w-full max-w-sm"
+      >
         {/* Header */}
-        <div className="text-center mb-8">
-          <div className="flex justify-center mb-4">
-            <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center">
-              <OwlIcon size={28} />
+        <div className="text-center mb-10">
+          <motion.div
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ delay: 0.2, duration: 0.4 }}
+            className="flex justify-center mb-5"
+          >
+            <div className="h-16 w-16 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center">
+              <OwlIcon size={32} />
             </div>
-          </div>
-          <h2 className="font-display text-xl font-bold text-foreground">Quick Calibration</h2>
-          <p className="text-caption text-muted-foreground mt-1">2 questions so Owl adapts to you</p>
-          <div className="flex gap-2 justify-center mt-3">
-            <div className={`h-1 w-8 rounded-full transition-colors ${step >= 0 ? "bg-primary" : "bg-surface-2"}`} />
-            <div className={`h-1 w-8 rounded-full transition-colors ${step >= 1 ? "bg-primary" : "bg-surface-2"}`} />
+          </motion.div>
+          <h2 className="font-display text-2xl font-bold text-foreground tracking-tight">Quick Calibration</h2>
+          <p className="text-sm text-muted-foreground mt-2">Two questions so Owl adapts to you</p>
+        </div>
+
+        {/* Question 1: The Why */}
+        <div className="mb-8">
+          <p className="text-xs font-semibold text-primary uppercase tracking-wider mb-3">1 — The Why</p>
+          <div className="grid grid-cols-2 gap-3">
+            {goalOptions.map((opt, i) => {
+              const selected = goalMode === opt.id;
+              return (
+                <motion.button
+                  key={opt.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 + i * 0.08 }}
+                  whileTap={{ scale: 0.97 }}
+                  onClick={() => setGoalMode(opt.id)}
+                  className={`relative rounded-2xl p-5 text-left transition-all duration-200 border ${
+                    selected
+                      ? "border-primary bg-primary/10 shadow-[0_0_20px_hsl(355_78%_50%/0.15)]"
+                      : "border-border bg-card hover:border-muted-foreground/30"
+                  }`}
+                >
+                  {selected && (
+                    <motion.div
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      className="absolute top-3 right-3 h-5 w-5 rounded-full bg-primary flex items-center justify-center"
+                    >
+                      <Check className="h-3 w-3 text-primary-foreground" />
+                    </motion.div>
+                  )}
+                  <span className="text-2xl block mb-2">{opt.emoji}</span>
+                  <p className="text-sm font-semibold text-foreground">{opt.label}</p>
+                  <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{opt.desc}</p>
+                </motion.button>
+              );
+            })}
           </div>
         </div>
 
-        <AnimatePresence mode="wait">
-          {step === 0 && (
-            <motion.div key="step0" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
-              <div className="flex items-center gap-2 mb-4">
-                <Target className="h-4 w-4 text-primary" />
-                <p className="text-body font-semibold text-foreground">What are you building for?</p>
-              </div>
-              <div className="space-y-3">
-                <button onClick={() => setGoalMode("income")}
-                  className={`w-full glass-card p-5 text-left transition-all ${goalMode === "income" ? "border-primary/40 bg-primary/5" : "hover:border-primary/15"}`}>
-                  <p className="text-body font-semibold text-foreground">💰 Income</p>
-                  <p className="text-caption text-muted-foreground mt-1">Speed, cash flow, revenue — get results fast</p>
-                </button>
-                <button onClick={() => setGoalMode("impact")}
-                  className={`w-full glass-card p-5 text-left transition-all ${goalMode === "impact" ? "border-primary/40 bg-primary/5" : "hover:border-primary/15"}`}>
-                  <p className="text-body font-semibold text-foreground">🚀 Impact</p>
-                  <p className="text-caption text-muted-foreground mt-1">Scalability, legacy, systems — build to last</p>
-                </button>
-              </div>
-              <button onClick={() => goalMode && setStep(1)} disabled={!goalMode}
-                className="w-full mt-5 flex items-center justify-center gap-2 rounded-2xl bg-primary text-primary-foreground py-3 text-body font-semibold disabled:opacity-30 transition-opacity">
-                Next <ArrowRight className="h-4 w-4" />
-              </button>
-            </motion.div>
-          )}
+        {/* Question 2: The How */}
+        <div className="mb-10">
+          <p className="text-xs font-semibold text-primary uppercase tracking-wider mb-3">2 — The How</p>
+          <div className="grid grid-cols-2 gap-3">
+            {outputOptions.map((opt, i) => {
+              const selected = outputMode === opt.id;
+              return (
+                <motion.button
+                  key={opt.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.5 + i * 0.08 }}
+                  whileTap={{ scale: 0.97 }}
+                  onClick={() => setOutputMode(opt.id)}
+                  className={`relative rounded-2xl p-5 text-left transition-all duration-200 border ${
+                    selected
+                      ? "border-primary bg-primary/10 shadow-[0_0_20px_hsl(355_78%_50%/0.15)]"
+                      : "border-border bg-card hover:border-muted-foreground/30"
+                  }`}
+                >
+                  {selected && (
+                    <motion.div
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      className="absolute top-3 right-3 h-5 w-5 rounded-full bg-primary flex items-center justify-center"
+                    >
+                      <Check className="h-3 w-3 text-primary-foreground" />
+                    </motion.div>
+                  )}
+                  <span className="text-2xl block mb-2">{opt.emoji}</span>
+                  <p className="text-sm font-semibold text-foreground">{opt.label}</p>
+                  <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{opt.desc}</p>
+                </motion.button>
+              );
+            })}
+          </div>
+        </div>
 
-          {step === 1 && (
-            <motion.div key="step1" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
-              <div className="flex items-center gap-2 mb-4">
-                <Layers className="h-4 w-4 text-primary" />
-                <p className="text-body font-semibold text-foreground">How do you like your outputs?</p>
-              </div>
-              <div className="space-y-3">
-                <button onClick={() => setOutputMode("blueprints")}
-                  className={`w-full glass-card p-5 text-left transition-all ${outputMode === "blueprints" ? "border-primary/40 bg-primary/5" : "hover:border-primary/15"}`}>
-                  <p className="text-body font-semibold text-foreground">📐 Structural Blueprints</p>
-                  <p className="text-caption text-muted-foreground mt-1">Layouts, logic flows, step-by-step plans, frameworks</p>
-                </button>
-                <button onClick={() => setOutputMode("components")}
-                  className={`w-full glass-card p-5 text-left transition-all ${outputMode === "components" ? "border-primary/40 bg-primary/5" : "hover:border-primary/15"}`}>
-                  <p className="text-body font-semibold text-foreground">🧩 Raw Components</p>
-                  <p className="text-caption text-muted-foreground mt-1">Templates, scripts, code snippets, copy blocks, checklists</p>
-                </button>
-              </div>
-              <button onClick={handleFinish} disabled={!outputMode}
-                className="w-full mt-5 flex items-center justify-center gap-2 rounded-2xl bg-primary text-primary-foreground py-3 text-body font-semibold disabled:opacity-30 transition-opacity">
-                Let's Go ✦
-              </button>
-              <button onClick={() => setStep(0)}
-                className="w-full mt-2 text-caption text-muted-foreground hover:text-foreground transition-colors py-2">
-                ← Back
-              </button>
-            </motion.div>
+        {/* Let's Go Button */}
+        <motion.button
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.7 }}
+          whileTap={ready ? { scale: 0.97 } : {}}
+          onClick={handleFinish}
+          disabled={!ready || saving}
+          className={`w-full rounded-2xl py-4 text-sm font-bold tracking-wide transition-all duration-300 flex items-center justify-center gap-2 ${
+            ready
+              ? "bg-primary text-primary-foreground shadow-[0_4px_24px_hsl(355_78%_50%/0.4)] hover:shadow-[0_4px_32px_hsl(355_78%_50%/0.5)]"
+              : "bg-muted text-muted-foreground cursor-not-allowed"
+          }`}
+        >
+          {saving ? (
+            <><Loader2 className="h-4 w-4 animate-spin" /> Saving...</>
+          ) : (
+            "Let's Go ✦"
           )}
-        </AnimatePresence>
+        </motion.button>
+
+        {!ready && (
+          <p className="text-center text-xs text-muted-foreground mt-3">
+            Select one option from each question
+          </p>
+        )}
       </motion.div>
     </div>
   );

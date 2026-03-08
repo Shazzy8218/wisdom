@@ -18,15 +18,14 @@ export function useCalibration() {
   useEffect(() => {
     if (!user) { setLoading(false); return; }
     supabase.from("profiles").select("goal_mode, output_mode, calibration_done").eq("id", user.id).single()
-      .then(({ data: row }) => {
-        if (row) {
-          const d = {
-            goalMode: (row as any).goal_mode || "income",
-            outputMode: (row as any).output_mode || "blueprints",
+      .then(({ data: row, error }) => {
+        if (row && !error) {
+          const d: CalibrationData = {
+            goalMode: ((row as any).goal_mode || "income") as any,
+            outputMode: ((row as any).output_mode || "blueprints") as any,
             calibrationDone: (row as any).calibration_done || false,
           };
           setData(d);
-          // Cache for AI context
           localStorage.setItem("wisdom-calibration-cache", JSON.stringify(d));
         }
         setLoading(false);
@@ -34,7 +33,8 @@ export function useCalibration() {
   }, [user]);
 
   const completeCalibration = useCallback(async (goalMode: string, outputMode: string) => {
-    if (!user) return;
+    if (!user) throw new Error("Not authenticated");
+    
     const { error } = await supabase.from("profiles").upsert({
       id: user.id,
       goal_mode: goalMode,
@@ -43,8 +43,10 @@ export function useCalibration() {
       email: user.email || "",
       display_name: user.email?.split("@")[0] || "Learner",
     } as any, { onConflict: "id" });
-    if (error) console.error("Calibration save error:", error);
-    const newData = { goalMode: goalMode as any, outputMode: outputMode as any, calibrationDone: true };
+    
+    if (error) throw error;
+    
+    const newData: CalibrationData = { goalMode: goalMode as any, outputMode: outputMode as any, calibrationDone: true };
     setData(newData);
     localStorage.setItem("wisdom-calibration-cache", JSON.stringify(newData));
   }, [user]);
