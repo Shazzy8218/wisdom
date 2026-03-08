@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, Square, RotateCcw, ChevronDown, Plus, History, Pencil, Trash2, Bookmark, Image, X, Brain, BarChart3, User, Target, Eye } from "lucide-react";
+import { Send, Square, RotateCcw, ChevronDown, Plus, History, Pencil, Trash2, Bookmark, Image, X, Brain, BarChart3, User, Target, Eye, FileText, Paperclip } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { streamChat, type Msg } from "@/lib/ai-stream";
 import { parseAndSaveWisdomPack } from "@/lib/wisdom-packs";
@@ -80,7 +80,7 @@ const TOOL_ICONS: Record<ToolUsed, { icon: React.ReactNode; label: string }> = {
 function ToolBadges({ tools }: { tools: ToolUsed[] }) {
   if (tools.length === 0) return null;
   return (
-    <div className="flex gap-1 mt-1.5">
+    <div className="flex flex-wrap gap-1 mt-1.5">
       {tools.map(t => (
         <span key={t} className="inline-flex items-center gap-0.5 rounded-md bg-primary/10 px-1.5 py-0.5 text-[10px] text-primary font-medium">
           {TOOL_ICONS[t].icon} {TOOL_ICONS[t].label}
@@ -90,24 +90,78 @@ function ToolBadges({ tools }: { tools: ToolUsed[] }) {
   );
 }
 
+// Attachment types
+type AttachmentType = "image" | "file";
+
+interface PendingAttachment {
+  file: File;
+  preview: string; // object URL for images, empty for files
+  type: AttachmentType;
+  name: string;
+}
+
 interface ChatMessage extends Msg {
   id: string;
   imageUrl?: string;
   imagePreview?: string;
+  fileName?: string;
+  fileType?: AttachmentType;
   toolsUsed?: ToolUsed[];
 }
 
 const VISION_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-vision`;
 
-async function uploadChatImage(file: File): Promise<string | null> {
+const IMAGE_EXTS = ["png", "jpg", "jpeg", "gif", "webp", "bmp", "svg"];
+const FILE_EXTS = ["pdf", "doc", "docx", "txt", "csv", "md", "json", "xml"];
+
+function getAttachmentType(file: File): AttachmentType {
+  const ext = file.name.split(".").pop()?.toLowerCase() || "";
+  if (IMAGE_EXTS.includes(ext) || file.type.startsWith("image/")) return "image";
+  return "file";
+}
+
+function getFileIcon(name: string) {
+  const ext = name.split(".").pop()?.toLowerCase() || "";
+  if (ext === "pdf") return "📄";
+  if (ext === "csv") return "📊";
+  if (["doc", "docx"].includes(ext)) return "📝";
+  if (["txt", "md"].includes(ext)) return "📃";
+  if (ext === "json") return "🔧";
+  return "📎";
+}
+
+async function uploadChatFile(file: File): Promise<string | null> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
-  const ext = file.name.split(".").pop() || "png";
+  const ext = file.name.split(".").pop() || "bin";
   const path = `${user.id}/${Date.now()}.${ext}`;
   const { error } = await supabase.storage.from("chat-uploads").upload(path, file);
   if (error) { console.error("Upload error:", error); return null; }
   const { data } = supabase.storage.from("chat-uploads").getPublicUrl(path);
   return data.publicUrl;
+}
+
+async function extractFileText(file: File): Promise<string> {
+  const ext = file.name.split(".").pop()?.toLowerCase() || "";
+  // Text-based files: read directly
+  if (["txt", "md", "csv", "json", "xml"].includes(ext) || file.type.startsWith("text/")) {
+    return await file.text();
+  }
+  // For PDF/DOC, we read what we can (text representation)
+  if (ext === "pdf" || ext === "doc" || ext === "docx") {
+    // Try to read as text — won't work for binary PDFs but handles some
+    try {
+      const text = await file.text();
+      // If it looks like binary, return a note
+      if (text.includes("%PDF") || text.charCodeAt(0) > 127) {
+        return `[Uploaded file: ${file.name} (${(file.size / 1024).toFixed(1)}KB). Binary PDF — Owl is analyzing the document via vision.]`;
+      }
+      return text;
+    } catch {
+      return `[Uploaded file: ${file.name}]`;
+    }
+  }
+  return `[Uploaded file: ${file.name} (${(file.size / 1024).toFixed(1)}KB)]`;
 }
 
 async function streamVision({
@@ -172,6 +226,15 @@ async function streamVision({
   }
 }
 
+// Quick action chips when no messages
+const QUICK_ACTIONS = [
+  { label: "📷 Explain an image", prompt: "", action: "image" },
+  { label: "📊 Chart my progress", prompt: "Chart my mastery % by category" },
+  { label: "📄 Analyze a file", prompt: "", action: "file" },
+  { label: "🎯 What should I learn next?", prompt: "What should I learn next based on my progress?" },
+  { label: "🔥 My stats", prompt: "Show me my current stats: streak, tokens, mastery, and progress" },
+];
+
 export default function Chat() {
   const [search] = useSearchParams();
   const contextParam = search.get("context");
@@ -190,11 +253,12 @@ export default function Chat() {
   const [renameValue, setRenameValue] = useState("");
   const [savedQuote, setSavedQuote] = useState(false);
   const [savedChartIds, setSavedChartIds] = useState<Set<string>>(new Set());
-  const [pendingImage, setPendingImage] = useState<{ file: File; preview: string } | null>(null);
+  const [pendingAttachments, setPendingAttachments] = useState<PendingAttachment[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const autoSentRef = useRef(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const clock = useLiveClock();
   const { profile } = useUserProfile();
@@ -208,6 +272,24 @@ export default function Chat() {
   useEffect(() => { setThreads(loadChatThreads()); }, []);
   useEffect(() => { scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" }); }, [messages]);
 
+  // Paste handler for images
+  useEffect(() => {
+    const handlePaste = (e: ClipboardEvent) => {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      for (const item of Array.from(items)) {
+        if (item.type.startsWith("image/")) {
+          e.preventDefault();
+          const file = item.getAsFile();
+          if (file) addAttachment(file);
+          return;
+        }
+      }
+    };
+    document.addEventListener("paste", handlePaste);
+    return () => document.removeEventListener("paste", handlePaste);
+  }, []);
+
   useEffect(() => {
     if (contextParam && autoSendParam === "true" && !autoSentRef.current) {
       autoSentRef.current = true;
@@ -219,31 +301,78 @@ export default function Chat() {
     }
   }, [contextParam, autoSendParam]);
 
-  const sendMessage = useCallback(async (text: string, threadId?: string) => {
-    if ((!text.trim() && !pendingImage) || isStreaming) return;
+  const addAttachment = (file: File) => {
+    if (file.size > 20 * 1024 * 1024) {
+      toast({ title: "File too large (max 20MB)", variant: "destructive" });
+      return;
+    }
+    const type = getAttachmentType(file);
+    const preview = type === "image" ? URL.createObjectURL(file) : "";
+    setPendingAttachments(prev => [...prev, { file, preview, type, name: file.name }]);
+  };
 
-    const hasImage = !!pendingImage;
+  const removeAttachment = (idx: number) => {
+    setPendingAttachments(prev => {
+      const att = prev[idx];
+      if (att.preview) URL.revokeObjectURL(att.preview);
+      return prev.filter((_, i) => i !== idx);
+    });
+  };
+
+  const sendMessage = useCallback(async (text: string, threadId?: string) => {
+    if ((!text.trim() && pendingAttachments.length === 0) || isStreaming) return;
+
+    const attachments = [...pendingAttachments];
+    const hasImage = attachments.some(a => a.type === "image");
+    const hasFile = attachments.some(a => a.type === "file");
     let imageUrl: string | undefined;
     let imagePreview: string | undefined;
+    let fileName: string | undefined;
+    let fileType: AttachmentType | undefined;
+    let fileTextContent = "";
 
-    if (pendingImage) {
-      imagePreview = pendingImage.preview;
-      toast({ title: "Uploading image…" });
-      const url = await uploadChatImage(pendingImage.file);
-      if (!url) {
-        toast({ title: "Upload failed", variant: "destructive" });
-        return;
+    // Upload attachments
+    if (attachments.length > 0) {
+      toast({ title: `Uploading ${attachments.length} file${attachments.length > 1 ? "s" : ""}…` });
+      for (const att of attachments) {
+        const url = await uploadChatFile(att.file);
+        if (!url) {
+          toast({ title: `Upload failed: ${att.name}`, variant: "destructive" });
+          return;
+        }
+        if (att.type === "image") {
+          imageUrl = url;
+          imagePreview = att.preview;
+          fileType = "image";
+        } else {
+          // Extract text content for file analysis
+          const extracted = await extractFileText(att.file);
+          fileTextContent += `\n\n--- File: ${att.name} ---\n${extracted}`;
+          fileName = att.name;
+          fileType = "file";
+          imageUrl = url; // store URL for reference
+        }
       }
-      imageUrl = url;
-      setPendingImage(null);
+      setPendingAttachments([]);
+    }
+
+    // Build user message content
+    let userContent = text || "";
+    if (hasFile && fileTextContent) {
+      userContent = (userContent || `Analyze this file: ${fileName}`) + fileTextContent;
+    }
+    if (hasImage && !userContent) {
+      userContent = "Analyze this image";
     }
 
     const userMsg: ChatMessage = {
       id: Date.now().toString(),
       role: "user",
-      content: text || (hasImage ? "Analyze this image" : ""),
-      imageUrl,
+      content: text || (hasImage ? "Analyze this image" : hasFile ? `Analyze: ${fileName}` : ""),
+      imageUrl: hasImage ? imageUrl : undefined,
       imagePreview,
+      fileName: hasFile ? fileName : undefined,
+      fileType,
     };
     const newMessages = [...messages, userMsg];
     setMessages(newMessages);
@@ -256,7 +385,7 @@ export default function Chat() {
       tid = thread.id;
       setCurrentThreadId(tid);
     }
-    addMessageToThread(tid, "user", text || "📷 Image");
+    addMessageToThread(tid, "user", text || (hasImage ? "📷 Image" : `📄 ${fileName || "File"}`));
 
     const controller = new AbortController();
     abortRef.current = controller;
@@ -264,7 +393,8 @@ export default function Chat() {
 
     const owlContext = buildOwlContext();
     const toolsUsed = detectToolsUsed(owlContext, hasImage);
-    if (newMessages.some(m => m.content?.includes("chart") || m.content?.includes("graph"))) {
+    if (hasFile && !toolsUsed.includes("vision")) toolsUsed.push("vision");
+    if (newMessages.some(m => m.content?.toLowerCase().includes("chart") || m.content?.toLowerCase().includes("graph"))) {
       if (!toolsUsed.includes("chart")) toolsUsed.push("chart");
     }
 
@@ -293,7 +423,7 @@ export default function Chat() {
     };
 
     if (hasImage && imageUrl) {
-      // Use vision endpoint
+      // Use vision endpoint for images
       const visionMsgs = newMessages.map(m => ({
         role: m.role,
         content: m.content,
@@ -308,9 +438,16 @@ export default function Chat() {
         signal: controller.signal,
       });
     } else {
+      // For files, send extracted text through normal chat with richer context
+      const chatMsgs = newMessages.map(m => {
+        if (m.id === userMsg.id && fileTextContent) {
+          return { role: m.role, content: userContent };
+        }
+        return { role: m.role, content: m.content };
+      });
       await streamChat({
-        messages: newMessages.map(({ role, content }) => ({ role, content })),
-        mode,
+        messages: chatMsgs,
+        mode: hasFile ? "deep-dive" : mode,
         context: owlContext,
         onDelta: handleDelta,
         onDone: handleDone,
@@ -318,7 +455,7 @@ export default function Chat() {
         signal: controller.signal,
       });
     }
-  }, [isStreaming, messages, mode, currentThreadId, pendingImage]);
+  }, [isStreaming, messages, mode, currentThreadId, pendingAttachments]);
 
   const handleSend = useCallback(() => sendMessage(input), [sendMessage, input]);
   const handleStop = () => abortRef.current?.abort();
@@ -356,7 +493,7 @@ export default function Chat() {
     });
   }, [isStreaming, messages, mode]);
 
-  const handleNewChat = () => { setMessages([]); setCurrentThreadId(null); setShowHistory(false); setPendingImage(null); autoSentRef.current = false; };
+  const handleNewChat = () => { setMessages([]); setCurrentThreadId(null); setShowHistory(false); setPendingAttachments([]); autoSentRef.current = false; };
   const handleOpenThread = (thread: ChatThread) => {
     setCurrentThreadId(thread.id);
     setMessages(thread.messages.map(m => ({ id: m.id, role: m.role, content: m.content })));
@@ -374,12 +511,22 @@ export default function Chat() {
     saveChart(chart); setSavedChartIds(prev => new Set([...prev, msgId])); toast({ title: "📊 Chart saved to Library!" });
   };
 
-  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.size > 10 * 1024 * 1024) { toast({ title: "File too large (max 10MB)", variant: "destructive" }); return; }
-    const preview = URL.createObjectURL(file);
-    setPendingImage({ file, preview });
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+    Array.from(files).forEach(addAttachment);
+    e.target.value = "";
+  };
+
+  const handleQuickAction = (action: typeof QUICK_ACTIONS[0]) => {
+    if (action.action === "image" || action.action === "file") {
+      fileInputRef.current?.click();
+      return;
+    }
+    if (action.prompt) {
+      setInput(action.prompt);
+      setTimeout(() => sendMessage(action.prompt), 100);
+    }
   };
 
   const currentMode = TUTOR_MODES.find(m => m.id === mode) || TUTOR_MODES[0];
@@ -392,8 +539,14 @@ export default function Chat() {
           {msg.imagePreview && (
             <img src={msg.imagePreview} alt="Upload" className="rounded-xl max-h-40 w-auto mb-2" />
           )}
-          {msg.imageUrl && !msg.imagePreview && (
+          {msg.imageUrl && !msg.imagePreview && msg.fileType !== "file" && (
             <img src={msg.imageUrl} alt="Upload" className="rounded-xl max-h-40 w-auto mb-2" />
+          )}
+          {msg.fileName && (
+            <div className="flex items-center gap-2 mb-2 rounded-lg bg-primary-foreground/10 px-3 py-2">
+              <FileText className="h-4 w-4 shrink-0" />
+              <span className="text-caption truncate">{msg.fileName}</span>
+            </div>
           )}
           {msg.content && <p>{msg.content}</p>}
         </>
@@ -487,13 +640,26 @@ export default function Chat() {
               <p className="text-micro text-muted-foreground mt-1">{clock.dateStr} · {clock.timeStr}</p>
             </motion.div>
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-              className="w-full max-w-sm mb-8">
+              className="w-full max-w-sm mb-6">
               <div className="glass-card p-4 text-center">
                 <p className="text-caption italic text-muted-foreground leading-relaxed">"{dailyQuote}"</p>
                 <button onClick={handleSaveQuote}
                   className={`mt-2 text-micro font-medium transition-colors ${savedQuote ? "text-accent-gold" : "text-text-tertiary hover:text-muted-foreground"}`}>
                   <Bookmark className="h-3 w-3 inline mr-1" />{savedQuote ? "Saved" : "Save"}
                 </button>
+              </div>
+            </motion.div>
+
+            {/* Quick Actions */}
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}
+              className="w-full max-w-sm mb-6">
+              <div className="flex flex-wrap gap-2 justify-center">
+                {QUICK_ACTIONS.map((action, i) => (
+                  <button key={i} onClick={() => handleQuickAction(action)}
+                    className="rounded-xl bg-surface-2 px-3 py-2 text-micro text-muted-foreground hover:bg-surface-hover hover:text-foreground transition-all">
+                    {action.label}
+                  </button>
+                ))}
               </div>
             </motion.div>
 
@@ -601,15 +767,26 @@ export default function Chat() {
         </div>
       )}
 
-      {/* Pending Image Preview */}
-      {pendingImage && (
+      {/* Pending Attachments Preview */}
+      {pendingAttachments.length > 0 && (
         <div className="px-5 pb-2">
-          <div className="relative inline-block">
-            <img src={pendingImage.preview} alt="Pending" className="h-20 rounded-xl border border-border" />
-            <button onClick={() => { URL.revokeObjectURL(pendingImage.preview); setPendingImage(null); }}
-              className="absolute -top-2 -right-2 h-5 w-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center">
-              <X className="h-3 w-3" />
-            </button>
+          <div className="flex gap-2 flex-wrap">
+            {pendingAttachments.map((att, i) => (
+              <div key={i} className="relative">
+                {att.type === "image" ? (
+                  <img src={att.preview} alt={att.name} className="h-16 rounded-xl border border-border" />
+                ) : (
+                  <div className="flex items-center gap-1.5 rounded-xl border border-border bg-surface-2 px-3 py-2">
+                    <span className="text-sm">{getFileIcon(att.name)}</span>
+                    <span className="text-micro text-muted-foreground truncate max-w-[120px]">{att.name}</span>
+                  </div>
+                )}
+                <button onClick={() => removeAttachment(i)}
+                  className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center">
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            ))}
           </div>
         </div>
       )}
@@ -617,15 +794,24 @@ export default function Chat() {
       {/* Input */}
       <div className="border-t border-border px-5 py-3 pb-24 bg-background">
         <div className="flex items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3">
-          <input type="file" ref={fileInputRef} accept="image/*" className="hidden" onChange={handleImageSelect} />
+          <input
+            type="file"
+            ref={fileInputRef}
+            accept="image/*,.pdf,.doc,.docx,.txt,.csv,.md,.json,.xml"
+            multiple
+            className="hidden"
+            onChange={handleFileSelect}
+          />
           <button onClick={() => fileInputRef.current?.click()}
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-surface-2 hover:bg-surface-hover transition-colors">
-            <Image className="h-4 w-4 text-muted-foreground" />
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-surface-2 hover:bg-surface-hover transition-colors"
+            title="Attach image or file">
+            <Paperclip className="h-4 w-4 text-muted-foreground" />
           </button>
-          <input value={input} onChange={(e) => setInput(e.target.value)}
+          <input ref={inputRef} value={input} onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSend()}
-            placeholder="Tell Owl what you want done…" className="flex-1 bg-transparent text-body text-foreground placeholder:text-text-tertiary outline-none" />
-          <button onClick={handleSend} disabled={(!input.trim() && !pendingImage) || isStreaming}
+            placeholder="Ask Owl anything… or attach a file"
+            className="flex-1 bg-transparent text-body text-foreground placeholder:text-text-tertiary outline-none" />
+          <button onClick={handleSend} disabled={(!input.trim() && pendingAttachments.length === 0) || isStreaming}
             className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground disabled:opacity-20 transition-opacity">
             <Send className="h-4 w-4" />
           </button>

@@ -3,6 +3,9 @@ project_id = "lkzouzuvqwohkwtszmgl"
 [functions.chat]
 verify_jwt = false
 
+[functions.chat-vision]
+verify_jwt = false
+
 [functions.generate-lesson]
 verify_jwt = false
 
@@ -10,4 +13,7 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.generate-feed-card]
+verify_jwt = false
+
+[functions.generate-personalized-lesson]
 verify_jwt = false
