@@ -86,6 +86,7 @@ export const TOOL_LABELS: Record<OwlTool, { icon: string; label: string }> = {
   docgen: { icon: "📄", label: "Doc Gen" },
   calculator: { icon: "🧮", label: "Calculator" },
   reminder: { icon: "⏰", label: "Reminder" },
+  localtime: { icon: "🕐", label: "Local Time" },
 };
 
 export const WEB_SUB_LABELS: Record<string, string> = {
