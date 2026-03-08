@@ -1,4 +1,5 @@
 // Full 22-category course catalog with detailed content for all tracks
+import { CORE_TRACKS, type CoreTrackMeta } from "@/lib/core-tracks";
 
 export interface StarterLesson {
   title: string;
