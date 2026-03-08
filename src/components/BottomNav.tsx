@@ -1,10 +1,10 @@
-import { BookOpen, BookMarked, User } from "lucide-react";
+import { MessageCircle, BookOpen, BookMarked, User } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import OwlIcon from "@/components/OwlIcon";
 
 const NAV_ITEMS = [
   { to: "/", icon: null, label: "Chat", isOwl: true },
-  { to: "/courses", icon: BookOpen, label: "Courses" },
+  { to: "/learn", icon: BookOpen, label: "Learn" },
   { to: "/library", icon: BookMarked, label: "Library" },
   { to: "/profile", icon: User, label: "Profile" },
 ];
