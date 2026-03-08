@@ -8,7 +8,8 @@ export type OwlTool =
   | "chart"       // Chart generation
   | "docgen"      // Document generation (PDF, DOCX, CSV, Slides)
   | "calculator"  // Quick math
-  | "reminder";   // Reminders
+  | "reminder"    // Reminders
+  | "localtime";  // Local device time/date
 
 export interface RouteResult {
   tool: OwlTool;
