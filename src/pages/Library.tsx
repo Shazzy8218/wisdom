@@ -303,7 +303,6 @@ export default function Library() {
               <p className="text-caption text-muted-foreground">{savedDrills.length} drills saved</p>
               {savedDrills.map((drill, i) => {
                 const drillId = `drill-${i}`;
-                const [showAnswer, setShowAnswer] = useState(false);
                 return (
                   <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.04 }}
