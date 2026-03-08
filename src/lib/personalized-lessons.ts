@@ -27,50 +27,29 @@ function saveLocal(lessons: PersonalizedLesson[]) {
   localStorage.setItem(PERSONALIZED_KEY, JSON.stringify(lessons));
 }
 
-// --- Cloud helpers ---
+// --- Cloud fire-and-forget ---
 
 async function getUserId(): Promise<string | null> {
   const { data: { user } } = await supabase.auth.getUser();
   return user?.id ?? null;
 }
 
-async function fetchCloudLessons(): Promise<PersonalizedLesson[]> {
-  const userId = await getUserId();
-  if (!userId) return [];
-  const { data } = await supabase
-    .from("personalized_lessons")
-    .select("*")
-    .eq("user_id", userId)
-    .order("generated_at", { ascending: false });
-  if (!data) return [];
-  return data.map((r: any) => ({
-    id: r.id,
-    title: r.title,
-    hook: r.hook,
-    content: r.content,
-    tryPrompt: r.try_prompt,
-    source: r.source,
-    sourceThreadId: r.source_thread_id || undefined,
-    generatedAt: Number(r.generated_at),
-    completed: r.completed,
-  }));
-}
-
-async function upsertCloudLesson(lesson: PersonalizedLesson): Promise<void> {
-  const userId = await getUserId();
-  if (!userId) return;
-  await supabase.from("personalized_lessons").upsert({
-    id: lesson.id,
-    user_id: userId,
-    title: lesson.title,
-    hook: lesson.hook,
-    content: lesson.content,
-    try_prompt: lesson.tryPrompt,
-    source: lesson.source,
-    source_thread_id: lesson.sourceThreadId || null,
-    generated_at: lesson.generatedAt,
-    completed: lesson.completed,
-  }, { onConflict: "id,user_id" });
+function cloudUpsert(lesson: PersonalizedLesson): void {
+  getUserId().then(userId => {
+    if (!userId) return;
+    supabase.from("personalized_lessons").upsert({
+      id: lesson.id,
+      user_id: userId,
+      title: lesson.title,
+      hook: lesson.hook,
+      content: lesson.content,
+      try_prompt: lesson.tryPrompt,
+      source: lesson.source,
+      source_thread_id: lesson.sourceThreadId || null,
+      generated_at: lesson.generatedAt,
+      completed: lesson.completed,
+    }, { onConflict: "id,user_id" }).then(() => {});
+  }).catch(() => {});
 }
 
 // --- Sync on login ---
@@ -82,15 +61,41 @@ export async function syncPersonalizedLessons(): Promise<PersonalizedLesson[]> {
   if (!userId) return loadLocal();
 
   if (!_synced) {
-    // Push local lessons to cloud
     const local = loadLocal();
-    for (const l of local) {
-      await upsertCloudLesson(l);
-    }
+    for (const l of local) cloudUpsert(l);
     _synced = true;
   }
 
-  const cloud = await fetchCloudLessons();
+  const { data } = await supabase
+    .from("personalized_lessons")
+    .select("*")
+    .eq("user_id", userId)
+    .order("generated_at", { ascending: false });
+
+  if (!data || data.length === 0) return loadLocal();
+
+  const cloud: PersonalizedLesson[] = data.map((r: any) => ({
+    id: r.id,
+    title: r.title,
+    hook: r.hook,
+    content: r.content,
+    tryPrompt: r.try_prompt,
+    source: r.source,
+    sourceThreadId: r.source_thread_id || undefined,
+    generatedAt: Number(r.generated_at),
+    completed: r.completed,
+  }));
+
+  // Merge local-only items
+  const local = loadLocal();
+  const cloudIds = new Set(cloud.map(l => l.id));
+  for (const l of local) {
+    if (!cloudIds.has(l.id)) {
+      cloud.push(l);
+      cloudUpsert(l);
+    }
+  }
+
   saveLocal(cloud);
   return cloud;
 }
@@ -99,36 +104,37 @@ export function resetPersonalizedLessonsSync() {
   _synced = false;
 }
 
-// --- Public API ---
+// --- Public API (synchronous) ---
 
 export function loadPersonalizedLessons(): PersonalizedLesson[] {
   return loadLocal();
 }
 
-export async function savePersonalizedLesson(lesson: PersonalizedLesson) {
+export function savePersonalizedLesson(lesson: PersonalizedLesson) {
   const lessons = loadLocal();
   if (!lessons.find(l => l.id === lesson.id)) {
     lessons.unshift(lesson);
     saveLocal(lessons.slice(0, 50));
   }
-  upsertCloudLesson(lesson).catch(() => {});
+  cloudUpsert(lesson);
 }
 
-export async function markPersonalizedLessonComplete(id: string) {
+export function markPersonalizedLessonComplete(id: string) {
   const lessons = loadLocal();
   const updated = lessons.map(l => l.id === id ? { ...l, completed: true } : l);
   saveLocal(updated);
   const lesson = updated.find(l => l.id === id);
-  if (lesson) upsertCloudLesson(lesson).catch(() => {});
+  if (lesson) cloudUpsert(lesson);
 }
 
-export async function deletePersonalizedLesson(id: string) {
+export function deletePersonalizedLesson(id: string) {
   const lessons = loadLocal().filter(l => l.id !== id);
   saveLocal(lessons);
-  const userId = await getUserId();
-  if (userId) {
-    supabase.from("personalized_lessons").delete().eq("id", id).eq("user_id", userId).catch(() => {});
-  }
+  getUserId().then(userId => {
+    if (userId) {
+      supabase.from("personalized_lessons").delete().eq("id", id).eq("user_id", userId).then(() => {});
+    }
+  }).catch(() => {});
 }
 
 export function extractChatTopics(): string[] {
