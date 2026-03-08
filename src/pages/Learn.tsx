@@ -1,14 +1,94 @@
 import { motion } from "framer-motion";
-import { ChevronRight, Search, BookOpen, Flame, Gamepad2, BarChart3, Zap } from "lucide-react";
+import { ChevronRight, Search, BookOpen, Flame, Gamepad2, BarChart3, Zap, Sparkles, Loader2, RefreshCw } from "lucide-react";
 import { Link } from "react-router-dom";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { MASTERY_CATEGORIES, MICRO_LESSONS, getLevelLabel } from "@/lib/data";
 import { useProgress } from "@/hooks/useProgress";
+import { useGoals } from "@/hooks/useGoals";
+import { useUserProfile } from "@/hooks/useUserProfile";
+import { useCalibration } from "@/hooks/useCalibration";
 import ProgressRing from "@/components/ProgressRing";
+import { Progress } from "@/components/ui/progress";
+import {
+  loadPersonalizedLessons, savePersonalizedLesson, markPersonalizedLessonComplete,
+  extractChatTopics, getUncompletedPersonalizedLessons, type PersonalizedLesson
+} from "@/lib/personalized-lessons";
+
+const GENERATE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-personalized-lesson`;
 
 export default function Learn() {
   const { progress } = useProgress();
+  const { primaryGoal } = useGoals();
+  const { profile } = useUserProfile();
+  const { calibration } = useCalibration();
   const [search, setSearch] = useState("");
+  const [personalizedLessons, setPersonalizedLessons] = useState<PersonalizedLesson[]>([]);
+  const [generating, setGenerating] = useState(false);
+
+  // Load personalized lessons on mount
+  useEffect(() => {
+    setPersonalizedLessons(getUncompletedPersonalizedLessons());
+  }, []);
+
+  // Auto-generate if we have chat topics but no personalized lessons
+  useEffect(() => {
+    const uncompleted = getUncompletedPersonalizedLessons();
+    if (uncompleted.length === 0) {
+      const topics = extractChatTopics();
+      if (topics.length > 0) {
+        generatePersonalizedLessons();
+      }
+    }
+  }, []);
+
+  const generatePersonalizedLessons = useCallback(async () => {
+    if (generating) return;
+    setGenerating(true);
+    try {
+      const topics = extractChatTopics();
+      const existing = loadPersonalizedLessons().map(l => l.id);
+      const resp = await fetch(GENERATE_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: JSON.stringify({
+          chatTopics: topics,
+          goalMode: calibration.goalMode,
+          outputMode: calibration.outputMode,
+          learningStyle: profile.learningStyle,
+          existingLessonIds: existing,
+        }),
+      });
+      if (resp.ok) {
+        const data = await resp.json();
+        if (data.lessons) {
+          for (const lesson of data.lessons) {
+            savePersonalizedLesson({
+              id: lesson.id,
+              title: lesson.title,
+              hook: lesson.hook,
+              content: lesson.content,
+              tryPrompt: lesson.tryPrompt,
+              source: `Recommended because you discussed: ${lesson.relatedTopic?.slice(0, 40) || "AI topics"}`,
+              generatedAt: Date.now(),
+              completed: false,
+            });
+          }
+          setPersonalizedLessons(getUncompletedPersonalizedLessons());
+        }
+      }
+    } catch (e) {
+      console.error("Failed to generate personalized lessons:", e);
+    }
+    setGenerating(false);
+  }, [generating, calibration, profile.learningStyle]);
+
+  const handleCompletePersonalized = (id: string) => {
+    markPersonalizedLessonComplete(id);
+    setPersonalizedLessons(prev => prev.filter(l => l.id !== id));
+  };
 
   // Find first incomplete lesson as "Your next lesson"
   const nextLesson = useMemo(() => {
@@ -29,12 +109,81 @@ export default function Learn() {
     !search || c.name.toLowerCase().includes(search.toLowerCase())
   );
 
+  const goalPercent = primaryGoal && primaryGoal.targetValue > primaryGoal.baselineValue
+    ? Math.min(100, Math.round(((primaryGoal.currentValue - primaryGoal.baselineValue) / (primaryGoal.targetValue - primaryGoal.baselineValue)) * 100))
+    : 0;
+
   return (
     <div className="min-h-screen pb-24">
       <div className="px-5 pt-14 pb-4">
         <p className="section-label text-primary mb-2">Learn</p>
         <h1 className="font-display text-h1 text-foreground">Your Path</h1>
       </div>
+
+      {/* Section 1: Personalized for You */}
+      {(personalizedLessons.length > 0 || generating) && (
+        <div className="px-5 mb-4">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-3.5 w-3.5 text-accent-gold" />
+              <p className="section-label text-accent-gold">Personalized for you</p>
+            </div>
+            <button onClick={generatePersonalizedLessons} disabled={generating}
+              className="text-micro text-primary hover:underline flex items-center gap-1">
+              {generating ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
+              Refresh
+            </button>
+          </div>
+          {personalizedLessons.slice(0, 3).map((lesson, i) => (
+            <motion.div key={lesson.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.05 }} className="mb-2">
+              <div className="glass-card p-4 border-accent-gold/10 hover:border-accent-gold/20 transition-all">
+                <p className="text-body font-semibold text-foreground mb-1">{lesson.title}</p>
+                <p className="text-caption text-muted-foreground mb-2">{lesson.hook}</p>
+                <p className="text-micro text-text-tertiary italic mb-2">{lesson.source}</p>
+                <div className="flex gap-2">
+                  <Link to={`/?context=${encodeURIComponent(`Teach me about: ${lesson.title}. ${lesson.content}`)}&autoSend=true`}
+                    className="flex items-center gap-1 rounded-lg bg-primary/10 px-2.5 py-1.5 text-micro font-medium text-primary hover:bg-primary/20 transition-colors">
+                    <Zap className="h-3 w-3" /> Start
+                  </Link>
+                  <button onClick={() => handleCompletePersonalized(lesson.id)}
+                    className="flex items-center gap-1 rounded-lg bg-surface-2 px-2.5 py-1.5 text-micro font-medium text-muted-foreground hover:bg-surface-hover transition-colors">
+                    Done
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          ))}
+          {generating && personalizedLessons.length === 0 && (
+            <div className="glass-card p-4 flex items-center justify-center gap-2">
+              <Loader2 className="h-4 w-4 animate-spin text-primary" />
+              <span className="text-caption text-muted-foreground">Generating lessons from your chats...</span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {personalizedLessons.length > 0 && <div className="editorial-divider mx-5 mb-4" />}
+
+      {/* Section 2: Your Goal Track */}
+      {primaryGoal && (
+        <div className="px-5 mb-4">
+          <Link to="/goals" className="glass-card p-4 flex items-center gap-4 hover:border-primary/20 transition-all block">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10">
+              <BarChart3 className="h-5 w-5 text-primary" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="section-label text-primary mb-1">Your Goal</p>
+              <p className="text-body font-semibold text-foreground truncate">{primaryGoal.title}</p>
+              <div className="flex items-center gap-2 mt-1">
+                <Progress value={goalPercent} className="h-1.5 flex-1" />
+                <span className="text-micro text-muted-foreground">{goalPercent}%</span>
+              </div>
+            </div>
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+          </Link>
+        </div>
+      )}
 
       {/* Start Here */}
       {recommendedPath && (
@@ -94,7 +243,7 @@ export default function Learn() {
 
       <div className="editorial-divider mx-5 mb-4" />
 
-      {/* Browse Topics */}
+      {/* Section 3: Browse Topics */}
       <div className="px-5">
         <p className="section-label mb-3">Browse topics</p>
         <div className="flex items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3 mb-4">
