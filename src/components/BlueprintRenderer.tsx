@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { Check, Circle, ArrowRight, TrendingUp, GitBranch, Table2, FileText } from "lucide-react";
 import ReactMarkdown from "react-markdown";
@@ -188,9 +188,9 @@ export default function BlueprintRenderer({ content, aggressiveMode }: Blueprint
   return <MarkdownBlock content={content} />;
 }
 
-function MarkdownBlock({ content }: { content: string }) {
+const MarkdownBlock = React.forwardRef<HTMLDivElement, { content: string }>(({ content }, ref) => {
   return (
-    <div className="prose prose-invert prose-sm max-w-none font-mono text-sm leading-relaxed
+    <div ref={ref} className="prose prose-invert prose-sm max-w-none font-mono text-sm leading-relaxed
       [&_p]:my-1.5 [&_ul]:my-1 [&_ol]:my-1 [&_li]:my-0.5
       [&_h1]:text-base [&_h1]:text-primary [&_h1]:font-bold [&_h1]:mt-4 [&_h1]:mb-2
       [&_h2]:text-sm [&_h2]:text-primary [&_h2]:font-semibold [&_h2]:mt-3 [&_h2]:mb-1.5
@@ -202,4 +202,5 @@ function MarkdownBlock({ content }: { content: string }) {
       <ReactMarkdown>{content}</ReactMarkdown>
     </div>
   );
-}
+});
+MarkdownBlock.displayName = "MarkdownBlock";
