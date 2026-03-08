@@ -68,6 +68,11 @@ function AppRoutes() {
     );
   }
 
+  // Show calibration modal for first-time users
+  if (!calLoading && user && !calibration.calibrationDone) {
+    return <CalibrationModal onComplete={completeCalibration} />;
+  }
+
   return (
     <>
       <ScrollToTop />
