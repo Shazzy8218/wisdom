@@ -35,6 +35,7 @@ import PromptSurgery from "./pages/PromptSurgery";
 import CategoryHub from "./pages/CategoryHub";
 import ModuleView from "./pages/ModuleView";
 import LessonView from "./pages/LessonView";
+import CoreTrackHub from "./pages/CoreTrackHub";
 import Auth from "./pages/Auth";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import Support from "./pages/Support";
@@ -93,6 +94,7 @@ function AppRoutes() {
           <Route path="/games/output-duel" element={<OutputDuel />} />
           <Route path="/games/time-trial" element={<TimeTrial />} />
           <Route path="/games/prompt-surgery" element={<PromptSurgery />} />
+          <Route path="/track/:trackId" element={<CoreTrackHub />} />
           <Route path="/category/:categoryId" element={<CategoryHub />} />
           <Route path="/category/:categoryId/module" element={<ModuleView />} />
           <Route path="/category/:categoryId/lesson" element={<LessonView />} />
