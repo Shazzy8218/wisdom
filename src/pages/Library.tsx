@@ -1,15 +1,17 @@
 import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { BookOpen, MessageCircle, Search, Sparkles, Copy, Play, Star, Quote, Brain, Layers, Trash2, Zap, X, ExternalLink, ChevronRight } from "lucide-react";
+import { BookOpen, MessageCircle, Search, Sparkles, Copy, Play, Star, Quote, Brain, Layers, Trash2, Zap, X, ExternalLink, ChevronRight, BarChart3 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { loadChatThreads, type ChatThread } from "@/lib/chat-history";
 import { loadSnapshots, type WisdomSnapshot } from "@/lib/wisdom-snapshots";
 import { loadWisdomPacks, loadSavedDrills, deleteWisdomPack, type WisdomPack } from "@/lib/wisdom-packs";
+import { loadSavedCharts, deleteChart, type SavedChart } from "@/lib/chart-storage";
+import ChartRenderer from "@/components/ChartRenderer";
 import { useNavigate } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import HiddenOwl from "@/components/HiddenOwl";
 
-type Tab = "snapshots" | "prompts" | "drills" | "threads" | "quotes";
+type Tab = "snapshots" | "prompts" | "drills" | "threads" | "quotes" | "charts";
 
 const PROMPT_PACKS = [
   { id: "w1", title: "Email Response Template", category: "Work", prompt: "Write a professional email to [recipient] about [topic]. Keep it concise, polite, and actionable. Include a clear subject line.", tags: ["email", "professional"] },
@@ -46,6 +48,7 @@ export default function Library() {
   const snapshots = useMemo(() => loadSnapshots(), [tab]);
   const wisdomPacks = useMemo(() => loadWisdomPacks(), [tab]);
   const savedDrills = useMemo(() => loadSavedDrills(), [tab]);
+  const savedCharts = useMemo(() => loadSavedCharts(), [tab]);
   const savedQuotes: string[] = useMemo(() => {
     try { return JSON.parse(localStorage.getItem("wisdom-saved-quotes") || "[]"); } catch { return []; }
   }, [tab]);
@@ -75,6 +78,7 @@ export default function Library() {
   const tabs: { id: Tab; label: string; icon: typeof BookOpen }[] = [
     { id: "snapshots", label: "Wisdom Packs", icon: Brain },
     { id: "prompts", label: "Prompts", icon: Sparkles },
+    { id: "charts", label: "Charts", icon: BarChart3 },
     { id: "drills", label: "Drills", icon: Zap },
     { id: "threads", label: "Q&A", icon: MessageCircle },
     { id: "quotes", label: "Quotes", icon: Quote },
@@ -333,6 +337,39 @@ export default function Library() {
               </div>
             ))}
           </>
+        )}
+
+        {/* Charts Tab */}
+        {tab === "charts" && (
+          savedCharts.length > 0 ? (
+            <div className="space-y-3">
+              <p className="text-caption text-muted-foreground">{savedCharts.length} charts saved</p>
+              {savedCharts.map((sc, i) => (
+                <motion.div key={sc.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.04 }}>
+                  <div className="glass-card p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <BarChart3 className="h-4 w-4 text-primary" />
+                        <span className="text-micro text-muted-foreground">{new Date(sc.createdAt).toLocaleDateString()}</span>
+                      </div>
+                      <button onClick={() => { deleteChart(sc.id); toast({ title: "Chart deleted" }); setTab("snapshots"); setTimeout(() => setTab("charts"), 0); }}
+                        className="p-1 rounded-lg hover:bg-destructive/10 transition-colors">
+                        <Trash2 className="h-3 w-3 text-text-tertiary" />
+                      </button>
+                    </div>
+                    <ChartRenderer data={sc.chart} />
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <BarChart3 className="h-8 w-8 text-text-tertiary mx-auto mb-3" />
+              <p className="text-body text-muted-foreground">No saved charts yet.</p>
+              <p className="text-caption text-text-tertiary mt-1">Ask Owl to "make a chart" and save it.</p>
+            </div>
+          )
         )}
 
         {/* Drills Tab */}
