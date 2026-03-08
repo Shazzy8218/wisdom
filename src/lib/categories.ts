@@ -562,10 +562,9 @@ export function getCategoryTrack(id: string): CategoryTrack | undefined {
 function getCoreTrackAsCategoryTrack(id: string): CategoryTrack | undefined {
   const track = CORE_TRACKS.find(t => t.id === id);
   if (!track) return undefined;
-  if (!track) return undefined;
 
   // Create starter lessons from module names
-  const starterLessons: StarterLesson[] = track.modules.map((mod: string, i: number) => ({
+  const starterLessons: StarterLesson[] = track.modules.map((mod, i) => ({
     title: mod,
     hook: `Learn ${mod.toLowerCase()} — part of the ${track.name} track.`,
     difficulty: "beginner",
@@ -587,14 +586,14 @@ function getCoreTrackAsCategoryTrack(id: string): CategoryTrack | undefined {
     description: track.description,
     levels: [
       { level: "Beginner", modules: track.modules },
-      { level: "Intermediate", modules: track.modules.map((m: string) => `${m} — Applied`) },
-      { level: "Advanced", modules: track.modules.map((m: string) => `${m} — Mastery`) },
+      { level: "Intermediate", modules: track.modules.map(m => `${m} — Applied`) },
+      { level: "Advanced", modules: track.modules.map(m => `${m} — Mastery`) },
     ],
     starterLessons,
     workflows: [
       { title: `${track.name} Workflow`, steps: track.modules.slice(0, 5) },
     ],
-    prompts: track.modules.slice(0, 4).map((mod: string) => ({
+    prompts: track.modules.slice(0, 4).map(mod => ({
       label: mod,
       prompt: `Teach me about ${mod} in the context of ${track.name}. Include practical examples, common mistakes, and an actionable exercise.`,
       level: "beginner" as const,
