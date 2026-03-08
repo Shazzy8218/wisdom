@@ -50,7 +50,7 @@ OUTPUT FORMAT:
 - 1 fun comparison or tiny diagram description
 - Keep it relatable and engaging
 
-HARD LIMIT: 120-180 words. Simple words only. No jargon.${NO_FILLER}${CREATOR_BIO}`,
+HARD LIMIT: 120-180 words. Simple words only. No jargon.${NO_DISCLAIMERS}${NO_FILLER}${CREATOR_BIO}`,
     model: "google/gemini-2.5-flash-lite",
   },
 
