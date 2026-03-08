@@ -81,6 +81,13 @@ export function buildOwlContext(extras?: Record<string, string>): Record<string,
     const settings = loadSettings();
     ctx.tone_preference = (localStorage.getItem("wisdom-tone-preference")) || "ruthless";
   } catch { ctx.tone_preference = "ruthless"; }
+
+  // Local device time context
+  const now = new Date();
+  ctx.local_time = now.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit", hour12: true });
+  ctx.local_date = now.toLocaleDateString(undefined, { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+  ctx.timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
   ctx.streak = String(progress.streak || 0);
   ctx.tokens = String(progress.tokens || 0);
   ctx.xp = String(progress.xp || 0);
