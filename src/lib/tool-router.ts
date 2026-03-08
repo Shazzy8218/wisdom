@@ -37,7 +37,10 @@ const patterns: { tool: OwlTool; subType?: string; regex: RegExp; weight: number
   { tool: "web", subType: "sports", regex: /\b(score|standings|game|match|nba|nfl|mlb|nhl|premier league|champions league|world cup|tournament)\b/i, weight: 0.85 },
   { tool: "web", subType: "news", regex: /\b(latest|breaking|recent|current|today's|this week's)\b.*\b(news|update|headline|event|development)\b/i, weight: 0.9 },
   { tool: "web", subType: "search", regex: /\b(search|look up|find|google|browse|what is happening|current)\b/i, weight: 0.6 },
-  { tool: "web", subType: "time", regex: /\b(what time|current time|time in|timezone|time zone)\b/i, weight: 0.95 },
+  // Local time/date (handled locally, not web)
+  { tool: "localtime", regex: /\b(what time|current time|what's the time|time is it|time for me)\b/i, weight: 0.98 },
+  { tool: "localtime", regex: /\b(what('s| is) (the |today'?s? )?date|today'?s? date|what day|what is today)\b/i, weight: 0.98 },
+  { tool: "localtime", regex: /\b(what (day|month|year) is it)\b/i, weight: 0.98 },
   { tool: "web", subType: "product", regex: /\b(best|compare|review|buy|purchase|product|recommend)\b.*\b(laptop|phone|camera|tool|software|app|device|headphone|monitor)\b/i, weight: 0.8 },
 
   // Chart
