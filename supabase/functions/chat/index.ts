@@ -94,6 +94,8 @@ serve(async (req) => {
       if (context.lessonTitle) contextInfo += `\nCurrent lesson: ${context.lessonTitle}`;
       if (context.selectedText) contextInfo += `\nUser highlighted text: "${context.selectedText}"`;
       if (context.cardId) contextInfo += `\nFeed card context: ${context.cardId}`;
+      if (context.canvas_intent) contextInfo += `\nThe UI will render a "${context.canvas_intent}" canvas panel alongside your response. Structure your output to work well in that format. Use tables for action-table, numbered steps for roadmap, clear sections for lessons.`;
+      if (context.instruction_suffix) contextInfo += `\n\n${context.instruction_suffix}`;
       
       // Calibration adaptation
       if (context.goal_mode) {
