@@ -75,6 +75,12 @@ export function buildOwlContext(extras?: Record<string, string>): Record<string,
   ctx.learning_style = profile.learningStyle || "visual";
   ctx.goal_mode = calibration.goalMode || "income";
   ctx.output_mode = calibration.outputMode || "blueprints";
+  
+  // Tone preference
+  try {
+    const settings = loadSettings();
+    ctx.tone_preference = (localStorage.getItem("wisdom-tone-preference")) || "ruthless";
+  } catch { ctx.tone_preference = "ruthless"; }
   ctx.streak = String(progress.streak || 0);
   ctx.tokens = String(progress.tokens || 0);
   ctx.xp = String(progress.xp || 0);
