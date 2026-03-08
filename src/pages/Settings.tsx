@@ -102,6 +102,7 @@ function AIConnectionTest() {
 export default function Settings() {
   const { signOut } = useAuth();
   const { progress, update } = useProgress();
+  const { calibration, updateCalibration } = useCalibration();
   const navigate = useNavigate();
   const [settings, setSettings] = useState<Record<string, boolean>>(loadSettings);
   const [showMemory, setShowMemory] = useState(false);
