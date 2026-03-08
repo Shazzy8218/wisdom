@@ -320,16 +320,6 @@ export default function Chat() {
               </div>
             </motion.div>
 
-            {/* Quick Actions */}
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-              className="grid grid-cols-2 gap-2 w-full max-w-sm mb-4">
-              {QUICK_ACTIONS.map(action => (
-                <button key={action.label} onClick={() => setInput(action.prompt)}
-                  className="glass-card p-3 text-caption font-medium text-muted-foreground hover:text-foreground hover:border-primary/20 transition-all text-left">
-                  {action.label}
-                </button>
-              ))}
-            </motion.div>
 
             {/* Mode Toggle */}
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}>
