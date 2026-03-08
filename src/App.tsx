@@ -85,7 +85,7 @@ function AppRoutes() {
           <Route path="/learn" element={<Navigate to="/courses" replace />} />
           <Route path="/feed" element={<LearnFeed />} />
           <Route path="/paths" element={<LearnPaths />} />
-          <Route path="/mastery" element={<MasteryChart />} />
+          <Route path="/mastery" element={<Navigate to="/courses" replace />} />
           <Route path="/games" element={<Games />} />
           <Route path="/games/hallucination-hunter" element={<HallucinationHunter />} />
           <Route path="/games/prompt-puzzle" element={<PromptPuzzle />} />
