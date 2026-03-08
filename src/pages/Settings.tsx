@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useProgress } from "@/hooks/useProgress";
 import { useCalibration } from "@/hooks/useCalibration";
 import HiddenOwl from "@/components/HiddenOwl";
+const PersistenceDebugPanel = lazy(() => import("@/components/PersistenceDebug"));
 
 interface MemoryToggle {
   id: string;
