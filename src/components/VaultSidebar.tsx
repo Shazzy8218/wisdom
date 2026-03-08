@@ -90,7 +90,7 @@ export default function VaultSidebar({ open, onClose }: VaultSidebarProps) {
                   <div className="flex items-center justify-between p-2 rounded border border-border">
                     <span className="text-[10px] font-mono text-muted-foreground">OUTPUT</span>
                     <span className="text-xs font-mono font-bold text-accent-blue uppercase">
-                      {profile.outputMode || "blueprints"}
+                      {(profile as any).outputMode || "blueprints"}
                     </span>
                   </div>
                 </div>
