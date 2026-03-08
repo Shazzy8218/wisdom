@@ -901,16 +901,38 @@ export default function Chat() {
           </div>
         )}
 
-        {/* Loading state for image gen */}
-        {msg.content === "🎨 Generating your image…" && (
+        {/* Loading states */}
+        {(msg.content === "🎨 Generating your image…" || msg.content?.startsWith("🌐 Searching") || msg.content?.startsWith("📄 Generating")) && (
           <div className="flex items-center gap-2 text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" />
-            <span className="text-caption">Generating your image…</span>
+            <span className="text-caption">{msg.content.replace(/^[^\s]+\s/, "")}</span>
+          </div>
+        )}
+
+        {/* Document download */}
+        {msg.docDownload && (
+          <div className="mb-3">
+            <button onClick={() => {
+              const blob = new Blob([msg.docDownload!.content], { type: msg.docDownload!.mimeType });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.href = url;
+              a.download = msg.docDownload!.fileName;
+              a.click();
+              URL.revokeObjectURL(url);
+            }}
+              className="flex items-center gap-2 rounded-xl bg-primary/10 px-4 py-3 text-caption text-primary font-medium hover:bg-primary/20 transition-colors w-full">
+              <FileDown className="h-5 w-5" />
+              <div className="text-left">
+                <p className="font-semibold">Download {msg.docDownload.format.toUpperCase()}</p>
+                <p className="text-[10px] text-primary/70">{msg.docDownload.fileName}</p>
+              </div>
+            </button>
           </div>
         )}
 
         {/* Text content */}
-        {text && msg.content !== "🎨 Generating your image…" && (
+        {text && !msg.content?.startsWith("🎨 Generating") && !msg.content?.startsWith("🌐 Searching") && !msg.content?.startsWith("📄 Generating") && (
           <div className="prose prose-invert prose-sm max-w-none [&_p]:my-1 [&_ul]:my-1 [&_ol]:my-1 [&_li]:my-0.5 [&_h1]:text-lg [&_h2]:text-base [&_h3]:text-sm [&_code]:bg-surface-2 [&_code]:px-1 [&_code]:rounded [&_pre]:bg-surface-2 [&_pre]:p-3 [&_pre]:rounded-xl [&_strong]:text-foreground">
             <ReactMarkdown>{text}</ReactMarkdown>
           </div>
