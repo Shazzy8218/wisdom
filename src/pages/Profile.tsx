@@ -1,14 +1,17 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { User, Wallet, Settings, Crown, ChevronRight, Sparkles, BarChart3, LogOut, Pencil } from "lucide-react";
+import { User, Wallet, Settings, Crown, ChevronRight, Sparkles, BarChart3, LogOut, Pencil, Target } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { useProgress } from "@/hooks/useProgress";
+import { useGoals } from "@/hooks/useGoals";
 import { supabase } from "@/integrations/supabase/client";
+import { Progress } from "@/components/ui/progress";
 
 export default function Profile() {
   const { profile, updateProfile } = useUserProfile();
   const { progress } = useProgress();
+  const { primaryGoal } = useGoals();
   const [editing, setEditing] = useState(false);
   const [nameValue, setNameValue] = useState(profile.displayName);
   const navigate = useNavigate();
@@ -23,6 +26,10 @@ export default function Profile() {
     localStorage.removeItem("wisdom-cloud-progress-loaded");
     window.location.href = "/";
   };
+
+  const goalPercent = primaryGoal && primaryGoal.targetValue > primaryGoal.baselineValue
+    ? Math.min(100, Math.round(((primaryGoal.currentValue - primaryGoal.baselineValue) / (primaryGoal.targetValue - primaryGoal.baselineValue)) * 100))
+    : 0;
 
   return (
     <div className="min-h-screen pb-24">
@@ -58,6 +65,35 @@ export default function Profile() {
           <p className="text-caption text-muted-foreground">{profile.plan === "pro" ? "Pro" : "Free"} Plan · {profile.learningStyle} learner</p>
         </div>
       </motion.div>
+
+      {/* Goal Card */}
+      <div className="px-5 mb-4">
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.03 }}>
+          <Link to="/goals"
+            className="glass-card p-5 flex items-center gap-4 hover:border-primary/20 transition-all block border-primary/10">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10">
+              <Target className="h-5 w-5 text-primary" />
+            </div>
+            <div className="flex-1 min-w-0">
+              {primaryGoal ? (
+                <>
+                  <p className="text-body font-semibold text-foreground truncate">{primaryGoal.title}</p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Progress value={goalPercent} className="h-1.5 flex-1" />
+                    <span className="text-micro text-muted-foreground">{goalPercent}%</span>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <p className="text-body font-semibold text-foreground">Set a Goal</p>
+                  <p className="text-caption text-muted-foreground">Track your mission</p>
+                </>
+              )}
+            </div>
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+          </Link>
+        </motion.div>
+      </div>
 
       {/* Scoreboard Card */}
       <div className="px-5 mb-4">

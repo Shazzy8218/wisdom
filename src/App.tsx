@@ -18,6 +18,7 @@ import MasteryChart from "./pages/MasteryChart";
 import Games from "./pages/Games";
 import Profile from "./pages/Profile";
 import Scoreboard from "./pages/Index";
+import Goals from "./pages/Goals";
 import NotFound from "./pages/NotFound";
 import WisdomWallet from "./pages/WisdomWallet";
 import TokenStore from "./pages/TokenStore";
@@ -95,6 +96,7 @@ function AppRoutes() {
           <Route path="/category/:categoryId/lesson" element={<LessonView />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/scoreboard" element={<Scoreboard />} />
+          <Route path="/goals" element={<Goals />} />
           <Route path="/wallet" element={<WisdomWallet />} />
           <Route path="/store" element={<TokenStore />} />
           <Route path="/upgrade" element={<Upgrade />} />
