@@ -155,6 +155,11 @@ export default function Chat() {
         if (assistantContent && tid) {
           addMessageToThread(tid, "assistant", assistantContent);
           setThreads(loadChatThreads());
+          // Auto-save wisdom pack from task mode responses
+          if (mode === "task") {
+            const lastUserMsg = newMessages.filter(m => m.role === "user").pop();
+            parseAndSaveWisdomPack(assistantContent, lastUserMsg?.content || text);
+          }
         }
       },
       onError: (err) => {
