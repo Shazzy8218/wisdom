@@ -616,6 +616,7 @@ export default function Chat() {
     let assistantContent = "";
 
     const owlContext = buildOwlContext();
+    owlContext.recommendation_context = getRecommendationContext();
     const toolsUsed: string[] = detectToolsUsed(owlContext, hasImage);
     if (hasFile && !toolsUsed.includes("vision")) toolsUsed.push("vision");
     if (route.tool === "web") toolsUsed.push("web");
