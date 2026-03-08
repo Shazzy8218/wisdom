@@ -27,8 +27,9 @@ import { saveGeneratedImage } from "@/lib/image-storage";
 import { supabase } from "@/integrations/supabase/client";
 
 const TUTOR_MODES = [
+  { id: "default", label: "Operator", icon: "🦉" },
   { id: "fast-answer", label: "Fast", icon: "⚡" },
-  { id: "default", label: "Teach Me", icon: "📖" },
+  { id: "teach-me", label: "Teach Me", icon: "📖" },
   { id: "explain-10", label: "ELI10", icon: "🧒" },
   { id: "deep-dive", label: "Deep Dive", icon: "🔬" },
   { id: "blueprint", label: "Blueprint", icon: "🏗️" },
