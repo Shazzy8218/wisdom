@@ -8,6 +8,8 @@ import BottomNav from "@/components/BottomNav";
 import SplashQuote from "@/components/SplashQuote";
 import ScrollToTop from "@/components/ScrollToTop";
 import { useAuth } from "@/hooks/useAuth";
+import { useCalibration } from "@/hooks/useCalibration";
+import CalibrationModal from "@/components/CalibrationModal";
 import Chat from "./pages/Chat";
 import Learn from "./pages/Learn";
 import LearnFeed from "./pages/LearnFeed";
