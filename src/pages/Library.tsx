@@ -339,6 +339,39 @@ export default function Library() {
           </>
         )}
 
+        {/* Charts Tab */}
+        {tab === "charts" && (
+          savedCharts.length > 0 ? (
+            <div className="space-y-3">
+              <p className="text-caption text-muted-foreground">{savedCharts.length} charts saved</p>
+              {savedCharts.map((sc, i) => (
+                <motion.div key={sc.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.04 }}>
+                  <div className="glass-card p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <BarChart3 className="h-4 w-4 text-primary" />
+                        <span className="text-micro text-muted-foreground">{new Date(sc.createdAt).toLocaleDateString()}</span>
+                      </div>
+                      <button onClick={() => { deleteChart(sc.id); toast({ title: "Chart deleted" }); setTab("snapshots"); setTimeout(() => setTab("charts"), 0); }}
+                        className="p-1 rounded-lg hover:bg-destructive/10 transition-colors">
+                        <Trash2 className="h-3 w-3 text-text-tertiary" />
+                      </button>
+                    </div>
+                    <ChartRenderer data={sc.chart} />
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <BarChart3 className="h-8 w-8 text-text-tertiary mx-auto mb-3" />
+              <p className="text-body text-muted-foreground">No saved charts yet.</p>
+              <p className="text-caption text-text-tertiary mt-1">Ask Owl to "make a chart" and save it.</p>
+            </div>
+          )
+        )}
+
         {/* Drills Tab */}
         {tab === "drills" && (
           savedDrills.length > 0 ? (
