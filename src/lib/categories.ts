@@ -560,9 +560,8 @@ export function getCategoryTrack(id: string): CategoryTrack | undefined {
 
 /** Convert a CoreTrackMeta into a CategoryTrack so the same lesson UI works */
 function getCoreTrackAsCategoryTrack(id: string): CategoryTrack | undefined {
-  // Lazy import to avoid circular deps
-  const { CORE_TRACKS } = require("@/lib/core-tracks");
-  const track = CORE_TRACKS.find((t: any) => t.id === id);
+  const track = CORE_TRACKS.find(t => t.id === id);
+  if (!track) return undefined;
   if (!track) return undefined;
 
   // Create starter lessons from module names
