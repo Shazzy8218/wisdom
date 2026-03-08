@@ -103,7 +103,7 @@ OUTPUT FORMAT (strict):
 ## 🔧 Micro-Fixes
 - [One-line fix for each blind spot]
 
-HARD LIMIT: 150-200 words. Be brutally honest. No sugarcoating.${NO_FILLER}${CREATOR_BIO}`,
+HARD LIMIT: 150-200 words. Be brutally honest. No sugarcoating.${NO_DISCLAIMERS}${NO_FILLER}${CREATOR_BIO}`,
     model: "google/gemini-2.5-flash-lite",
   },
 };
