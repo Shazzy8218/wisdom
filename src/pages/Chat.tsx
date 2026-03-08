@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, Square, RotateCcw, ChevronDown, Plus, History, Pencil, Trash2, Bookmark, Image, X, Brain, BarChart3, User, Target, Eye, FileText, Paperclip, Wand2, Download, Loader2 } from "lucide-react";
+import { Send, Square, RotateCcw, ChevronDown, Plus, History, Pencil, Trash2, Bookmark, Image, X, Brain, BarChart3, User, Target, Eye, FileText, Paperclip, Wand2, Download, Loader2, Globe, Calculator, FileDown, Clock } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { streamChat, type Msg } from "@/lib/ai-stream";
 import { parseAndSaveWisdomPack } from "@/lib/wisdom-packs";
+import { routeToTool, TOOL_LABELS, WEB_SUB_LABELS, type OwlTool } from "@/lib/tool-router";
 import { toast } from "@/hooks/use-toast";
 import { useSearchParams } from "react-router-dom";
 import {
@@ -43,8 +44,8 @@ const IMAGE_STYLES = [
 const QUOTE_SEEN_KEY = "wisdom-daily-quote-key";
 
 const IMAGE_GEN_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-chat-image`;
-
-// Detect if user is asking for image generation
+const WEB_SEARCH_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/owl-web-search`;
+const DOC_GEN_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/owl-generate-doc`;
 const IMAGE_GEN_PATTERNS = [
   /\b(generate|create|make|draw|design|produce|render|build)\b.*\b(image|picture|logo|icon|diagram|illustration|art|graphic|mockup|thumbnail|flowchart|visual|poster|banner|concept|screenshot|wireframe)\b/i,
   /\b(image|picture|logo|icon|diagram|illustration|art|graphic|mockup|thumbnail|flowchart|visual|poster|banner|concept)\b.*\b(generate|create|make|draw|design|produce|render|of|for)\b/i,
@@ -93,10 +94,10 @@ function extractCharts(content: string): { text: string; charts: ChartData[] } {
   return { text: text.trim(), charts };
 }
 
-// Tool indicator badges — add "imagegen"
-type ExtToolUsed = ToolUsed | "imagegen";
+// Tool indicator badges
+type ExtToolUsed = OwlTool | "profile" | "memory" | "mastery" | "goals" | "vision";
 
-const TOOL_ICONS: Record<ExtToolUsed, { icon: React.ReactNode; label: string }> = {
+const TOOL_ICON_MAP: Record<string, { icon: React.ReactNode; label: string }> = {
   profile: { icon: <User className="h-2.5 w-2.5" />, label: "Profile" },
   memory: { icon: <Brain className="h-2.5 w-2.5" />, label: "Memory" },
   chart: { icon: <BarChart3 className="h-2.5 w-2.5" />, label: "Chart" },
@@ -104,17 +105,25 @@ const TOOL_ICONS: Record<ExtToolUsed, { icon: React.ReactNode; label: string }> 
   goals: { icon: <Target className="h-2.5 w-2.5" />, label: "Goals" },
   mastery: { icon: <BarChart3 className="h-2.5 w-2.5" />, label: "Mastery" },
   imagegen: { icon: <Wand2 className="h-2.5 w-2.5" />, label: "Image Gen" },
+  web: { icon: <Globe className="h-2.5 w-2.5" />, label: "Web" },
+  docgen: { icon: <FileDown className="h-2.5 w-2.5" />, label: "Doc Gen" },
+  calculator: { icon: <Calculator className="h-2.5 w-2.5" />, label: "Calculator" },
+  reminder: { icon: <Clock className="h-2.5 w-2.5" />, label: "Reminder" },
+  chat: { icon: <Brain className="h-2.5 w-2.5" />, label: "Chat" },
 };
 
-function ToolBadges({ tools }: { tools: ExtToolUsed[] }) {
+function ToolBadges({ tools }: { tools: string[] }) {
   if (tools.length === 0) return null;
   return (
     <div className="flex flex-wrap gap-1 mt-1.5">
-      {tools.map(t => (
-        <span key={t} className="inline-flex items-center gap-0.5 rounded-md bg-primary/10 px-1.5 py-0.5 text-[10px] text-primary font-medium">
-          {TOOL_ICONS[t].icon} {TOOL_ICONS[t].label}
-        </span>
-      ))}
+      {tools.map(t => {
+        const info = TOOL_ICON_MAP[t] || { icon: null, label: t };
+        return (
+          <span key={t} className="inline-flex items-center gap-0.5 rounded-md bg-primary/10 px-1.5 py-0.5 text-[10px] text-primary font-medium">
+            {info.icon} {info.label}
+          </span>
+        );
+      })}
     </div>
   );
 }
@@ -138,7 +147,10 @@ interface ChatMessage extends Msg {
   generatedStyle?: string;
   fileName?: string;
   fileType?: AttachmentType;
-  toolsUsed?: ExtToolUsed[];
+  toolsUsed?: string[];
+  citations?: string[];
+  docDownload?: { content: string; fileName: string; mimeType: string; format: string };
+  webSource?: string;
 }
 
 const VISION_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-vision`;
@@ -273,6 +285,60 @@ async function generateImage(prompt: string, style?: string): Promise<{ imageDat
   }
 }
 
+// Web search helper
+async function webSearch(query: string, type?: string): Promise<{ content: string; citations: string[]; source: string; note?: string }> {
+  try {
+    const resp = await fetch(WEB_SEARCH_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+      },
+      body: JSON.stringify({ query, type }),
+    });
+    const data = await resp.json();
+    if (data.success) return { content: data.content, citations: data.citations || [], source: data.source || "web", note: data.note };
+    return { content: data.error || "Web search unavailable.", citations: [], source: "error" };
+  } catch (e: any) {
+    return { content: e.message || "Connection failed", citations: [], source: "error" };
+  }
+}
+
+// Document generation helper
+async function generateDoc(prompt: string, format: string, context?: Record<string, string>): Promise<{ success: boolean; content?: string; fileName?: string; mimeType?: string; format?: string; error?: string }> {
+  try {
+    const resp = await fetch(DOC_GEN_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+      },
+      body: JSON.stringify({ prompt, format, context }),
+    });
+    return await resp.json();
+  } catch (e: any) {
+    return { success: false, error: e.message || "Connection failed" };
+  }
+}
+
+// Calculator helper
+function tryCalculate(text: string): string | null {
+  const mathMatch = text.match(/(?:calculate|compute|what is|how much is)\s+([\d\s\+\-\*\/\.\(\)\%\^]+)/i);
+  if (!mathMatch) {
+    // Try raw expression
+    const rawMatch = text.match(/^[\d\s\+\-\*\/\.\(\)\%\^]+$/);
+    if (!rawMatch) return null;
+  }
+  try {
+    const expr = (mathMatch?.[1] || text).replace(/\^/g, "**").replace(/%/g, "/100");
+    const result = Function(`"use strict"; return (${expr})`)();
+    if (typeof result === "number" && isFinite(result)) {
+      return `**Result:** ${result.toLocaleString()}`;
+    }
+  } catch {}
+  return null;
+}
+
 // Quick action chips
 interface QuickAction {
   label: string;
@@ -281,11 +347,14 @@ interface QuickAction {
 }
 
 const QUICK_ACTIONS: QuickAction[] = [
-  { label: "📷 Explain an image", prompt: "", action: "image" },
+  { label: "🌐 Search the web", prompt: "Search the web for the latest AI news today" },
   { label: "🎨 Generate image", prompt: "", action: "imagegen" },
   { label: "📊 Chart my progress", prompt: "Chart my mastery % by category" },
-  { label: "📄 Analyze a file", prompt: "", action: "file" },
-  { label: "🎯 What should I learn next?", prompt: "What should I learn next based on my progress?" },
+  { label: "📄 Create a PDF", prompt: "Create a PDF: one-page business plan template" },
+  { label: "📷 Analyze an image", prompt: "", action: "image" },
+  { label: "🎯 What should I learn?", prompt: "What should I learn next based on my progress?" },
+  { label: "🌤️ Weather", prompt: "What's the weather in New York today?" },
+  { label: "💰 Bitcoin price", prompt: "What's the current Bitcoin price?" },
   { label: "🔥 My stats", prompt: "Show me my current stats: streak, tokens, mastery, and progress" },
 ];
 
@@ -448,15 +517,37 @@ export default function Chat() {
   const sendMessage = useCallback(async (text: string, threadId?: string) => {
     if ((!text.trim() && pendingAttachments.length === 0) || isStreaming || isGeneratingImage) return;
 
-    // Check if this is an image generation request
-    if (text.trim() && pendingAttachments.length === 0 && isImageGenRequest(text)) {
+    const attachments = [...pendingAttachments];
+    const hasImage = attachments.some(a => a.type === "image");
+    const hasFile = attachments.some(a => a.type === "file");
+
+    // Route to the right tool
+    const route = routeToTool(text, hasImage, hasFile);
+
+    // Image generation: handle separately
+    if (route.tool === "imagegen" && !hasImage && !hasFile) {
       await handleImageGen(text);
       return;
     }
 
-    const attachments = [...pendingAttachments];
-    const hasImage = attachments.some(a => a.type === "image");
-    const hasFile = attachments.some(a => a.type === "file");
+    // Calculator: instant local result
+    if (route.tool === "calculator" && !hasImage && !hasFile) {
+      const calcResult = tryCalculate(text);
+      if (calcResult) {
+        const userMsg: ChatMessage = { id: Date.now().toString(), role: "user", content: text };
+        const assistantMsg: ChatMessage = { id: `calc-${Date.now()}`, role: "assistant", content: calcResult, toolsUsed: ["calculator"] };
+        setMessages(prev => [...prev, userMsg, assistantMsg]);
+        setInput("");
+        let tid = threadId || currentThreadId;
+        if (!tid) { const t = createThread("Calculation"); tid = t.id; setCurrentThreadId(tid); }
+        addMessageToThread(tid, "user", text);
+        addMessageToThread(tid, "assistant", calcResult);
+        setThreads(loadChatThreads());
+        return;
+      }
+      // Fall through to chat if calc fails
+    }
+
     let imageUrl: string | undefined;
     let imagePreview: string | undefined;
     let fileName: string | undefined;
@@ -522,10 +613,70 @@ export default function Chat() {
     let assistantContent = "";
 
     const owlContext = buildOwlContext();
-    const toolsUsed: ExtToolUsed[] = detectToolsUsed(owlContext, hasImage);
+    const toolsUsed: string[] = detectToolsUsed(owlContext, hasImage);
     if (hasFile && !toolsUsed.includes("vision")) toolsUsed.push("vision");
+    if (route.tool === "web") toolsUsed.push("web");
+    if (route.tool === "docgen") toolsUsed.push("docgen");
     if (newMessages.some(m => m.content?.toLowerCase().includes("chart") || m.content?.toLowerCase().includes("graph"))) {
       if (!toolsUsed.includes("chart")) toolsUsed.push("chart");
+    }
+
+    // === WEB SEARCH TOOL ===
+    if (route.tool === "web" && !hasImage && !hasFile) {
+      // Show loading
+      const loadingId = `loading-${Date.now()}`;
+      setMessages(prev => [...prev, { id: loadingId, role: "assistant", content: `🌐 Searching the web…`, toolsUsed: ["web"] }]);
+
+      const webResult = await webSearch(text, route.subType);
+      
+      let responseContent = webResult.content;
+      if (webResult.citations.length > 0) {
+        responseContent += "\n\n**Sources:**\n" + webResult.citations.map((c, i) => `${i + 1}. ${c}`).join("\n");
+      }
+      if (webResult.note) {
+        responseContent += `\n\n_${webResult.note}_`;
+      }
+
+      const webMsg: ChatMessage = {
+        id: `web-${Date.now()}`,
+        role: "assistant",
+        content: responseContent,
+        toolsUsed: ["web"],
+        citations: webResult.citations,
+        webSource: webResult.source,
+      };
+      setMessages(prev => prev.filter(m => m.id !== loadingId).concat(webMsg));
+      setIsStreaming(false);
+      abortRef.current = null;
+      if (tid) { addMessageToThread(tid, "assistant", responseContent); setThreads(loadChatThreads()); }
+      return;
+    }
+
+    // === DOCUMENT GENERATION TOOL ===
+    if (route.tool === "docgen" && !hasImage && !hasFile) {
+      const format = route.subType || "pdf";
+      const loadingId = `loading-${Date.now()}`;
+      const formatLabel = format === "csv" ? "spreadsheet" : format === "slides" ? "slide deck" : "document";
+      setMessages(prev => [...prev, { id: loadingId, role: "assistant", content: `📄 Generating ${formatLabel}…`, toolsUsed: ["docgen"] }]);
+
+      const docResult = await generateDoc(text, format, owlContext);
+
+      if (docResult.success && docResult.content) {
+        const docMsg: ChatMessage = {
+          id: `doc-${Date.now()}`,
+          role: "assistant",
+          content: `✅ Your ${formatLabel} is ready! Click below to download.`,
+          toolsUsed: ["docgen"],
+          docDownload: { content: docResult.content, fileName: docResult.fileName || `owl-${format}.html`, mimeType: docResult.mimeType || "text/html", format },
+        };
+        setMessages(prev => prev.filter(m => m.id !== loadingId).concat(docMsg));
+      } else {
+        setMessages(prev => prev.map(m => m.id === loadingId ? { ...m, content: docResult.error || "Document generation failed. Try again." } : m));
+      }
+      setIsStreaming(false);
+      abortRef.current = null;
+      if (tid) { addMessageToThread(tid, "assistant", `[Generated ${format}]`); setThreads(loadChatThreads()); }
+      return;
     }
 
     const handleDelta = (chunk: string) => {
@@ -750,16 +901,38 @@ export default function Chat() {
           </div>
         )}
 
-        {/* Loading state for image gen */}
-        {msg.content === "🎨 Generating your image…" && (
+        {/* Loading states */}
+        {(msg.content === "🎨 Generating your image…" || msg.content?.startsWith("🌐 Searching") || msg.content?.startsWith("📄 Generating")) && (
           <div className="flex items-center gap-2 text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" />
-            <span className="text-caption">Generating your image…</span>
+            <span className="text-caption">{msg.content.replace(/^[^\s]+\s/, "")}</span>
+          </div>
+        )}
+
+        {/* Document download */}
+        {msg.docDownload && (
+          <div className="mb-3">
+            <button onClick={() => {
+              const blob = new Blob([msg.docDownload!.content], { type: msg.docDownload!.mimeType });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.href = url;
+              a.download = msg.docDownload!.fileName;
+              a.click();
+              URL.revokeObjectURL(url);
+            }}
+              className="flex items-center gap-2 rounded-xl bg-primary/10 px-4 py-3 text-caption text-primary font-medium hover:bg-primary/20 transition-colors w-full">
+              <FileDown className="h-5 w-5" />
+              <div className="text-left">
+                <p className="font-semibold">Download {msg.docDownload.format.toUpperCase()}</p>
+                <p className="text-[10px] text-primary/70">{msg.docDownload.fileName}</p>
+              </div>
+            </button>
           </div>
         )}
 
         {/* Text content */}
-        {text && msg.content !== "🎨 Generating your image…" && (
+        {text && !msg.content?.startsWith("🎨 Generating") && !msg.content?.startsWith("🌐 Searching") && !msg.content?.startsWith("📄 Generating") && (
           <div className="prose prose-invert prose-sm max-w-none [&_p]:my-1 [&_ul]:my-1 [&_ol]:my-1 [&_li]:my-0.5 [&_h1]:text-lg [&_h2]:text-base [&_h3]:text-sm [&_code]:bg-surface-2 [&_code]:px-1 [&_code]:rounded [&_pre]:bg-surface-2 [&_pre]:p-3 [&_pre]:rounded-xl [&_strong]:text-foreground">
             <ReactMarkdown>{text}</ReactMarkdown>
           </div>

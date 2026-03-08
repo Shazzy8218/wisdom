@@ -20,3 +20,9 @@ verify_jwt = false
 
 [functions.generate-chat-image]
 verify_jwt = false
+
+[functions.owl-web-search]
+verify_jwt = false
+
+[functions.owl-generate-doc]
+verify_jwt = false
