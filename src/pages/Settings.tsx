@@ -27,8 +27,12 @@ const MEMORY_TOGGLES: MemoryToggle[] = [
 
 const SETTINGS_KEY = "wisdom-settings";
 
-function loadSettings(): Record<string, boolean> {
-  try { return JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}"); } catch { return {}; }
+function loadSettings(): Record<string, any> {
+  try { 
+    const s = JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}");
+    if (!s.tonePreference) s.tonePreference = localStorage.getItem("wisdom-tone-preference") || "ruthless";
+    return s;
+  } catch { return { tonePreference: "ruthless" }; }
 }
 
 function saveSettings(s: Record<string, boolean>) {
