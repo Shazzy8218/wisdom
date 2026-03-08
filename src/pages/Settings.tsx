@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Brain, Trash2, Eye, RotateCcw, Wifi, Loader2, CheckCircle, XCircle, LogOut, Shield, HelpCircle, Download, AlertTriangle, Target, Layers } from "lucide-react";
+import { Brain, Trash2, Eye, RotateCcw, Wifi, Loader2, CheckCircle, XCircle, LogOut, Shield, HelpCircle, Download, AlertTriangle, Target, Layers, Activity, MessageSquare, Smartphone } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
 import { streamChat, generateLesson, generateGameQuestion } from "@/lib/ai-stream";
@@ -13,13 +13,16 @@ interface MemoryToggle {
   id: string;
   label: string;
   description: string;
+  icon: string;
 }
 
 const MEMORY_TOGGLES: MemoryToggle[] = [
-  { id: "goals", label: "Remember goals", description: "AI remembers your learning goals" },
-  { id: "style", label: "Remember explanation style", description: "AI adapts to your preferred teaching style" },
-  { id: "industry", label: "Remember industry/tools", description: "AI references your industry context" },
-  { id: "workflows", label: "Remember saved workflows", description: "AI recalls your custom workflows" },
+  { id: "useActivity", label: "Personalize using my activity", description: "Owl sees your mastery, streaks, favorites, and weak spots", icon: "📊" },
+  { id: "useChatHistory", label: "Use my chat history", description: "Owl remembers your recent conversation topics", icon: "💬" },
+  { id: "goals", label: "Remember goals", description: "Owl references your learning goals in responses", icon: "🎯" },
+  { id: "style", label: "Remember explanation style", description: "Owl adapts to your preferred teaching approach", icon: "🧠" },
+  { id: "industry", label: "Remember industry/tools", description: "Owl references your industry context", icon: "🏭" },
+  { id: "workflows", label: "Remember saved workflows", description: "Owl recalls your custom workflows", icon: "⚙️" },
 ];
 
 const SETTINGS_KEY = "wisdom-settings";
@@ -99,6 +102,39 @@ function AIConnectionTest() {
   );
 }
 
+// What Owl Knows panel
+function OwlKnowledgeView() {
+  const { progress } = useProgress();
+  const scores = progress.masteryScores || {};
+  const vals = Object.values(scores) as number[];
+  const avg = vals.length ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : 0;
+
+  const items = [
+    { label: "Streak", value: `${progress.streak} days` },
+    { label: "Tokens", value: String(progress.tokens) },
+    { label: "XP", value: String(progress.xp) },
+    { label: "Overall Mastery", value: `${avg}%` },
+    { label: "Lessons Completed", value: String(progress.completedLessons?.length || 0) },
+    { label: "Favorites", value: String(progress.favorites?.length || 0) },
+    { label: "Categories Tracked", value: String(Object.keys(scores).length) },
+  ];
+
+  return (
+    <div className="glass-card p-4 space-y-2">
+      <p className="section-label mb-2">What Owl knows about you</p>
+      {items.map(item => (
+        <div key={item.label} className="flex items-center justify-between py-1">
+          <span className="text-caption text-muted-foreground">{item.label}</span>
+          <span className="text-caption font-medium text-foreground">{item.value}</span>
+        </div>
+      ))}
+      <p className="text-micro text-muted-foreground pt-2 border-t border-border mt-2">
+        Owl uses this data only when you enable the toggles above. Disable any toggle to remove that context from AI responses.
+      </p>
+    </div>
+  );
+}
+
 export default function Settings() {
   const { signOut } = useAuth();
   const { progress, update } = useProgress();
@@ -121,7 +157,7 @@ export default function Settings() {
     const cleared: Record<string, boolean> = {};
     MEMORY_TOGGLES.forEach(t => { cleared[t.id] = false; });
     setSettings(prev => { const next = { ...prev, ...cleared }; saveSettings(next); return next; });
-    toast({ title: "Memory Reset", description: "All AI memory has been cleared." });
+    toast({ title: "Memory Reset", description: "All AI personalization has been cleared." });
   };
 
   const handleSignOut = async () => {
@@ -156,7 +192,6 @@ export default function Settings() {
     const { resetCloudProgress } = await import("@/lib/progress");
     const fresh = await resetCloudProgress();
     update(() => fresh);
-    // Clear legacy localStorage keys
     localStorage.removeItem("wisdom-feed-seen");
     localStorage.removeItem("wisdom-unlocked-items");
     localStorage.removeItem("wisdom-favorites");
@@ -171,13 +206,12 @@ export default function Settings() {
 
   const handleDeleteAccount = () => {
     if (!showDeleteConfirm) { setShowDeleteConfirm(true); return; }
-    // Clear all local data
     localStorage.clear();
     toast({ title: "Account deletion requested", description: "Your data will be removed within 30 days." });
     handleSignOut();
   };
 
-  const memoryItems = MEMORY_TOGGLES.filter(t => settings[t.id]);
+  const enabledCount = MEMORY_TOGGLES.filter(t => settings[t.id]).length;
 
   return (
     <div className="min-h-screen pb-24">
@@ -186,33 +220,37 @@ export default function Settings() {
         <h1 className="font-display text-h1 text-foreground">Preferences</h1>
       </div>
 
-      {/* AI Memory */}
+      {/* AI Personalization */}
       <div className="px-5 mb-6">
-        <div className="flex items-center gap-2 mb-4">
+        <div className="flex items-center gap-2 mb-2">
           <Brain className="h-4 w-4 text-primary" />
-          <h2 className="section-label text-primary">AI Memory (Consent-Only)</h2>
+          <h2 className="section-label text-primary">Owl Personalization</h2>
         </div>
-        <p className="text-caption text-muted-foreground mb-4">These settings are OFF by default. Your data is never stored without your permission.</p>
+        <p className="text-caption text-muted-foreground mb-1">Control what Owl knows about you. All toggles are OFF by default.</p>
+        <p className="text-micro text-muted-foreground mb-4">{enabledCount} of {MEMORY_TOGGLES.length} active</p>
+        
         <div className="space-y-2">
           {MEMORY_TOGGLES.map((toggle, i) => (
             <motion.div key={toggle.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.05 }}
+              transition={{ delay: i * 0.04 }}
               className="glass-card p-4 flex items-center gap-3">
-              <div className="flex-1">
+              <span className="text-lg">{toggle.icon}</span>
+              <div className="flex-1 min-w-0">
                 <p className="text-body font-medium text-foreground">{toggle.label}</p>
                 <p className="text-micro text-muted-foreground">{toggle.description}</p>
               </div>
               <button onClick={() => handleToggle(toggle.id)}
-                className={`relative h-6 w-11 rounded-full transition-colors ${settings[toggle.id] ? "bg-primary" : "bg-surface-2 border border-border"}`}>
+                className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${settings[toggle.id] ? "bg-primary" : "bg-surface-2 border border-border"}`}>
                 <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-foreground transition-transform ${settings[toggle.id] ? "translate-x-5" : "translate-x-0.5"}`} />
               </button>
             </motion.div>
           ))}
         </div>
+        
         <div className="flex gap-2 mt-4">
           <button onClick={() => setShowMemory(!showMemory)}
             className="flex items-center gap-2 rounded-xl bg-surface-2 px-4 py-2.5 text-caption text-muted-foreground hover:bg-surface-hover transition-colors">
-            <Eye className="h-3.5 w-3.5" /> View Memory
+            <Eye className="h-3.5 w-3.5" /> {showMemory ? "Hide" : "View"} what Owl knows
           </button>
           <button onClick={handleResetMemory}
             className="flex items-center gap-2 rounded-xl bg-surface-2 px-4 py-2.5 text-caption text-primary hover:bg-primary/10 transition-colors">
@@ -220,24 +258,9 @@ export default function Settings() {
           </button>
         </div>
 
-        {/* Memory View */}
         {showMemory && (
           <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} className="mt-3 overflow-hidden">
-            <div className="glass-card p-4">
-              <p className="section-label mb-2">Active Memory Items</p>
-              {memoryItems.length === 0 ? (
-                <p className="text-caption text-muted-foreground">No memory items enabled.</p>
-              ) : (
-                <div className="space-y-2">
-                  {memoryItems.map(item => (
-                    <div key={item.id} className="flex items-center justify-between p-2 rounded-lg bg-surface-2">
-                      <span className="text-caption text-foreground">{item.label}</span>
-                      <button onClick={() => handleToggle(item.id)} className="text-micro text-primary hover:underline">Remove</button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+            <OwlKnowledgeView />
           </motion.div>
         )}
       </div>
@@ -251,7 +274,6 @@ export default function Settings() {
           <h2 className="section-label text-primary">Calibration</h2>
         </div>
         <p className="text-caption text-muted-foreground mb-4">These shape how Owl responds to you.</p>
-        
         <div className="space-y-3">
           <div className="glass-card p-4">
             <p className="text-body font-medium text-foreground mb-2">Goal Mode</p>
@@ -259,28 +281,19 @@ export default function Settings() {
               {(["income", "impact"] as const).map(mode => (
                 <button key={mode} onClick={() => updateCalibration({ goalMode: mode })}
                   className={`flex-1 rounded-xl px-3 py-2.5 text-caption font-medium transition-all ${
-                    calibration.goalMode === mode
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-surface-2 text-muted-foreground hover:bg-surface-hover"
-                  }`}>
-                  {mode === "income" ? "💰 Income" : "🚀 Impact"}
-                </button>
+                    calibration.goalMode === mode ? "bg-primary text-primary-foreground" : "bg-surface-2 text-muted-foreground hover:bg-surface-hover"
+                  }`}>{mode === "income" ? "💰 Income" : "🚀 Impact"}</button>
               ))}
             </div>
           </div>
-          
           <div className="glass-card p-4">
             <p className="text-body font-medium text-foreground mb-2">Output Mode</p>
             <div className="flex gap-2">
               {(["blueprints", "components"] as const).map(mode => (
                 <button key={mode} onClick={() => updateCalibration({ outputMode: mode })}
                   className={`flex-1 rounded-xl px-3 py-2.5 text-caption font-medium transition-all ${
-                    calibration.outputMode === mode
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-surface-2 text-muted-foreground hover:bg-surface-hover"
-                  }`}>
-                  {mode === "blueprints" ? "📐 Blueprints" : "🧩 Components"}
-                </button>
+                    calibration.outputMode === mode ? "bg-primary text-primary-foreground" : "bg-surface-2 text-muted-foreground hover:bg-surface-hover"
+                  }`}>{mode === "blueprints" ? "📐 Blueprints" : "🧩 Components"}</button>
               ))}
             </div>
           </div>
@@ -302,7 +315,6 @@ export default function Settings() {
             <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-foreground transition-transform ${settings.reduceMotion ? "translate-x-5" : "translate-x-0.5"}`} />
           </button>
         </div>
-
         <div className="glass-card p-4 flex items-center gap-3 mt-2">
           <div className="flex-1">
             <p className="text-body font-medium text-foreground">Notifications</p>
