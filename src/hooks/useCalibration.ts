@@ -20,11 +20,14 @@ export function useCalibration() {
     supabase.from("profiles").select("goal_mode, output_mode, calibration_done").eq("id", user.id).single()
       .then(({ data: row }) => {
         if (row) {
-          setData({
+          const d = {
             goalMode: (row as any).goal_mode || "income",
             outputMode: (row as any).output_mode || "blueprints",
             calibrationDone: (row as any).calibration_done || false,
-          });
+          };
+          setData(d);
+          // Cache for AI context
+          localStorage.setItem("wisdom-calibration-cache", JSON.stringify(d));
         }
         setLoading(false);
       });
