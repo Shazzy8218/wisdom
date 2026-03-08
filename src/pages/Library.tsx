@@ -48,6 +48,7 @@ export default function Library() {
   const snapshots = useMemo(() => loadSnapshots(), [tab]);
   const wisdomPacks = useMemo(() => loadWisdomPacks(), [tab]);
   const savedDrills = useMemo(() => loadSavedDrills(), [tab]);
+  const savedCharts = useMemo(() => loadSavedCharts(), [tab]);
   const savedQuotes: string[] = useMemo(() => {
     try { return JSON.parse(localStorage.getItem("wisdom-saved-quotes") || "[]"); } catch { return []; }
   }, [tab]);
