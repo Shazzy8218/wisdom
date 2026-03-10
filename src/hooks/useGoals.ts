@@ -38,7 +38,7 @@ export function useGoals() {
 
   const createGoal = useCallback(async (goal: Omit<UserGoal, "id" | "completed" | "createdAt">) => {
     if (!user) return;
-    const { data } = await supabase.from("user_goals" as any).insert({
+    const { data, error } = await supabase.from("user_goals" as any).insert({
       user_id: user.id,
       title: goal.title,
       target_metric: goal.targetMetric,
@@ -48,7 +48,8 @@ export function useGoals() {
       deadline: goal.deadline,
       why: goal.why,
       roadmap: goal.roadmap,
-    } as any).select().single();
+    } as any).select().maybeSingle();
+    if (error) { console.error("Goal create error:", error); throw error; }
     if (data) setGoals(prev => [rowToGoal(data as any), ...prev]);
   }, [user]);
 
