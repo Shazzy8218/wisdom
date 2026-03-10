@@ -1,10 +1,10 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, Square, RotateCcw, ChevronDown, Plus, History, Pencil, Trash2, Bookmark, Image, X, Brain, BarChart3, User, Target, Eye, FileText, Paperclip, Wand2, Download, Loader2, Globe, Calculator, FileDown, Clock } from "lucide-react";
+import { Send, Square, RotateCcw, ChevronDown, Plus, History, Pencil, Trash2, Bookmark, Image, X, Brain, BarChart3, User, Target, Eye, FileText, Paperclip, Wand2, Download, Loader2, Globe, Calculator, FileDown, Clock, Flame, Search, Shield } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { streamChat, type Msg } from "@/lib/ai-stream";
 import { parseAndSaveWisdomPack } from "@/lib/wisdom-packs";
-import { routeToTool, TOOL_LABELS, WEB_SUB_LABELS, type OwlTool } from "@/lib/tool-router";
+import { routeToTool, TOOL_LABELS, WEB_SUB_LABELS, STRATEGIC_LABELS, type OwlTool, type StrategicType } from "@/lib/tool-router";
 import { toast } from "@/hooks/use-toast";
 import { useSearchParams } from "react-router-dom";
 import {
@@ -50,6 +50,7 @@ const QUOTE_SEEN_KEY = "wisdom-daily-quote-key";
 const IMAGE_GEN_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-chat-image`;
 const WEB_SEARCH_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/owl-web-search`;
 const DOC_GEN_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/owl-generate-doc`;
+const STRATEGIC_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/owl-strategic-analysis`;
 const IMAGE_GEN_PATTERNS = [
   /\b(generate|create|make|draw|design|produce|render|build)\b.*\b(image|picture|logo|icon|diagram|illustration|art|graphic|mockup|thumbnail|flowchart|visual|poster|banner|concept|screenshot|wireframe)\b/i,
   /\b(image|picture|logo|icon|diagram|illustration|art|graphic|mockup|thumbnail|flowchart|visual|poster|banner|concept)\b.*\b(generate|create|make|draw|design|produce|render|of|for)\b/i,
@@ -99,7 +100,7 @@ function extractCharts(content: string): { text: string; charts: ChartData[] } {
 }
 
 // Tool indicator badges
-type ExtToolUsed = OwlTool | "profile" | "memory" | "mastery" | "goals" | "vision";
+type ExtToolUsed = OwlTool | "profile" | "memory" | "mastery" | "goals" | "vision" | "perplexity" | "firecrawl" | "ai-knowledge";
 
 const TOOL_ICON_MAP: Record<string, { icon: React.ReactNode; label: string }> = {
   profile: { icon: <User className="h-2.5 w-2.5" />, label: "Profile" },
@@ -109,18 +110,28 @@ const TOOL_ICON_MAP: Record<string, { icon: React.ReactNode; label: string }> = 
   goals: { icon: <Target className="h-2.5 w-2.5" />, label: "Goals" },
   mastery: { icon: <BarChart3 className="h-2.5 w-2.5" />, label: "Mastery" },
   imagegen: { icon: <Wand2 className="h-2.5 w-2.5" />, label: "Image Gen" },
-  web: { icon: <Globe className="h-2.5 w-2.5" />, label: "Web" },
+  web: { icon: <Globe className="h-2.5 w-2.5" />, label: "Web Search" },
+  perplexity: { icon: <Search className="h-2.5 w-2.5" />, label: "Perplexity" },
+  firecrawl: { icon: <Flame className="h-2.5 w-2.5" />, label: "Firecrawl" },
+  strategic: { icon: <Brain className="h-2.5 w-2.5" />, label: "Strategic Analysis" },
   docgen: { icon: <FileDown className="h-2.5 w-2.5" />, label: "Doc Gen" },
   calculator: { icon: <Calculator className="h-2.5 w-2.5" />, label: "Calculator" },
   reminder: { icon: <Clock className="h-2.5 w-2.5" />, label: "Reminder" },
   localtime: { icon: <Clock className="h-2.5 w-2.5" />, label: "Using local device time" },
   chat: { icon: <Brain className="h-2.5 w-2.5" />, label: "Chat" },
+  "ai-knowledge": { icon: <Brain className="h-2.5 w-2.5" />, label: "AI Knowledge" },
 };
 
-function ToolBadges({ tools }: { tools: string[] }) {
-  if (tools.length === 0) return null;
+const CONFIDENCE_COLORS: Record<string, string> = {
+  high: "text-green-400",
+  medium: "text-yellow-400",
+  low: "text-muted-foreground",
+};
+
+function ToolBadges({ tools, confidence, sourcesCount }: { tools: string[]; confidence?: string; sourcesCount?: number }) {
+  if (tools.length === 0 && !confidence) return null;
   return (
-    <div className="flex flex-wrap gap-1 mt-1.5">
+    <div className="flex flex-wrap gap-1 mt-1.5 items-center">
       {tools.map(t => {
         const info = TOOL_ICON_MAP[t] || { icon: null, label: t };
         return (
@@ -129,6 +140,16 @@ function ToolBadges({ tools }: { tools: string[] }) {
           </span>
         );
       })}
+      {confidence && (
+        <span className={`inline-flex items-center gap-0.5 rounded-md bg-surface-2 px-1.5 py-0.5 text-[10px] font-medium ${CONFIDENCE_COLORS[confidence] || "text-muted-foreground"}`}>
+          <Shield className="h-2.5 w-2.5" /> {confidence.charAt(0).toUpperCase() + confidence.slice(1)} confidence
+        </span>
+      )}
+      {sourcesCount && sourcesCount > 0 && (
+        <span className="inline-flex items-center gap-0.5 rounded-md bg-surface-2 px-1.5 py-0.5 text-[10px] text-muted-foreground font-medium">
+          📎 {sourcesCount} source{sourcesCount !== 1 ? "s" : ""}
+        </span>
+      )}
     </div>
   );
 }
@@ -156,6 +177,9 @@ interface ChatMessage extends Msg {
   citations?: string[];
   docDownload?: { content: string; fileName: string; mimeType: string; format: string };
   webSource?: string;
+  confidence?: string;
+  strategicType?: string;
+  sitesReviewed?: string[];
 }
 
 const VISION_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-vision`;
@@ -291,7 +315,7 @@ async function generateImage(prompt: string, style?: string): Promise<{ imageDat
 }
 
 // Web search helper
-async function webSearch(query: string, type?: string): Promise<{ content: string; citations: string[]; source: string; note?: string }> {
+async function webSearch(query: string, type?: string, url?: string): Promise<{ content: string; citations: string[]; source: string; note?: string }> {
   try {
     const resp = await fetch(WEB_SEARCH_URL, {
       method: "POST",
@@ -299,7 +323,7 @@ async function webSearch(query: string, type?: string): Promise<{ content: strin
         "Content-Type": "application/json",
         Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
       },
-      body: JSON.stringify({ query, type }),
+      body: JSON.stringify({ query, type, url }),
     });
     const data = await resp.json();
     if (data.success) return { content: data.content, citations: data.citations || [], source: data.source || "web", note: data.note };
@@ -307,6 +331,38 @@ async function webSearch(query: string, type?: string): Promise<{ content: strin
   } catch (e: any) {
     return { content: e.message || "Connection failed", citations: [], source: "error" };
   }
+}
+
+// Strategic analysis helper
+async function strategicAnalysis(
+  type: string, query: string, url?: string, context?: Record<string, string>
+): Promise<{ analysis: string; toolsUsed: string[]; citations: string[]; sitesReviewed: string[]; confidence: string; error?: string }> {
+  try {
+    const resp = await fetch(STRATEGIC_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+      },
+      body: JSON.stringify({ type, query, url, context }),
+    });
+    const data = await resp.json();
+    if (data.success) return {
+      analysis: data.analysis,
+      toolsUsed: data.toolsUsed || [],
+      citations: data.citations || [],
+      sitesReviewed: data.sitesReviewed || [],
+      confidence: data.confidence || "low",
+    };
+    return { analysis: data.error || "Strategic analysis failed.", toolsUsed: [], citations: [], sitesReviewed: [], confidence: "low", error: data.error };
+  } catch (e: any) {
+    return { analysis: e.message || "Connection failed", toolsUsed: [], citations: [], sitesReviewed: [], confidence: "low", error: e.message };
+  }
+}
+
+// Firecrawl scrape helper
+async function firecrawlScrape(query: string, url: string): Promise<{ content: string; citations: string[]; source: string }> {
+  return webSearch(query, "scrape", url);
 }
 
 // Document generation helper
@@ -353,13 +409,14 @@ interface QuickAction {
 
 const QUICK_ACTIONS: QuickAction[] = [
   { label: "🌐 Search the web", prompt: "Search the web for the latest AI news today" },
+  { label: "🔥 Market heat check", prompt: "Is building AI automation agencies getting crowded right now?" },
+  { label: "🔬 Competitor autopsy", prompt: "What are the top competitors doing in the AI website builder space?" },
+  { label: "🎯 Opportunity scan", prompt: "What AI service niches are heating up right now?" },
   { label: "🎨 Generate image", prompt: "", action: "imagegen" },
   { label: "📊 Chart my progress", prompt: "Chart my mastery % by category" },
   { label: "📄 Create a PDF", prompt: "Create a PDF: one-page business plan template" },
   { label: "📷 Analyze an image", prompt: "", action: "image" },
   { label: "🎯 What should I learn?", prompt: "What should I learn next based on my progress?" },
-  { label: "🌤️ Weather", prompt: "What's the weather in New York today?" },
-  { label: "💰 Bitcoin price", prompt: "What's the current Bitcoin price?" },
   { label: "🔥 My stats", prompt: "Show me my current stats: streak, tokens, mastery, and progress" },
 ];
 
@@ -661,9 +718,68 @@ export default function Chat() {
       if (!toolsUsed.includes("chart")) toolsUsed.push("chart");
     }
 
-    // === WEB SEARCH TOOL ===
+    // === STRATEGIC ANALYSIS TOOL ===
+    if (route.tool === "strategic" && !hasImage && !hasFile) {
+      const sType = route.strategicType || "market-heat";
+      const sLabel = STRATEGIC_LABELS[sType as StrategicType]?.label || "Strategic Analysis";
+      const loadingId = `loading-${Date.now()}`;
+      setMessages(prev => [...prev, { id: loadingId, role: "assistant", content: `🧠 Running ${sLabel}…`, toolsUsed: ["strategic"] }]);
+
+      const result = await strategicAnalysis(sType, text, route.extractedUrl, owlContext);
+
+      let responseContent = result.analysis;
+      if (result.citations.length > 0) {
+        responseContent += "\n\n**Sources:**\n" + result.citations.map((c, i) => `${i + 1}. ${c}`).join("\n");
+      }
+      if (result.sitesReviewed.length > 0) {
+        responseContent += "\n\n**Sites Reviewed:**\n" + result.sitesReviewed.map((s, i) => `${i + 1}. ${s}`).join("\n");
+      }
+
+      const strategicMsg: ChatMessage = {
+        id: `strategic-${Date.now()}`,
+        role: "assistant",
+        content: responseContent,
+        toolsUsed: result.toolsUsed.length > 0 ? result.toolsUsed : ["ai-knowledge"],
+        citations: result.citations,
+        confidence: result.confidence,
+        strategicType: sType,
+        sitesReviewed: result.sitesReviewed,
+      };
+      setMessages(prev => prev.filter(m => m.id !== loadingId).concat(strategicMsg));
+      setIsStreaming(false);
+      abortRef.current = null;
+      if (tid) { addMessageToThread(tid, "assistant", responseContent); setThreads(loadChatThreads()); }
+      return;
+    }
+
+    // === FIRECRAWL SCRAPE TOOL ===
+    if (route.tool === "firecrawl" && route.extractedUrl && !hasImage && !hasFile) {
+      const loadingId = `loading-${Date.now()}`;
+      setMessages(prev => [...prev, { id: loadingId, role: "assistant", content: `🔥 Scraping website…`, toolsUsed: ["firecrawl"] }]);
+
+      const result = await firecrawlScrape(text, route.extractedUrl);
+
+      let responseContent = result.content;
+      if (result.citations.length > 0) {
+        responseContent += "\n\n**Source:** " + result.citations.join(", ");
+      }
+
+      const scrapeMsg: ChatMessage = {
+        id: `firecrawl-${Date.now()}`,
+        role: "assistant",
+        content: responseContent,
+        toolsUsed: ["firecrawl"],
+        citations: result.citations,
+      };
+      setMessages(prev => prev.filter(m => m.id !== loadingId).concat(scrapeMsg));
+      setIsStreaming(false);
+      abortRef.current = null;
+      if (tid) { addMessageToThread(tid, "assistant", responseContent); setThreads(loadChatThreads()); }
+      return;
+    }
+
+    // === WEB SEARCH TOOL (Perplexity) ===
     if (route.tool === "web" && !hasImage && !hasFile) {
-      // Show loading
       const loadingId = `loading-${Date.now()}`;
       setMessages(prev => [...prev, { id: loadingId, role: "assistant", content: `🌐 Searching the web…`, toolsUsed: ["web"] }]);
 
@@ -677,11 +793,14 @@ export default function Chat() {
         responseContent += `\n\n_${webResult.note}_`;
       }
 
+      // Map source to tool name
+      const sourceToolName = webResult.source === "perplexity" ? "perplexity" : webResult.source === "firecrawl" ? "firecrawl" : "web";
+
       const webMsg: ChatMessage = {
         id: `web-${Date.now()}`,
         role: "assistant",
         content: responseContent,
-        toolsUsed: ["web"],
+        toolsUsed: [sourceToolName],
         citations: webResult.citations,
         webSource: webResult.source,
       };
@@ -942,7 +1061,7 @@ export default function Chat() {
         )}
 
         {/* Loading states */}
-        {(msg.content === "🎨 Generating your image…" || msg.content?.startsWith("🌐 Searching") || msg.content?.startsWith("📄 Generating")) && (
+        {(msg.content === "🎨 Generating your image…" || msg.content?.startsWith("🌐 Searching") || msg.content?.startsWith("📄 Generating") || msg.content?.startsWith("🧠 Running") || msg.content?.startsWith("🔥 Scraping")) && (
           <div className="flex items-center gap-2 text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" />
             <span className="text-caption">{msg.content.replace(/^[^\s]+\s/, "")}</span>
@@ -972,7 +1091,7 @@ export default function Chat() {
         )}
 
         {/* Text content */}
-        {text && !msg.content?.startsWith("🎨 Generating") && !msg.content?.startsWith("🌐 Searching") && !msg.content?.startsWith("📄 Generating") && (
+        {text && !msg.content?.startsWith("🎨 Generating") && !msg.content?.startsWith("🌐 Searching") && !msg.content?.startsWith("📄 Generating") && !msg.content?.startsWith("🧠 Running") && !msg.content?.startsWith("🔥 Scraping") && (
           <div className="prose prose-invert prose-sm max-w-none [&_p]:my-1 [&_ul]:my-1 [&_ol]:my-1 [&_li]:my-0.5 [&_h1]:text-lg [&_h2]:text-base [&_h3]:text-sm [&_code]:bg-surface-2 [&_code]:px-1 [&_code]:rounded [&_pre]:bg-surface-2 [&_pre]:p-3 [&_pre]:rounded-xl [&_strong]:text-foreground">
             <ReactMarkdown>{text}</ReactMarkdown>
           </div>
@@ -981,7 +1100,43 @@ export default function Chat() {
           <ChartRenderer key={`${msg.id}-chart-${i}`} data={chart}
             onSave={() => handleSaveChart(chart, `${msg.id}-${i}`)} saved={savedChartIds.has(`${msg.id}-${i}`)} />
         ))}
-        {msg.toolsUsed && <ToolBadges tools={msg.toolsUsed} />}
+        {msg.toolsUsed && <ToolBadges tools={msg.toolsUsed} confidence={msg.confidence} sourcesCount={(msg.citations?.length || 0) + (msg.sitesReviewed?.length || 0)} />}
+        {/* Save strategic analysis to library */}
+        {msg.strategicType && (
+          <button
+            onClick={() => {
+              const snapshot = {
+                id: `strategic-${Date.now()}`,
+                title: STRATEGIC_LABELS[msg.strategicType as StrategicType]?.label || "Strategic Analysis",
+                mentalModel: msg.strategicType || "analysis",
+                keyInsight: msg.content.slice(0, 200),
+                bragLine: `${msg.toolsUsed?.join(" + ") || "AI"} analysis`,
+                category: "strategic-analysis",
+                completedAt: Date.now(),
+              };
+              const snapshots = JSON.parse(localStorage.getItem("wisdom-ai-snapshots") || "[]");
+              snapshots.unshift(snapshot);
+              localStorage.setItem("wisdom-ai-snapshots", JSON.stringify(snapshots));
+              // Also save the full content
+              const strategicSaves = JSON.parse(localStorage.getItem("wisdom-strategic-saves") || "[]");
+              strategicSaves.unshift({
+                id: snapshot.id,
+                type: msg.strategicType,
+                content: msg.content,
+                toolsUsed: msg.toolsUsed,
+                citations: msg.citations,
+                sitesReviewed: msg.sitesReviewed,
+                confidence: msg.confidence,
+                savedAt: Date.now(),
+              });
+              localStorage.setItem("wisdom-strategic-saves", JSON.stringify(strategicSaves));
+              toast({ title: `📋 ${STRATEGIC_LABELS[msg.strategicType as StrategicType]?.label || "Analysis"} saved to Library!` });
+            }}
+            className="mt-2 rounded-lg bg-primary/10 px-2.5 py-1 text-[11px] text-primary font-medium hover:bg-primary/20 transition-colors"
+          >
+            💾 Save to Library
+          </button>
+        )}
       </>
     );
   };
