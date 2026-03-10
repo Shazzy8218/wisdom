@@ -1090,7 +1090,7 @@ export default function Chat() {
         )}
 
         {/* Text content */}
-        {text && !msg.content?.startsWith("🎨 Generating") && !msg.content?.startsWith("🌐 Searching") && !msg.content?.startsWith("📄 Generating") && (
+        {text && !msg.content?.startsWith("🎨 Generating") && !msg.content?.startsWith("🌐 Searching") && !msg.content?.startsWith("📄 Generating") && !msg.content?.startsWith("🧠 Running") && !msg.content?.startsWith("🔥 Scraping") && (
           <div className="prose prose-invert prose-sm max-w-none [&_p]:my-1 [&_ul]:my-1 [&_ol]:my-1 [&_li]:my-0.5 [&_h1]:text-lg [&_h2]:text-base [&_h3]:text-sm [&_code]:bg-surface-2 [&_code]:px-1 [&_code]:rounded [&_pre]:bg-surface-2 [&_pre]:p-3 [&_pre]:rounded-xl [&_strong]:text-foreground">
             <ReactMarkdown>{text}</ReactMarkdown>
           </div>
@@ -1099,7 +1099,43 @@ export default function Chat() {
           <ChartRenderer key={`${msg.id}-chart-${i}`} data={chart}
             onSave={() => handleSaveChart(chart, `${msg.id}-${i}`)} saved={savedChartIds.has(`${msg.id}-${i}`)} />
         ))}
-        {msg.toolsUsed && <ToolBadges tools={msg.toolsUsed} />}
+        {msg.toolsUsed && <ToolBadges tools={msg.toolsUsed} confidence={msg.confidence} sourcesCount={(msg.citations?.length || 0) + (msg.sitesReviewed?.length || 0)} />}
+        {/* Save strategic analysis to library */}
+        {msg.strategicType && (
+          <button
+            onClick={() => {
+              const snapshot = {
+                id: `strategic-${Date.now()}`,
+                title: STRATEGIC_LABELS[msg.strategicType as StrategicType]?.label || "Strategic Analysis",
+                mentalModel: msg.strategicType || "analysis",
+                keyInsight: msg.content.slice(0, 200),
+                bragLine: `${msg.toolsUsed?.join(" + ") || "AI"} analysis`,
+                category: "strategic-analysis",
+                completedAt: Date.now(),
+              };
+              const snapshots = JSON.parse(localStorage.getItem("wisdom-ai-snapshots") || "[]");
+              snapshots.unshift(snapshot);
+              localStorage.setItem("wisdom-ai-snapshots", JSON.stringify(snapshots));
+              // Also save the full content
+              const strategicSaves = JSON.parse(localStorage.getItem("wisdom-strategic-saves") || "[]");
+              strategicSaves.unshift({
+                id: snapshot.id,
+                type: msg.strategicType,
+                content: msg.content,
+                toolsUsed: msg.toolsUsed,
+                citations: msg.citations,
+                sitesReviewed: msg.sitesReviewed,
+                confidence: msg.confidence,
+                savedAt: Date.now(),
+              });
+              localStorage.setItem("wisdom-strategic-saves", JSON.stringify(strategicSaves));
+              toast({ title: `📋 ${STRATEGIC_LABELS[msg.strategicType as StrategicType]?.label || "Analysis"} saved to Library!` });
+            }}
+            className="mt-2 rounded-lg bg-primary/10 px-2.5 py-1 text-[11px] text-primary font-medium hover:bg-primary/20 transition-colors"
+          >
+            💾 Save to Library
+          </button>
+        )}
       </>
     );
   };
