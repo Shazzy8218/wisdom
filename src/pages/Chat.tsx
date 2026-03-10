@@ -409,14 +409,16 @@ interface QuickAction {
 
 const QUICK_ACTIONS: QuickAction[] = [
   { label: "🌐 Search the web", prompt: "Search the web for the latest AI news today" },
+  { label: "🔥 Market heat check", prompt: "Is building AI automation agencies getting crowded right now?" },
+  { label: "🔬 Competitor autopsy", prompt: "What are the top competitors doing in the AI website builder space?" },
+  { label: "🎯 Opportunity scan", prompt: "What AI service niches are heating up right now?" },
   { label: "🎨 Generate image", prompt: "", action: "imagegen" },
   { label: "📊 Chart my progress", prompt: "Chart my mastery % by category" },
   { label: "📄 Create a PDF", prompt: "Create a PDF: one-page business plan template" },
   { label: "📷 Analyze an image", prompt: "", action: "image" },
   { label: "🎯 What should I learn?", prompt: "What should I learn next based on my progress?" },
-  { label: "🌤️ Weather", prompt: "What's the weather in New York today?" },
-  { label: "💰 Bitcoin price", prompt: "What's the current Bitcoin price?" },
   { label: "🔥 My stats", prompt: "Show me my current stats: streak, tokens, mastery, and progress" },
+];
 ];
 
 export default function Chat() {
