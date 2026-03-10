@@ -760,7 +760,7 @@ export default function Chat() {
           });
           return;
         }
-        parseAndSaveWisdomPack(assistantContent);
+        parseAndSaveWisdomPack(assistantContent, text);
         if (tid) { addMessageToThread(tid, "assistant", assistantContent); setThreads(loadChatThreads()); }
       }
     };
