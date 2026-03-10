@@ -315,7 +315,7 @@ async function generateImage(prompt: string, style?: string): Promise<{ imageDat
 }
 
 // Web search helper
-async function webSearch(query: string, type?: string): Promise<{ content: string; citations: string[]; source: string; note?: string }> {
+async function webSearch(query: string, type?: string, url?: string): Promise<{ content: string; citations: string[]; source: string; note?: string }> {
   try {
     const resp = await fetch(WEB_SEARCH_URL, {
       method: "POST",
@@ -323,7 +323,7 @@ async function webSearch(query: string, type?: string): Promise<{ content: strin
         "Content-Type": "application/json",
         Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
       },
-      body: JSON.stringify({ query, type }),
+      body: JSON.stringify({ query, type, url }),
     });
     const data = await resp.json();
     if (data.success) return { content: data.content, citations: data.citations || [], source: data.source || "web", note: data.note };
@@ -331,6 +331,38 @@ async function webSearch(query: string, type?: string): Promise<{ content: strin
   } catch (e: any) {
     return { content: e.message || "Connection failed", citations: [], source: "error" };
   }
+}
+
+// Strategic analysis helper
+async function strategicAnalysis(
+  type: string, query: string, url?: string, context?: Record<string, string>
+): Promise<{ analysis: string; toolsUsed: string[]; citations: string[]; sitesReviewed: string[]; confidence: string; error?: string }> {
+  try {
+    const resp = await fetch(STRATEGIC_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+      },
+      body: JSON.stringify({ type, query, url, context }),
+    });
+    const data = await resp.json();
+    if (data.success) return {
+      analysis: data.analysis,
+      toolsUsed: data.toolsUsed || [],
+      citations: data.citations || [],
+      sitesReviewed: data.sitesReviewed || [],
+      confidence: data.confidence || "low",
+    };
+    return { analysis: data.error || "Strategic analysis failed.", toolsUsed: [], citations: [], sitesReviewed: [], confidence: "low", error: data.error };
+  } catch (e: any) {
+    return { analysis: e.message || "Connection failed", toolsUsed: [], citations: [], sitesReviewed: [], confidence: "low", error: e.message };
+  }
+}
+
+// Firecrawl scrape helper
+async function firecrawlScrape(query: string, url: string): Promise<{ content: string; citations: string[]; source: string }> {
+  return webSearch(query, "scrape", url);
 }
 
 // Document generation helper
