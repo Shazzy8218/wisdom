@@ -418,8 +418,6 @@ const QUICK_ACTIONS: QuickAction[] = [
   { label: "📷 Analyze an image", prompt: "", action: "image" },
   { label: "🎯 What should I learn?", prompt: "What should I learn next based on my progress?" },
   { label: "🔥 My stats", prompt: "Show me my current stats: streak, tokens, mastery, and progress" },
-];
-];
 
 export default function Chat() {
   const [search] = useSearchParams();
