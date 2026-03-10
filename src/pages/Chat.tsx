@@ -717,9 +717,68 @@ export default function Chat() {
       if (!toolsUsed.includes("chart")) toolsUsed.push("chart");
     }
 
-    // === WEB SEARCH TOOL ===
+    // === STRATEGIC ANALYSIS TOOL ===
+    if (route.tool === "strategic" && !hasImage && !hasFile) {
+      const sType = route.strategicType || "market-heat";
+      const sLabel = STRATEGIC_LABELS[sType as StrategicType]?.label || "Strategic Analysis";
+      const loadingId = `loading-${Date.now()}`;
+      setMessages(prev => [...prev, { id: loadingId, role: "assistant", content: `🧠 Running ${sLabel}…`, toolsUsed: ["strategic"] }]);
+
+      const result = await strategicAnalysis(sType, text, route.extractedUrl, owlContext);
+
+      let responseContent = result.analysis;
+      if (result.citations.length > 0) {
+        responseContent += "\n\n**Sources:**\n" + result.citations.map((c, i) => `${i + 1}. ${c}`).join("\n");
+      }
+      if (result.sitesReviewed.length > 0) {
+        responseContent += "\n\n**Sites Reviewed:**\n" + result.sitesReviewed.map((s, i) => `${i + 1}. ${s}`).join("\n");
+      }
+
+      const strategicMsg: ChatMessage = {
+        id: `strategic-${Date.now()}`,
+        role: "assistant",
+        content: responseContent,
+        toolsUsed: result.toolsUsed.length > 0 ? result.toolsUsed : ["ai-knowledge"],
+        citations: result.citations,
+        confidence: result.confidence,
+        strategicType: sType,
+        sitesReviewed: result.sitesReviewed,
+      };
+      setMessages(prev => prev.filter(m => m.id !== loadingId).concat(strategicMsg));
+      setIsStreaming(false);
+      abortRef.current = null;
+      if (tid) { addMessageToThread(tid, "assistant", responseContent); setThreads(loadChatThreads()); }
+      return;
+    }
+
+    // === FIRECRAWL SCRAPE TOOL ===
+    if (route.tool === "firecrawl" && route.extractedUrl && !hasImage && !hasFile) {
+      const loadingId = `loading-${Date.now()}`;
+      setMessages(prev => [...prev, { id: loadingId, role: "assistant", content: `🔥 Scraping website…`, toolsUsed: ["firecrawl"] }]);
+
+      const result = await firecrawlScrape(text, route.extractedUrl);
+
+      let responseContent = result.content;
+      if (result.citations.length > 0) {
+        responseContent += "\n\n**Source:** " + result.citations.join(", ");
+      }
+
+      const scrapeMsg: ChatMessage = {
+        id: `firecrawl-${Date.now()}`,
+        role: "assistant",
+        content: responseContent,
+        toolsUsed: ["firecrawl"],
+        citations: result.citations,
+      };
+      setMessages(prev => prev.filter(m => m.id !== loadingId).concat(scrapeMsg));
+      setIsStreaming(false);
+      abortRef.current = null;
+      if (tid) { addMessageToThread(tid, "assistant", responseContent); setThreads(loadChatThreads()); }
+      return;
+    }
+
+    // === WEB SEARCH TOOL (Perplexity) ===
     if (route.tool === "web" && !hasImage && !hasFile) {
-      // Show loading
       const loadingId = `loading-${Date.now()}`;
       setMessages(prev => [...prev, { id: loadingId, role: "assistant", content: `🌐 Searching the web…`, toolsUsed: ["web"] }]);
 
@@ -733,11 +792,14 @@ export default function Chat() {
         responseContent += `\n\n_${webResult.note}_`;
       }
 
+      // Map source to tool name
+      const sourceToolName = webResult.source === "perplexity" ? "perplexity" : webResult.source === "firecrawl" ? "firecrawl" : "web";
+
       const webMsg: ChatMessage = {
         id: `web-${Date.now()}`,
         role: "assistant",
         content: responseContent,
-        toolsUsed: ["web"],
+        toolsUsed: [sourceToolName],
         citations: webResult.citations,
         webSource: webResult.source,
       };
