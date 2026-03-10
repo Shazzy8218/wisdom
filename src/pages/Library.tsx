@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { BookOpen, MessageCircle, Search, Sparkles, Copy, Play, Star, Quote, Brain, Layers, Trash2, Zap, X, ExternalLink, ChevronRight, BarChart3, Image, Download } from "lucide-react";
+import { BookOpen, MessageCircle, Search, Sparkles, Copy, Play, Star, Quote, Brain, Layers, Trash2, Zap, X, ExternalLink, ChevronRight, BarChart3, Image, Download, ShoppingBag } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { loadChatThreads, type ChatThread } from "@/lib/chat-history";
 import { loadSnapshots, type WisdomSnapshot } from "@/lib/wisdom-snapshots";
@@ -8,11 +8,12 @@ import { loadWisdomPacks, loadSavedDrills, deleteWisdomPack, type WisdomPack } f
 import { loadSavedCharts, deleteChart, type SavedChart } from "@/lib/chart-storage";
 import { loadGeneratedImages, deleteGeneratedImage, type GeneratedImage } from "@/lib/image-storage";
 import ChartRenderer from "@/components/ChartRenderer";
+import { useProgress } from "@/hooks/useProgress";
 import { useNavigate } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import HiddenOwl from "@/components/HiddenOwl";
 
-type Tab = "snapshots" | "prompts" | "drills" | "threads" | "quotes" | "charts" | "images";
+type Tab = "courses" | "snapshots" | "prompts" | "drills" | "threads" | "quotes" | "charts" | "images";
 
 const PROMPT_PACKS = [
   { id: "w1", title: "Email Response Template", category: "Work", prompt: "Write a professional email to [recipient] about [topic]. Keep it concise, polite, and actionable. Include a clear subject line.", tags: ["email", "professional"] },
@@ -33,7 +34,8 @@ const WISDOM_QUOTES = [
 ];
 
 export default function Library() {
-  const [tab, setTab] = useState<Tab>("snapshots");
+  const { progress } = useProgress();
+  const [tab, setTab] = useState<Tab>("courses");
   const [editedPrompts, setEditedPrompts] = useState<Record<string, string>>({});
   const [editingPromptId, setEditingPromptId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
@@ -78,6 +80,7 @@ export default function Library() {
   );
 
   const tabs: { id: Tab; label: string; icon: typeof BookOpen }[] = [
+    { id: "courses", label: "My Courses", icon: ShoppingBag },
     { id: "snapshots", label: "Wisdom Packs", icon: Brain },
     { id: "prompts", label: "Prompts", icon: Sparkles },
     { id: "charts", label: "Charts", icon: BarChart3 },
@@ -86,6 +89,17 @@ export default function Library() {
     { id: "threads", label: "Q&A", icon: MessageCircle },
     { id: "quotes", label: "Quotes", icon: Quote },
   ];
+
+  const STORE_ITEMS: Record<string, { name: string; icon: string; type: string }> = {
+    "s1": { name: "Advanced Prompting Masterclass", icon: "🎓", type: "Course" },
+    "s2": { name: "Industry Playbook: Marketing", icon: "📘", type: "Playbook" },
+    "s3": { name: "Boss Challenge: Prompt Architecture", icon: "🏆", type: "Challenge" },
+    "s4": { name: "AI Workflow Templates Pack", icon: "⚡", type: "Templates" },
+    "s5": { name: "Industry Playbook: Finance", icon: "📗", type: "Playbook" },
+    "s6": { name: "Creative AI Deep Dive", icon: "🎨", type: "Course" },
+  };
+
+  const unlockedItems = progress.unlockedItems || [];
 
   const categories = [...new Set(filteredPrompts.map(p => p.category))];
 
@@ -121,6 +135,42 @@ export default function Library() {
       <div className="editorial-divider mx-5 mb-6" />
 
       <div className="px-5 space-y-2">
+        {/* My Courses Tab */}
+        {tab === "courses" && (
+          <>
+            {unlockedItems.length > 0 ? (
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground">{unlockedItems.length} item{unlockedItems.length !== 1 ? "s" : ""} unlocked</p>
+                {unlockedItems.map((itemId, i) => {
+                  const info = STORE_ITEMS[itemId] || (itemId.startsWith("bundle-") ? { name: itemId.replace("bundle-", "").replace(/-/g, " "), icon: "👑", type: "Bundle" } : { name: itemId, icon: "📦", type: "Item" });
+                  return (
+                    <motion.div key={itemId} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}>
+                      <button onClick={() => navigate(`/?context=${encodeURIComponent(`Teach me the ${info.name} course in depth. Start with the first lesson.`)}&autoSend=true`)}
+                        className="w-full rounded-2xl border border-border bg-card p-4 flex items-center gap-3 text-left hover:border-primary/20 transition-all">
+                        <span className="text-2xl">{info.icon}</span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-foreground">{info.name}</p>
+                          <p className="text-xs text-muted-foreground">{info.type}</p>
+                        </div>
+                        <Play className="h-4 w-4 text-primary" />
+                      </button>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <ShoppingBag className="h-8 w-8 text-muted-foreground/30 mx-auto mb-3" />
+                <p className="text-sm text-muted-foreground">No courses yet.</p>
+                <p className="text-xs text-muted-foreground/70 mt-1">Purchase courses from the Token Store.</p>
+                <button onClick={() => navigate("/store")} className="mt-3 rounded-xl bg-primary/10 px-4 py-2 text-xs font-medium text-primary hover:bg-primary/20 transition-colors">
+                  Browse Token Store
+                </button>
+              </div>
+            )}
+          </>
+        )}
+
         {/* Wisdom Packs Tab */}
         {tab === "snapshots" && (
           <>
