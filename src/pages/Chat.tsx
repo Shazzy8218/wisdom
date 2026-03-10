@@ -1060,7 +1060,7 @@ export default function Chat() {
         )}
 
         {/* Loading states */}
-        {(msg.content === "🎨 Generating your image…" || msg.content?.startsWith("🌐 Searching") || msg.content?.startsWith("📄 Generating")) && (
+        {(msg.content === "🎨 Generating your image…" || msg.content?.startsWith("🌐 Searching") || msg.content?.startsWith("📄 Generating") || msg.content?.startsWith("🧠 Running") || msg.content?.startsWith("🔥 Scraping")) && (
           <div className="flex items-center gap-2 text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" />
             <span className="text-caption">{msg.content.replace(/^[^\s]+\s/, "")}</span>
