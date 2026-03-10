@@ -62,7 +62,7 @@ export default function CategoryHub() {
     <div className="min-h-screen pb-24">
       {/* Header */}
       <div className="px-5 pt-14 pb-4 flex items-center gap-3">
-        <Link to="/paths" className="flex h-9 w-9 items-center justify-center rounded-xl bg-surface-2 hover:bg-surface-hover transition-colors">
+        <Link to="/courses" className="flex h-9 w-9 items-center justify-center rounded-xl bg-surface-2 hover:bg-surface-hover transition-colors">
           <ArrowLeft className="h-4 w-4 text-foreground" />
         </Link>
         <div className="flex-1">

@@ -4,7 +4,7 @@ import OwlIcon from "@/components/OwlIcon";
 
 const NAV_ITEMS = [
   { to: "/", icon: null, label: "Chat", isOwl: true },
-  { to: "/learn", icon: BookOpen, label: "Learn" },
+  { to: "/courses", icon: BookOpen, label: "Courses" },
   { to: "/library", icon: BookMarked, label: "Library" },
   { to: "/profile", icon: User, label: "Profile" },
 ];
