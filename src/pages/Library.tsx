@@ -8,6 +8,7 @@ import { loadWisdomPacks, loadSavedDrills, deleteWisdomPack, type WisdomPack } f
 import { loadSavedCharts, deleteChart, type SavedChart } from "@/lib/chart-storage";
 import { loadGeneratedImages, deleteGeneratedImage, type GeneratedImage } from "@/lib/image-storage";
 import ChartRenderer from "@/components/ChartRenderer";
+import { useProgress } from "@/hooks/useProgress";
 import { useNavigate } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import HiddenOwl from "@/components/HiddenOwl";
