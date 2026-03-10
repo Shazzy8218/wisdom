@@ -9,7 +9,69 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { query, type = "search" } = await req.json();
+    const { query, type = "search", url } = await req.json();
+    
+    // === FIRECRAWL SCRAPE MODE ===
+    if (url && type === "scrape") {
+      const FIRECRAWL_API_KEY = Deno.env.get("FIRECRAWL_API_KEY");
+      if (!FIRECRAWL_API_KEY) {
+        return new Response(JSON.stringify({
+          success: false,
+          error: "Firecrawl is not connected. Add it in Settings → Connectors.",
+        }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
+      let formattedUrl = url.trim();
+      if (!formattedUrl.startsWith("http")) formattedUrl = `https://${formattedUrl}`;
+
+      console.log("Firecrawl scraping:", formattedUrl);
+      const resp = await fetch("https://api.firecrawl.dev/v1/scrape", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${FIRECRAWL_API_KEY}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ url: formattedUrl, formats: ["markdown"], onlyMainContent: true }),
+      });
+
+      if (resp.ok) {
+        const data = await resp.json();
+        const markdown = data.data?.markdown || data.markdown || "";
+        const title = data.data?.metadata?.title || data.metadata?.title || "";
+        const description = data.data?.metadata?.description || data.metadata?.description || "";
+
+        // Synthesize with AI
+        const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+        let summary = markdown.slice(0, 2000);
+        if (LOVABLE_API_KEY && query) {
+          const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+            body: JSON.stringify({
+              model: "google/gemini-2.5-flash",
+              messages: [
+                { role: "system", content: "You are Wisdom Owl. Analyze the website content and respond to the user's question. Be direct, sharp, and strategic. No filler." },
+                { role: "user", content: `User asked: "${query}"\n\nWebsite: ${formattedUrl}\nTitle: ${title}\nDescription: ${description}\n\nContent:\n${markdown.slice(0, 4000)}` },
+              ],
+            }),
+          });
+          if (aiResp.ok) {
+            const aiData = await aiResp.json();
+            summary = aiData.choices?.[0]?.message?.content || summary;
+          }
+        }
+
+        return new Response(JSON.stringify({
+          success: true,
+          source: "firecrawl",
+          content: summary,
+          citations: [formattedUrl],
+          siteTitle: title,
+          siteDescription: description,
+        }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
+      const t = await resp.text();
+      console.error("Firecrawl error:", resp.status, t);
+    }
+
     if (!query) {
       return new Response(JSON.stringify({ error: "Query is required" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -50,7 +112,6 @@ serve(async (req) => {
       
       if (resp.status === 402) {
         console.error("Perplexity: insufficient credits");
-        // Fall through to Firecrawl
       } else {
         const t = await resp.text();
         console.error("Perplexity error:", resp.status, t);

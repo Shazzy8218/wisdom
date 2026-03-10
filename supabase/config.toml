@@ -26,3 +26,6 @@ verify_jwt = false
 
 [functions.owl-generate-doc]
 verify_jwt = false
+
+[functions.owl-strategic-analysis]
+verify_jwt = false
