@@ -82,10 +82,12 @@ function AppRoutes() {
         <Routes>
           {/* Chat is now the default home */}
           <Route path="/" element={<Chat />} />
-          <Route path="/learn" element={<Learn />} />
+          <Route path="/courses" element={<Courses />} />
           <Route path="/feed" element={<LearnFeed />} />
-          <Route path="/paths" element={<LearnPaths />} />
-          <Route path="/mastery" element={<MasteryChart />} />
+          {/* Redirects for old routes */}
+          <Route path="/learn" element={<Navigate to="/courses" replace />} />
+          <Route path="/paths" element={<Navigate to="/courses" replace />} />
+          <Route path="/mastery" element={<Navigate to="/courses" replace />} />
           <Route path="/games" element={<Games />} />
           <Route path="/games/hallucination-hunter" element={<HallucinationHunter />} />
           <Route path="/games/prompt-puzzle" element={<PromptPuzzle />} />
