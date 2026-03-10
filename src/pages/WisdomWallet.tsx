@@ -8,21 +8,22 @@ export default function WisdomWallet() {
   const { progress } = useProgress();
   const owlState = getOwlHuntStatus();
 
-  // Build transaction history from actual progress data
+  // Use real token history from cloud-persisted progress
   const history: { type: string; label: string; tokens: number; date: string }[] = [];
 
-  if (progress.completedLessons.length > 0) {
-    progress.completedLessons.slice(-5).forEach((id, i) => {
-      history.push({ type: "earn", label: `Completed lesson: ${id.split(":").slice(0, 2).join(" ")}`, tokens: 10, date: i === 0 ? "Today" : `${i + 1} days ago` });
+  if (progress.tokenHistory && progress.tokenHistory.length > 0) {
+    progress.tokenHistory.slice(-10).reverse().forEach((entry: any) => {
+      history.push({
+        type: entry.amount >= 0 ? "earn" : "spend",
+        label: entry.action || "Activity",
+        tokens: entry.amount,
+        date: entry.date ? new Date(entry.date).toLocaleDateString() : "—",
+      });
     });
   }
 
   if (owlState.claimed > 0) {
     history.push({ type: "earn", label: `Owl Hunt: ${owlState.claimed}/3 found today`, tokens: owlState.claimed * 3, date: "Today" });
-  }
-
-  if (progress.streak > 0) {
-    history.push({ type: "earn", label: `${progress.streak}-day streak active`, tokens: 0, date: "Ongoing" });
   }
 
   if (history.length === 0) {
