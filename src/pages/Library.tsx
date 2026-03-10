@@ -135,6 +135,42 @@ export default function Library() {
       <div className="editorial-divider mx-5 mb-6" />
 
       <div className="px-5 space-y-2">
+        {/* My Courses Tab */}
+        {tab === "courses" && (
+          <>
+            {unlockedItems.length > 0 ? (
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground">{unlockedItems.length} item{unlockedItems.length !== 1 ? "s" : ""} unlocked</p>
+                {unlockedItems.map((itemId, i) => {
+                  const info = STORE_ITEMS[itemId] || (itemId.startsWith("bundle-") ? { name: itemId.replace("bundle-", "").replace(/-/g, " "), icon: "👑", type: "Bundle" } : { name: itemId, icon: "📦", type: "Item" });
+                  return (
+                    <motion.div key={itemId} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}>
+                      <button onClick={() => navigate(`/?context=${encodeURIComponent(`Teach me the ${info.name} course in depth. Start with the first lesson.`)}&autoSend=true`)}
+                        className="w-full rounded-2xl border border-border bg-card p-4 flex items-center gap-3 text-left hover:border-primary/20 transition-all">
+                        <span className="text-2xl">{info.icon}</span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-foreground">{info.name}</p>
+                          <p className="text-xs text-muted-foreground">{info.type}</p>
+                        </div>
+                        <Play className="h-4 w-4 text-primary" />
+                      </button>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <ShoppingBag className="h-8 w-8 text-muted-foreground/30 mx-auto mb-3" />
+                <p className="text-sm text-muted-foreground">No courses yet.</p>
+                <p className="text-xs text-muted-foreground/70 mt-1">Purchase courses from the Token Store.</p>
+                <button onClick={() => navigate("/store")} className="mt-3 rounded-xl bg-primary/10 px-4 py-2 text-xs font-medium text-primary hover:bg-primary/20 transition-colors">
+                  Browse Token Store
+                </button>
+              </div>
+            )}
+          </>
+        )}
+
         {/* Wisdom Packs Tab */}
         {tab === "snapshots" && (
           <>
