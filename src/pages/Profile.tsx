@@ -4,6 +4,7 @@ import { User, Wallet, Settings, Crown, ChevronRight, Sparkles, BarChart3, LogOu
 import { Link, useNavigate } from "react-router-dom";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { useProgress } from "@/hooks/useProgress";
+import { getEffectivePlan } from "@/lib/plan-utils";
 import { useGoals } from "@/hooks/useGoals";
 import { supabase } from "@/integrations/supabase/client";
 import { Progress } from "@/components/ui/progress";
@@ -62,7 +63,7 @@ export default function Profile() {
               </button>
             </div>
           )}
-          <p className="text-caption text-muted-foreground">{profile.plan === "pro" ? "Pro" : "Free"} Plan · {profile.learningStyle} learner</p>
+          <p className="text-caption text-muted-foreground">{getEffectivePlan(profile.plan)} · {profile.learningStyle} learner</p>
         </div>
       </motion.div>
 
@@ -138,7 +139,7 @@ export default function Profile() {
         {[
           { icon: Wallet, label: "Wisdom Wallet", subtitle: `${progress.tokens} tokens`, to: "/wallet" },
           { icon: Sparkles, label: "Token Store", subtitle: "Unlock content", to: "/store" },
-          { icon: Crown, label: "Upgrade to Pro", subtitle: "Unlock all tracks", to: "/upgrade", accent: true },
+          { icon: Crown, label: "Your Plan", subtitle: "Full access active", to: "/upgrade", accent: false },
           { icon: Settings, label: "Settings", subtitle: "Memory, privacy, data", to: "/settings" },
         ].map((item, i) => (
           <motion.div key={item.label} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
