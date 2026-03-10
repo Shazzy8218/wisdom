@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { BookOpen, MessageCircle, Search, Sparkles, Copy, Play, Star, Quote, Brain, Layers, Trash2, Zap, X, ExternalLink, ChevronRight, BarChart3, Image, Download } from "lucide-react";
+import { BookOpen, MessageCircle, Search, Sparkles, Copy, Play, Star, Quote, Brain, Layers, Trash2, Zap, X, ExternalLink, ChevronRight, BarChart3, Image, Download, ShoppingBag } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { loadChatThreads, type ChatThread } from "@/lib/chat-history";
 import { loadSnapshots, type WisdomSnapshot } from "@/lib/wisdom-snapshots";
