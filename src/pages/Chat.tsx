@@ -177,6 +177,9 @@ interface ChatMessage extends Msg {
   citations?: string[];
   docDownload?: { content: string; fileName: string; mimeType: string; format: string };
   webSource?: string;
+  confidence?: string;
+  strategicType?: string;
+  sitesReviewed?: string[];
 }
 
 const VISION_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-vision`;
