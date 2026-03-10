@@ -12,7 +12,7 @@ import { useNavigate } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import HiddenOwl from "@/components/HiddenOwl";
 
-type Tab = "snapshots" | "prompts" | "drills" | "threads" | "quotes" | "charts" | "images";
+type Tab = "courses" | "snapshots" | "prompts" | "drills" | "threads" | "quotes" | "charts" | "images";
 
 const PROMPT_PACKS = [
   { id: "w1", title: "Email Response Template", category: "Work", prompt: "Write a professional email to [recipient] about [topic]. Keep it concise, polite, and actionable. Include a clear subject line.", tags: ["email", "professional"] },
