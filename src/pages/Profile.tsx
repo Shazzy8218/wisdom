@@ -4,6 +4,7 @@ import { User, Wallet, Settings, Crown, ChevronRight, Sparkles, BarChart3, LogOu
 import { Link, useNavigate } from "react-router-dom";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { useProgress } from "@/hooks/useProgress";
+import { getEffectivePlan } from "@/lib/plan-utils";
 import { useGoals } from "@/hooks/useGoals";
 import { supabase } from "@/integrations/supabase/client";
 import { Progress } from "@/components/ui/progress";
