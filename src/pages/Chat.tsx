@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, Square, RotateCcw, ChevronDown, Plus, History, Pencil, Trash2, Bookmark, Image, X, Brain, BarChart3, User, Target, Eye, FileText, Paperclip, Wand2, Download, Loader2, Globe, Calculator, FileDown, Clock, Flame, Search, Shield } from "lucide-react";
+import { Send, Square, RotateCcw, Plus, History, Pencil, Trash2, Bookmark, X, Wand2, Download, Loader2, Globe, FileDown, Search, Shield, Paperclip, ChevronDown, FileText, AlertCircle } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { streamChat, type Msg } from "@/lib/ai-stream";
 import { parseAndSaveWisdomPack } from "@/lib/wisdom-packs";
@@ -8,23 +8,22 @@ import { routeToTool, TOOL_LABELS, WEB_SUB_LABELS, STRATEGIC_LABELS, type OwlToo
 import { toast } from "@/hooks/use-toast";
 import { useSearchParams } from "react-router-dom";
 import {
-  loadChatThreads, createThread, addMessageToThread, renameThread, deleteThread, getThread,
+  loadChatThreads, createThread, addMessageToThread, renameThread, deleteThread,
   type ChatThread,
 } from "@/lib/chat-history";
-import { buildOwlContext, detectToolsUsed, type ToolUsed } from "@/lib/owl-context";
-import { getAnalytics, getRecommendationContext } from "@/lib/analytics-engine";
-import NextMoveCard from "@/components/NextMoveCard";
-import InsightCard from "@/components/InsightCard";
+import { buildOwlContext, detectToolsUsed } from "@/lib/owl-context";
+import { getRecommendationContext } from "@/lib/analytics-engine";
 import { useLiveClock } from "@/hooks/useLiveClock";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { useProgress } from "@/hooks/useProgress";
 import { QUOTES } from "@/lib/data";
 import OwlIcon from "@/components/OwlIcon";
-import OwlHuntTracker from "@/components/OwlHuntTracker";
 import ChartRenderer, { type ChartData } from "@/components/ChartRenderer";
 import { saveChart } from "@/lib/chart-storage";
 import { saveGeneratedImage } from "@/lib/image-storage";
 import { supabase } from "@/integrations/supabase/client";
+
+// ===== CONSTANTS =====
 
 const TUTOR_MODES = [
   { id: "default", label: "Operator", icon: "🦉" },
@@ -46,11 +45,12 @@ const IMAGE_STYLES = [
 ];
 
 const QUOTE_SEEN_KEY = "wisdom-daily-quote-key";
-
 const IMAGE_GEN_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-chat-image`;
 const WEB_SEARCH_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/owl-web-search`;
 const DOC_GEN_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/owl-generate-doc`;
 const STRATEGIC_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/owl-strategic-analysis`;
+const VISION_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-vision`;
+
 const IMAGE_GEN_PATTERNS = [
   /\b(generate|create|make|draw|design|produce|render|build)\b.*\b(image|picture|logo|icon|diagram|illustration|art|graphic|mockup|thumbnail|flowchart|visual|poster|banner|concept|screenshot|wireframe)\b/i,
   /\b(image|picture|logo|icon|diagram|illustration|art|graphic|mockup|thumbnail|flowchart|visual|poster|banner|concept)\b.*\b(generate|create|make|draw|design|produce|render|of|for)\b/i,
@@ -58,8 +58,50 @@ const IMAGE_GEN_PATTERNS = [
   /\b(logo|icon|mockup|flowchart|illustration|diagram)\s+(for|of|about|showing|depicting)\b/i,
 ];
 
+const IMAGE_EXTS = ["png", "jpg", "jpeg", "gif", "webp", "bmp", "svg"];
+
+const QUICK_CHIPS = [
+  { label: "🌐 Search the web", prompt: "Search the web for the latest AI news today" },
+  { label: "🎯 What should I learn?", prompt: "What should I learn next based on my progress?" },
+  { label: "📊 Chart my progress", prompt: "Chart my mastery % by category" },
+  { label: "🔥 Market heat check", prompt: "Is building AI automation agencies getting crowded right now?" },
+];
+
+// ===== TYPES =====
+
+type AttachmentType = "image" | "file";
+
+interface PendingAttachment {
+  file: File;
+  preview: string;
+  type: AttachmentType;
+  name: string;
+  uploading?: boolean;
+}
+
+interface ChatMessage extends Msg {
+  id: string;
+  imageUrl?: string;
+  imagePreview?: string;
+  generatedImageUrl?: string;
+  generatedPrompt?: string;
+  generatedStyle?: string;
+  fileName?: string;
+  fileType?: AttachmentType;
+  toolsUsed?: string[];
+  citations?: string[];
+  docDownload?: { content: string; fileName: string; mimeType: string; format: string };
+  webSource?: string;
+  confidence?: string;
+  strategicType?: string;
+  sitesReviewed?: string[];
+  error?: boolean;
+  retryPayload?: { text: string; threadId?: string };
+}
+
+// ===== HELPERS =====
+
 function isImageGenRequest(text: string): boolean {
-  // Exclude if it's clearly a question about images rather than a generation request
   if (/^(what|how|why|can you|do you|are you)\b/i.test(text) && !/\b(generate|create|make|draw|design)\b/i.test(text)) return false;
   return IMAGE_GEN_PATTERNS.some(p => p.test(text));
 }
@@ -89,102 +131,12 @@ function extractCharts(content: string): { text: string; charts: ChartData[] } {
   const text = content.replace(/```chart\s*\n?([\s\S]*?)```/g, (_, json) => {
     try {
       const parsed = JSON.parse(json.trim());
-      if (parsed.type && parsed.series) {
-        charts.push(parsed as ChartData);
-        return "";
-      }
+      if (parsed.type && parsed.series) { charts.push(parsed as ChartData); return ""; }
     } catch {}
     return _;
   });
   return { text: text.trim(), charts };
 }
-
-// Tool indicator badges
-type ExtToolUsed = OwlTool | "profile" | "memory" | "mastery" | "goals" | "vision" | "perplexity" | "firecrawl" | "ai-knowledge";
-
-const TOOL_ICON_MAP: Record<string, { icon: React.ReactNode; label: string }> = {
-  profile: { icon: <User className="h-2.5 w-2.5" />, label: "Profile" },
-  memory: { icon: <Brain className="h-2.5 w-2.5" />, label: "Memory" },
-  chart: { icon: <BarChart3 className="h-2.5 w-2.5" />, label: "Chart" },
-  vision: { icon: <Eye className="h-2.5 w-2.5" />, label: "Vision" },
-  goals: { icon: <Target className="h-2.5 w-2.5" />, label: "Goals" },
-  mastery: { icon: <BarChart3 className="h-2.5 w-2.5" />, label: "Mastery" },
-  imagegen: { icon: <Wand2 className="h-2.5 w-2.5" />, label: "Image Gen" },
-  web: { icon: <Globe className="h-2.5 w-2.5" />, label: "Web Search" },
-  perplexity: { icon: <Search className="h-2.5 w-2.5" />, label: "Perplexity" },
-  firecrawl: { icon: <Flame className="h-2.5 w-2.5" />, label: "Firecrawl" },
-  strategic: { icon: <Brain className="h-2.5 w-2.5" />, label: "Strategic Analysis" },
-  docgen: { icon: <FileDown className="h-2.5 w-2.5" />, label: "Doc Gen" },
-  calculator: { icon: <Calculator className="h-2.5 w-2.5" />, label: "Calculator" },
-  reminder: { icon: <Clock className="h-2.5 w-2.5" />, label: "Reminder" },
-  localtime: { icon: <Clock className="h-2.5 w-2.5" />, label: "Using local device time" },
-  chat: { icon: <Brain className="h-2.5 w-2.5" />, label: "Chat" },
-  "ai-knowledge": { icon: <Brain className="h-2.5 w-2.5" />, label: "AI Knowledge" },
-};
-
-const CONFIDENCE_COLORS: Record<string, string> = {
-  high: "text-green-400",
-  medium: "text-yellow-400",
-  low: "text-muted-foreground",
-};
-
-function ToolBadges({ tools, confidence, sourcesCount }: { tools: string[]; confidence?: string; sourcesCount?: number }) {
-  if (tools.length === 0 && !confidence) return null;
-  return (
-    <div className="flex flex-wrap gap-1 mt-1.5 items-center">
-      {tools.map(t => {
-        const info = TOOL_ICON_MAP[t] || { icon: null, label: t };
-        return (
-          <span key={t} className="inline-flex items-center gap-0.5 rounded-md bg-primary/10 px-1.5 py-0.5 text-[10px] text-primary font-medium">
-            {info.icon} {info.label}
-          </span>
-        );
-      })}
-      {confidence && (
-        <span className={`inline-flex items-center gap-0.5 rounded-md bg-surface-2 px-1.5 py-0.5 text-[10px] font-medium ${CONFIDENCE_COLORS[confidence] || "text-muted-foreground"}`}>
-          <Shield className="h-2.5 w-2.5" /> {confidence.charAt(0).toUpperCase() + confidence.slice(1)} confidence
-        </span>
-      )}
-      {sourcesCount && sourcesCount > 0 && (
-        <span className="inline-flex items-center gap-0.5 rounded-md bg-surface-2 px-1.5 py-0.5 text-[10px] text-muted-foreground font-medium">
-          📎 {sourcesCount} source{sourcesCount !== 1 ? "s" : ""}
-        </span>
-      )}
-    </div>
-  );
-}
-
-// Attachment types
-type AttachmentType = "image" | "file";
-
-interface PendingAttachment {
-  file: File;
-  preview: string;
-  type: AttachmentType;
-  name: string;
-}
-
-interface ChatMessage extends Msg {
-  id: string;
-  imageUrl?: string;
-  imagePreview?: string;
-  generatedImageUrl?: string;
-  generatedPrompt?: string;
-  generatedStyle?: string;
-  fileName?: string;
-  fileType?: AttachmentType;
-  toolsUsed?: string[];
-  citations?: string[];
-  docDownload?: { content: string; fileName: string; mimeType: string; format: string };
-  webSource?: string;
-  confidence?: string;
-  strategicType?: string;
-  sitesReviewed?: string[];
-}
-
-const VISION_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-vision`;
-
-const IMAGE_EXTS = ["png", "jpg", "jpeg", "gif", "webp", "bmp", "svg"];
 
 function getAttachmentType(file: File): AttachmentType {
   const ext = file.name.split(".").pop()?.toLowerCase() || "";
@@ -198,19 +150,32 @@ function getFileIcon(name: string) {
   if (ext === "csv") return "📊";
   if (["doc", "docx"].includes(ext)) return "📝";
   if (["txt", "md"].includes(ext)) return "📃";
-  if (ext === "json") return "🔧";
   return "📎";
 }
 
-async function uploadChatFile(file: File): Promise<string | null> {
+async function uploadChatFile(file: File, onProgress?: (pct: number) => void): Promise<string | null> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
   const ext = file.name.split(".").pop() || "bin";
   const path = `${user.id}/${Date.now()}.${ext}`;
-  const { error } = await supabase.storage.from("chat-uploads").upload(path, file);
-  if (error) { console.error("Upload error:", error); return null; }
-  const { data } = supabase.storage.from("chat-uploads").getPublicUrl(path);
-  return data.publicUrl;
+
+  // Simulate progress for UX
+  onProgress?.(20);
+  const timeout = setTimeout(() => onProgress?.(50), 800);
+
+  try {
+    const { error } = await supabase.storage.from("chat-uploads").upload(path, file);
+    clearTimeout(timeout);
+    if (error) { console.error("Upload error:", error); return null; }
+    onProgress?.(90);
+    const { data } = supabase.storage.from("chat-uploads").getPublicUrl(path);
+    onProgress?.(100);
+    return data.publicUrl;
+  } catch (e) {
+    clearTimeout(timeout);
+    console.error("Upload exception:", e);
+    return null;
+  }
 }
 
 async function extractFileText(file: File): Promise<string> {
@@ -232,14 +197,7 @@ async function extractFileText(file: File): Promise<string> {
   return `[Uploaded file: ${file.name} (${(file.size / 1024).toFixed(1)}KB)]`;
 }
 
-async function streamVision({
-  messages,
-  context,
-  onDelta,
-  onDone,
-  onError,
-  signal,
-}: {
+async function streamVision({ messages, context, onDelta, onDone, onError, signal }: {
   messages: { role: string; content: string; imageUrl?: string }[];
   context?: Record<string, string>;
   onDelta: (text: string) => void;
@@ -247,133 +205,129 @@ async function streamVision({
   onError?: (err: string) => void;
   signal?: AbortSignal;
 }) {
-  try {
-    const resp = await fetch(VISION_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-      },
-      body: JSON.stringify({ messages, context }),
-      signal,
-    });
-    if (!resp.ok) {
-      const data = await resp.json().catch(() => ({ error: "Request failed" }));
-      onError?.(data.error || `Error ${resp.status}`);
+  const MAX_RETRIES = 1;
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      const resp = await fetch(VISION_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
+        body: JSON.stringify({ messages, context }),
+        signal,
+      });
+      if (!resp.ok) {
+        if (attempt < MAX_RETRIES) { await new Promise(r => setTimeout(r, 1500)); continue; }
+        const data = await resp.json().catch(() => ({ error: "Request failed" }));
+        onError?.(data.error || `Error ${resp.status}`);
+        onDone();
+        return;
+      }
+      if (!resp.body) { onDone(); return; }
+      const reader = resp.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        let nl: number;
+        while ((nl = buffer.indexOf("\n")) !== -1) {
+          let line = buffer.slice(0, nl);
+          buffer = buffer.slice(nl + 1);
+          if (line.endsWith("\r")) line = line.slice(0, -1);
+          if (!line.startsWith("data: ")) continue;
+          const json = line.slice(6).trim();
+          if (json === "[DONE]") { onDone(); return; }
+          try {
+            const parsed = JSON.parse(json);
+            const content = parsed.choices?.[0]?.delta?.content;
+            if (content) onDelta(content);
+          } catch { buffer = line + "\n" + buffer; break; }
+        }
+      }
       onDone();
       return;
+    } catch (e: any) {
+      if (e.name === "AbortError") { onDone(); return; }
+      if (attempt < MAX_RETRIES) { await new Promise(r => setTimeout(r, 1500)); continue; }
+      onError?.(e.message || "Connection failed");
+      onDone();
     }
-    if (!resp.body) { onDone(); return; }
-    const reader = resp.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = "";
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      buffer += decoder.decode(value, { stream: true });
-      let nl: number;
-      while ((nl = buffer.indexOf("\n")) !== -1) {
-        let line = buffer.slice(0, nl);
-        buffer = buffer.slice(nl + 1);
-        if (line.endsWith("\r")) line = line.slice(0, -1);
-        if (!line.startsWith("data: ")) continue;
-        const json = line.slice(6).trim();
-        if (json === "[DONE]") { onDone(); return; }
-        try {
-          const parsed = JSON.parse(json);
-          const content = parsed.choices?.[0]?.delta?.content;
-          if (content) onDelta(content);
-        } catch { buffer = line + "\n" + buffer; break; }
-      }
-    }
-    onDone();
-  } catch (e: any) {
-    if (e.name === "AbortError") { onDone(); return; }
-    onError?.(e.message || "Connection failed");
-    onDone();
   }
 }
 
 async function generateImage(prompt: string, style?: string): Promise<{ imageData?: string; text?: string; error?: string }> {
-  try {
-    const resp = await fetch(IMAGE_GEN_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-      },
-      body: JSON.stringify({ prompt, style }),
-    });
-    const data = await resp.json();
-    if (!resp.ok) {
-      return { error: data.error || "Image generation failed. Try again." };
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const resp = await fetch(IMAGE_GEN_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
+        body: JSON.stringify({ prompt, style }),
+      });
+      const data = await resp.json();
+      if (!resp.ok) {
+        if (attempt === 0 && resp.status >= 500) { await new Promise(r => setTimeout(r, 1500)); continue; }
+        return { error: data.error || "Image generation failed." };
+      }
+      return data;
+    } catch (e: any) {
+      if (attempt === 0) { await new Promise(r => setTimeout(r, 1500)); continue; }
+      return { error: e.message || "Connection failed" };
     }
-    return data;
-  } catch (e: any) {
-    return { error: e.message || "Connection failed" };
   }
+  return { error: "Image generation failed after retries." };
 }
 
-// Web search helper
 async function webSearch(query: string, type?: string, url?: string): Promise<{ content: string; citations: string[]; source: string; note?: string }> {
-  try {
-    const resp = await fetch(WEB_SEARCH_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-      },
-      body: JSON.stringify({ query, type, url }),
-    });
-    const data = await resp.json();
-    if (data.success) return { content: data.content, citations: data.citations || [], source: data.source || "web", note: data.note };
-    return { content: data.error || "Web search unavailable.", citations: [], source: "error" };
-  } catch (e: any) {
-    return { content: e.message || "Connection failed", citations: [], source: "error" };
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const resp = await fetch(WEB_SEARCH_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
+        body: JSON.stringify({ query, type, url }),
+      });
+      const data = await resp.json();
+      if (data.success) return { content: data.content, citations: data.citations || [], source: data.source || "web", note: data.note };
+      if (attempt === 0) { await new Promise(r => setTimeout(r, 1000)); continue; }
+      return { content: data.error || "Web search unavailable.", citations: [], source: "error" };
+    } catch (e: any) {
+      if (attempt === 0) { await new Promise(r => setTimeout(r, 1000)); continue; }
+      return { content: e.message || "Connection failed", citations: [], source: "error" };
+    }
   }
+  return { content: "Web search failed.", citations: [], source: "error" };
 }
 
-// Strategic analysis helper
-async function strategicAnalysis(
-  type: string, query: string, url?: string, context?: Record<string, string>
-): Promise<{ analysis: string; toolsUsed: string[]; citations: string[]; sitesReviewed: string[]; confidence: string; error?: string }> {
-  try {
-    const resp = await fetch(STRATEGIC_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-      },
-      body: JSON.stringify({ type, query, url, context }),
-    });
-    const data = await resp.json();
-    if (data.success) return {
-      analysis: data.analysis,
-      toolsUsed: data.toolsUsed || [],
-      citations: data.citations || [],
-      sitesReviewed: data.sitesReviewed || [],
-      confidence: data.confidence || "low",
-    };
-    return { analysis: data.error || "Strategic analysis failed.", toolsUsed: [], citations: [], sitesReviewed: [], confidence: "low", error: data.error };
-  } catch (e: any) {
-    return { analysis: e.message || "Connection failed", toolsUsed: [], citations: [], sitesReviewed: [], confidence: "low", error: e.message };
+async function strategicAnalysis(type: string, query: string, url?: string, context?: Record<string, string>) {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const resp = await fetch(STRATEGIC_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
+        body: JSON.stringify({ type, query, url, context }),
+      });
+      const data = await resp.json();
+      if (data.success) return {
+        analysis: data.analysis,
+        toolsUsed: data.toolsUsed || [],
+        citations: data.citations || [],
+        sitesReviewed: data.sitesReviewed || [],
+        confidence: data.confidence || "low",
+      };
+      if (attempt === 0) { await new Promise(r => setTimeout(r, 1500)); continue; }
+      return { analysis: data.error || "Analysis failed.", toolsUsed: [], citations: [], sitesReviewed: [], confidence: "low" as const };
+    } catch (e: any) {
+      if (attempt === 0) { await new Promise(r => setTimeout(r, 1500)); continue; }
+      return { analysis: e.message || "Connection failed", toolsUsed: [], citations: [], sitesReviewed: [], confidence: "low" as const };
+    }
   }
+  return { analysis: "Analysis failed.", toolsUsed: [], citations: [], sitesReviewed: [], confidence: "low" as const };
 }
 
-// Firecrawl scrape helper
-async function firecrawlScrape(query: string, url: string): Promise<{ content: string; citations: string[]; source: string }> {
-  return webSearch(query, "scrape", url);
-}
-
-// Document generation helper
-async function generateDoc(prompt: string, format: string, context?: Record<string, string>): Promise<{ success: boolean; content?: string; fileName?: string; mimeType?: string; format?: string; error?: string }> {
+async function generateDoc(prompt: string, format: string, context?: Record<string, string>) {
   try {
     const resp = await fetch(DOC_GEN_URL, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-      },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
       body: JSON.stringify({ prompt, format, context }),
     });
     return await resp.json();
@@ -382,43 +336,56 @@ async function generateDoc(prompt: string, format: string, context?: Record<stri
   }
 }
 
-// Calculator helper
 function tryCalculate(text: string): string | null {
   const mathMatch = text.match(/(?:calculate|compute|what is|how much is)\s+([\d\s\+\-\*\/\.\(\)\%\^]+)/i);
   if (!mathMatch) {
-    // Try raw expression
     const rawMatch = text.match(/^[\d\s\+\-\*\/\.\(\)\%\^]+$/);
     if (!rawMatch) return null;
   }
   try {
     const expr = (mathMatch?.[1] || text).replace(/\^/g, "**").replace(/%/g, "/100");
     const result = Function(`"use strict"; return (${expr})`)();
-    if (typeof result === "number" && isFinite(result)) {
-      return `**Result:** ${result.toLocaleString()}`;
-    }
+    if (typeof result === "number" && isFinite(result)) return `**Result:** ${result.toLocaleString()}`;
   } catch {}
   return null;
 }
 
-// Quick action chips
-interface QuickAction {
-  label: string;
-  prompt: string;
-  action?: "image" | "file" | "imagegen";
+// ===== TOOL BADGES =====
+
+const TOOL_ICON_MAP: Record<string, string> = {
+  profile: "👤", memory: "🧠", chart: "📊", vision: "👁️", goals: "🎯", mastery: "📈",
+  imagegen: "🎨", web: "🌐", perplexity: "🔍", firecrawl: "🔥", strategic: "🧠",
+  docgen: "📄", calculator: "🧮", reminder: "⏰", localtime: "🕐", chat: "💬", "ai-knowledge": "🧠",
+};
+
+const CONFIDENCE_COLORS: Record<string, string> = {
+  high: "text-green-400", medium: "text-yellow-400", low: "text-muted-foreground",
+};
+
+function ToolBadges({ tools, confidence, sourcesCount }: { tools: string[]; confidence?: string; sourcesCount?: number }) {
+  if (tools.length === 0 && !confidence) return null;
+  return (
+    <div className="flex flex-wrap gap-1 mt-2 items-center">
+      {tools.map(t => (
+        <span key={t} className="inline-flex items-center gap-1 rounded-md bg-primary/8 px-1.5 py-0.5 text-[10px] text-primary/80 font-medium">
+          {TOOL_ICON_MAP[t] || "🔧"} {t.charAt(0).toUpperCase() + t.slice(1).replace("-", " ")}
+        </span>
+      ))}
+      {confidence && (
+        <span className={`inline-flex items-center gap-0.5 rounded-md bg-muted/50 px-1.5 py-0.5 text-[10px] font-medium ${CONFIDENCE_COLORS[confidence] || "text-muted-foreground"}`}>
+          <Shield className="h-2.5 w-2.5" /> {confidence}
+        </span>
+      )}
+      {sourcesCount && sourcesCount > 0 && (
+        <span className="inline-flex items-center gap-0.5 rounded-md bg-muted/50 px-1.5 py-0.5 text-[10px] text-muted-foreground font-medium">
+          📎 {sourcesCount} source{sourcesCount !== 1 ? "s" : ""}
+        </span>
+      )}
+    </div>
+  );
 }
 
-const QUICK_ACTIONS: QuickAction[] = [
-  { label: "🌐 Search the web", prompt: "Search the web for the latest AI news today" },
-  { label: "🔥 Market heat check", prompt: "Is building AI automation agencies getting crowded right now?" },
-  { label: "🔬 Competitor autopsy", prompt: "What are the top competitors doing in the AI website builder space?" },
-  { label: "🎯 Opportunity scan", prompt: "What AI service niches are heating up right now?" },
-  { label: "🎨 Generate image", prompt: "", action: "imagegen" },
-  { label: "📊 Chart my progress", prompt: "Chart my mastery % by category" },
-  { label: "📄 Create a PDF", prompt: "Create a PDF: one-page business plan template" },
-  { label: "📷 Analyze an image", prompt: "", action: "image" },
-  { label: "🎯 What should I learn?", prompt: "What should I learn next based on my progress?" },
-  { label: "🔥 My stats", prompt: "Show me my current stats: streak, tokens, mastery, and progress" },
-];
+// ===== MAIN COMPONENT =====
 
 export default function Chat() {
   const [search] = useSearchParams();
@@ -442,6 +409,7 @@ export default function Chat() {
   const [showStylePicker, setShowStylePicker] = useState(false);
   const [selectedStyle, setSelectedStyle] = useState<string | null>(null);
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const autoSentRef = useRef(false);
@@ -507,15 +475,11 @@ export default function Chat() {
     });
   };
 
-  // Handle image generation request
+  // ===== IMAGE GENERATION =====
   const handleImageGen = useCallback(async (prompt: string, style?: string) => {
     if (isStreaming || isGeneratingImage) return;
 
-    const userMsg: ChatMessage = {
-      id: Date.now().toString(),
-      role: "user",
-      content: prompt,
-    };
+    const userMsg: ChatMessage = { id: Date.now().toString(), role: "user", content: prompt };
     const newMessages = [...messages, userMsg];
     setMessages(newMessages);
     setInput("");
@@ -523,76 +487,53 @@ export default function Chat() {
     setShowStylePicker(false);
 
     let tid = currentThreadId;
-    if (!tid) {
-      const thread = createThread("Image Generation");
-      tid = thread.id;
-      setCurrentThreadId(tid);
-    }
+    if (!tid) { const thread = createThread("Image Generation"); tid = thread.id; setCurrentThreadId(tid); }
     addMessageToThread(tid, "user", prompt);
 
-    // Add loading message
     const loadingId = `loading-${Date.now()}`;
-    setMessages(prev => [...prev, {
-      id: loadingId,
-      role: "assistant",
-      content: "🎨 Generating your image…",
-      toolsUsed: ["imagegen"],
-    }]);
+    setMessages(prev => [...prev, { id: loadingId, role: "assistant", content: "🎨 Generating your image…", toolsUsed: ["imagegen"] }]);
 
     const result = await generateImage(prompt, style || selectedStyle || undefined);
 
     if (result.error && !result.imageData) {
-      setMessages(prev => prev.map(m =>
-        m.id === loadingId
-          ? { ...m, content: result.error || "Image generation failed. Try again." }
-          : m
-      ));
-      toast({ title: "Image generation failed", description: result.error, variant: "destructive" });
+      setMessages(prev => prev.map(m => m.id === loadingId
+        ? { ...m, content: `Image generation failed: ${result.error}`, error: true, retryPayload: { text: prompt } }
+        : m));
     } else if (result.imageData) {
       const assistantMsg: ChatMessage = {
-        id: `img-${Date.now()}`,
-        role: "assistant",
+        id: `img-${Date.now()}`, role: "assistant",
         content: result.text || "Here's your generated image:",
-        generatedImageUrl: result.imageData,
-        generatedPrompt: prompt,
-        generatedStyle: style || selectedStyle || undefined,
-        toolsUsed: ["imagegen"],
+        generatedImageUrl: result.imageData, generatedPrompt: prompt,
+        generatedStyle: style || selectedStyle || undefined, toolsUsed: ["imagegen"],
       };
       setMessages(prev => prev.filter(m => m.id !== loadingId).concat(assistantMsg));
-      if (tid) {
-        addMessageToThread(tid, "assistant", `[Generated image: ${prompt}]`);
-        setThreads(loadChatThreads());
-      }
+      if (tid) { addMessageToThread(tid, "assistant", `[Generated image: ${prompt}]`); setThreads(loadChatThreads()); }
     } else {
-      // No image but got text response
-      setMessages(prev => prev.map(m =>
-        m.id === loadingId
-          ? { ...m, content: result.text || "I couldn't generate an image from that prompt. Try rephrasing." }
-          : m
-      ));
+      setMessages(prev => prev.map(m => m.id === loadingId
+        ? { ...m, content: result.text || "Couldn't generate an image from that prompt. Try rephrasing." }
+        : m));
     }
 
     setIsGeneratingImage(false);
     setSelectedStyle(null);
   }, [isStreaming, isGeneratingImage, messages, currentThreadId, selectedStyle]);
 
+  // ===== SEND MESSAGE =====
   const sendMessage = useCallback(async (text: string, threadId?: string) => {
     if ((!text.trim() && pendingAttachments.length === 0) || isStreaming || isGeneratingImage) return;
 
     const attachments = [...pendingAttachments];
     const hasImage = attachments.some(a => a.type === "image");
     const hasFile = attachments.some(a => a.type === "file");
-
-    // Route to the right tool
     const route = routeToTool(text, hasImage, hasFile);
 
-    // Image generation: handle separately
+    // Image generation
     if (route.tool === "imagegen" && !hasImage && !hasFile) {
       await handleImageGen(text);
       return;
     }
 
-    // Local time/date: instant local result
+    // Local time
     if (route.tool === "localtime" && !hasImage && !hasFile) {
       const now = new Date();
       const timeStr = now.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit", hour12: true });
@@ -611,22 +552,7 @@ export default function Chat() {
       return;
     }
 
-    // Weather: check if connected
-    if (route.tool === "web" && route.subType === "weather" && !hasImage && !hasFile) {
-      // No weather API connected — give brief response
-      const userMsg: ChatMessage = { id: Date.now().toString(), role: "user", content: text };
-      const assistantMsg: ChatMessage = { id: `weather-${Date.now()}`, role: "assistant", content: "Weather isn't connected yet.", toolsUsed: ["web"] };
-      setMessages(prev => [...prev, userMsg, assistantMsg]);
-      setInput("");
-      let tid = threadId || currentThreadId;
-      if (!tid) { const t = createThread("Weather"); tid = t.id; setCurrentThreadId(tid); }
-      addMessageToThread(tid, "user", text);
-      addMessageToThread(tid, "assistant", "Weather isn't connected yet.");
-      setThreads(loadChatThreads());
-      return;
-    }
-
-    // Calculator: instant local result
+    // Calculator
     if (route.tool === "calculator" && !hasImage && !hasFile) {
       const calcResult = tryCalculate(text);
       if (calcResult) {
@@ -641,7 +567,6 @@ export default function Chat() {
         setThreads(loadChatThreads());
         return;
       }
-      // Fall through to chat if calc fails
     }
 
     let imageUrl: string | undefined;
@@ -650,13 +575,17 @@ export default function Chat() {
     let fileType: AttachmentType | undefined;
     let fileTextContent = "";
 
-    // Upload attachments
+    // Upload attachments with progress
     if (attachments.length > 0) {
-      toast({ title: `Uploading ${attachments.length} file${attachments.length > 1 ? "s" : ""}…` });
-      for (const att of attachments) {
-        const url = await uploadChatFile(att.file);
+      setUploadProgress(0);
+      for (let i = 0; i < attachments.length; i++) {
+        const att = attachments[i];
+        const url = await uploadChatFile(att.file, (pct) => {
+          setUploadProgress(Math.round((i / attachments.length + pct / 100 / attachments.length) * 100));
+        });
         if (!url) {
-          toast({ title: `Upload failed: ${att.name}`, variant: "destructive" });
+          toast({ title: `Upload failed: ${att.name}`, description: "Please try again.", variant: "destructive" });
+          setUploadProgress(null);
           return;
         }
         if (att.type === "image") {
@@ -672,24 +601,20 @@ export default function Chat() {
         }
       }
       setPendingAttachments([]);
+      setUploadProgress(null);
     }
 
     let userContent = text || "";
     if (hasFile && fileTextContent) {
       userContent = (userContent || `Analyze this file: ${fileName}`) + fileTextContent;
     }
-    if (hasImage && !userContent) {
-      userContent = "Analyze this image";
-    }
+    if (hasImage && !userContent) userContent = "Analyze this image";
 
     const userMsg: ChatMessage = {
-      id: Date.now().toString(),
-      role: "user",
+      id: Date.now().toString(), role: "user",
       content: text || (hasImage ? "Analyze this image" : hasFile ? `Analyze: ${fileName}` : ""),
-      imageUrl: hasImage ? imageUrl : undefined,
-      imagePreview,
-      fileName: hasFile ? fileName : undefined,
-      fileType,
+      imageUrl: hasImage ? imageUrl : undefined, imagePreview,
+      fileName: hasFile ? fileName : undefined, fileType,
     };
     const newMessages = [...messages, userMsg];
     setMessages(newMessages);
@@ -697,11 +622,7 @@ export default function Chat() {
     setIsStreaming(true);
 
     let tid = threadId || currentThreadId;
-    if (!tid) {
-      const thread = createThread("New Chat");
-      tid = thread.id;
-      setCurrentThreadId(tid);
-    }
+    if (!tid) { const thread = createThread("New Chat"); tid = thread.id; setCurrentThreadId(tid); }
     addMessageToThread(tid, "user", text || (hasImage ? "📷 Image" : `📄 ${fileName || "File"}`));
 
     const controller = new AbortController();
@@ -714,11 +635,8 @@ export default function Chat() {
     if (hasFile && !toolsUsed.includes("vision")) toolsUsed.push("vision");
     if (route.tool === "web") toolsUsed.push("web");
     if (route.tool === "docgen") toolsUsed.push("docgen");
-    if (newMessages.some(m => m.content?.toLowerCase().includes("chart") || m.content?.toLowerCase().includes("graph"))) {
-      if (!toolsUsed.includes("chart")) toolsUsed.push("chart");
-    }
 
-    // === STRATEGIC ANALYSIS TOOL ===
+    // === STRATEGIC ANALYSIS ===
     if (route.tool === "strategic" && !hasImage && !hasFile) {
       const sType = route.strategicType || "market-heat";
       const sLabel = STRATEGIC_LABELS[sType as StrategicType]?.label || "Strategic Analysis";
@@ -728,22 +646,14 @@ export default function Chat() {
       const result = await strategicAnalysis(sType, text, route.extractedUrl, owlContext);
 
       let responseContent = result.analysis;
-      if (result.citations.length > 0) {
-        responseContent += "\n\n**Sources:**\n" + result.citations.map((c, i) => `${i + 1}. ${c}`).join("\n");
-      }
-      if (result.sitesReviewed.length > 0) {
-        responseContent += "\n\n**Sites Reviewed:**\n" + result.sitesReviewed.map((s, i) => `${i + 1}. ${s}`).join("\n");
-      }
+      if (result.citations.length > 0) responseContent += "\n\n**Sources:**\n" + result.citations.map((c, i) => `${i + 1}. ${c}`).join("\n");
+      if (result.sitesReviewed.length > 0) responseContent += "\n\n**Sites Reviewed:**\n" + result.sitesReviewed.map((s, i) => `${i + 1}. ${s}`).join("\n");
 
       const strategicMsg: ChatMessage = {
-        id: `strategic-${Date.now()}`,
-        role: "assistant",
-        content: responseContent,
+        id: `strategic-${Date.now()}`, role: "assistant", content: responseContent,
         toolsUsed: result.toolsUsed.length > 0 ? result.toolsUsed : ["ai-knowledge"],
-        citations: result.citations,
-        confidence: result.confidence,
-        strategicType: sType,
-        sitesReviewed: result.sitesReviewed,
+        citations: result.citations, confidence: result.confidence,
+        strategicType: sType, sitesReviewed: result.sitesReviewed,
       };
       setMessages(prev => prev.filter(m => m.id !== loadingId).concat(strategicMsg));
       setIsStreaming(false);
@@ -752,24 +662,18 @@ export default function Chat() {
       return;
     }
 
-    // === FIRECRAWL SCRAPE TOOL ===
+    // === FIRECRAWL ===
     if (route.tool === "firecrawl" && route.extractedUrl && !hasImage && !hasFile) {
       const loadingId = `loading-${Date.now()}`;
-      setMessages(prev => [...prev, { id: loadingId, role: "assistant", content: `🔥 Scraping website…`, toolsUsed: ["firecrawl"] }]);
+      setMessages(prev => [...prev, { id: loadingId, role: "assistant", content: "🔥 Scraping website…", toolsUsed: ["firecrawl"] }]);
 
-      const result = await firecrawlScrape(text, route.extractedUrl);
-
+      const result = await webSearch(text, "scrape", route.extractedUrl);
       let responseContent = result.content;
-      if (result.citations.length > 0) {
-        responseContent += "\n\n**Source:** " + result.citations.join(", ");
-      }
+      if (result.citations.length > 0) responseContent += "\n\n**Source:** " + result.citations.join(", ");
 
       const scrapeMsg: ChatMessage = {
-        id: `firecrawl-${Date.now()}`,
-        role: "assistant",
-        content: responseContent,
-        toolsUsed: ["firecrawl"],
-        citations: result.citations,
+        id: `firecrawl-${Date.now()}`, role: "assistant", content: responseContent,
+        toolsUsed: ["firecrawl"], citations: result.citations,
       };
       setMessages(prev => prev.filter(m => m.id !== loadingId).concat(scrapeMsg));
       setIsStreaming(false);
@@ -778,31 +682,20 @@ export default function Chat() {
       return;
     }
 
-    // === WEB SEARCH TOOL (Perplexity) ===
+    // === WEB SEARCH ===
     if (route.tool === "web" && !hasImage && !hasFile) {
       const loadingId = `loading-${Date.now()}`;
-      setMessages(prev => [...prev, { id: loadingId, role: "assistant", content: `🌐 Searching the web…`, toolsUsed: ["web"] }]);
+      setMessages(prev => [...prev, { id: loadingId, role: "assistant", content: "🌐 Searching the web…", toolsUsed: ["web"] }]);
 
       const webResult = await webSearch(text, route.subType);
-      
       let responseContent = webResult.content;
-      if (webResult.citations.length > 0) {
-        responseContent += "\n\n**Sources:**\n" + webResult.citations.map((c, i) => `${i + 1}. ${c}`).join("\n");
-      }
-      if (webResult.note) {
-        responseContent += `\n\n_${webResult.note}_`;
-      }
+      if (webResult.citations.length > 0) responseContent += "\n\n**Sources:**\n" + webResult.citations.map((c, i) => `${i + 1}. ${c}`).join("\n");
+      if (webResult.note) responseContent += `\n\n_${webResult.note}_`;
 
-      // Map source to tool name
-      const sourceToolName = webResult.source === "perplexity" ? "perplexity" : webResult.source === "firecrawl" ? "firecrawl" : "web";
-
+      const sourceToolName = webResult.source === "perplexity" ? "perplexity" : webResult.source === "firecrawl" ? "firecrawl" : webResult.source === "ai-knowledge" ? "ai-knowledge" : "web";
       const webMsg: ChatMessage = {
-        id: `web-${Date.now()}`,
-        role: "assistant",
-        content: responseContent,
-        toolsUsed: [sourceToolName],
-        citations: webResult.citations,
-        webSource: webResult.source,
+        id: `web-${Date.now()}`, role: "assistant", content: responseContent,
+        toolsUsed: [sourceToolName], citations: webResult.citations, webSource: webResult.source,
       };
       setMessages(prev => prev.filter(m => m.id !== loadingId).concat(webMsg));
       setIsStreaming(false);
@@ -811,7 +704,7 @@ export default function Chat() {
       return;
     }
 
-    // === DOCUMENT GENERATION TOOL ===
+    // === DOC GEN ===
     if (route.tool === "docgen" && !hasImage && !hasFile) {
       const format = route.subType || "pdf";
       const loadingId = `loading-${Date.now()}`;
@@ -819,18 +712,18 @@ export default function Chat() {
       setMessages(prev => [...prev, { id: loadingId, role: "assistant", content: `📄 Generating ${formatLabel}…`, toolsUsed: ["docgen"] }]);
 
       const docResult = await generateDoc(text, format, owlContext);
-
       if (docResult.success && docResult.content) {
         const docMsg: ChatMessage = {
-          id: `doc-${Date.now()}`,
-          role: "assistant",
-          content: `✅ Your ${formatLabel} is ready! Click below to download.`,
+          id: `doc-${Date.now()}`, role: "assistant",
+          content: `Your ${formatLabel} is ready.`,
           toolsUsed: ["docgen"],
           docDownload: { content: docResult.content, fileName: docResult.fileName || `owl-${format}.html`, mimeType: docResult.mimeType || "text/html", format },
         };
         setMessages(prev => prev.filter(m => m.id !== loadingId).concat(docMsg));
       } else {
-        setMessages(prev => prev.map(m => m.id === loadingId ? { ...m, content: docResult.error || "Document generation failed. Try again." } : m));
+        setMessages(prev => prev.map(m => m.id === loadingId
+          ? { ...m, content: docResult.error || "Document generation failed.", error: true, retryPayload: { text } }
+          : m));
       }
       setIsStreaming(false);
       abortRef.current = null;
@@ -838,6 +731,7 @@ export default function Chat() {
       return;
     }
 
+    // === STREAMING CHAT / VISION ===
     const handleDelta = (chunk: string) => {
       assistantContent += chunk;
       setMessages((prev) => {
@@ -852,52 +746,62 @@ export default function Chat() {
     const handleDone = () => {
       setIsStreaming(false);
       abortRef.current = null;
-      if (assistantContent && tid) {
-        addMessageToThread(tid, "assistant", assistantContent);
-        setThreads(loadChatThreads());
+      if (assistantContent) {
+        // If empty response, show error with retry
+        if (!assistantContent.trim()) {
+          setMessages(prev => {
+            const last = prev[prev.length - 1];
+            if (last?.role === "assistant") {
+              return prev.map((m, i) => i === prev.length - 1
+                ? { ...m, content: "Something went wrong. Let me try again.", error: true, retryPayload: { text, threadId: tid || undefined } }
+                : m);
+            }
+            return prev;
+          });
+          return;
+        }
+        parseAndSaveWisdomPack(assistantContent);
+        if (tid) { addMessageToThread(tid, "assistant", assistantContent); setThreads(loadChatThreads()); }
       }
     };
 
     const handleError = (err: string) => {
-      toast({ title: "AI Error", description: err, variant: "destructive" });
+      // Show inline error with retry button instead of toast
+      setMessages(prev => [...prev, {
+        id: `error-${Date.now()}`, role: "assistant",
+        content: err || "Something went wrong.",
+        error: true,
+        retryPayload: { text, threadId: tid || undefined },
+      }]);
     };
 
     if (hasImage && imageUrl) {
       const visionMsgs = newMessages.map(m => ({
-        role: m.role,
-        content: m.content,
+        role: m.role, content: m.content,
         ...(m.imageUrl ? { imageUrl: m.imageUrl } : {}),
       }));
-      await streamVision({
-        messages: visionMsgs,
-        context: owlContext,
-        onDelta: handleDelta,
-        onDone: handleDone,
-        onError: handleError,
-        signal: controller.signal,
-      });
+      await streamVision({ messages: visionMsgs, context: owlContext, onDelta: handleDelta, onDone: handleDone, onError: handleError, signal: controller.signal });
     } else {
       const chatMsgs = newMessages.map(m => {
-        if (m.id === userMsg.id && fileTextContent) {
-          return { role: m.role, content: userContent };
-        }
+        if (m.id === userMsg.id && fileTextContent) return { role: m.role, content: userContent };
         return { role: m.role, content: m.content };
       });
       await streamChat({
-        messages: chatMsgs,
-        mode: hasFile ? "deep-dive" : mode,
-        context: owlContext,
-        onDelta: handleDelta,
-        onDone: handleDone,
-        onError: handleError,
+        messages: chatMsgs, mode: hasFile ? "deep-dive" : mode,
+        context: owlContext, onDelta: handleDelta, onDone: handleDone, onError: handleError,
         signal: controller.signal,
       });
     }
   }, [isStreaming, isGeneratingImage, messages, mode, currentThreadId, pendingAttachments, handleImageGen]);
 
-  const handleSend = useCallback(() => sendMessage(input), [sendMessage, input]);
-  const handleStop = () => abortRef.current?.abort();
+  // ===== RETRY =====
+  const handleRetry = useCallback((payload: { text: string; threadId?: string }) => {
+    // Remove the error message, then resend
+    setMessages(prev => prev.filter(m => !m.error));
+    sendMessage(payload.text, payload.threadId);
+  }, [sendMessage]);
 
+  // ===== REGENERATE =====
   const handleRegenerate = useCallback(async () => {
     if (isStreaming || isGeneratingImage) return;
     const lastUserIdx = [...messages].reverse().findIndex(m => m.role === "user");
@@ -905,7 +809,6 @@ export default function Chat() {
     const idx = messages.length - 1 - lastUserIdx;
     const lastUser = messages[idx];
 
-    // If last assistant had a generated image, regenerate it
     const lastAssistant = messages[messages.length - 1];
     if (lastAssistant?.generatedPrompt) {
       const trimmed = messages.slice(0, idx + 1);
@@ -924,8 +827,7 @@ export default function Chat() {
 
     await streamChat({
       messages: trimmed.map(({ role, content }) => ({ role, content })),
-      mode,
-      context: owlContext,
+      mode, context: owlContext,
       onDelta: (chunk) => {
         assistantContent += chunk;
         setMessages((prev) => {
@@ -937,7 +839,13 @@ export default function Chat() {
         });
       },
       onDone: () => { setIsStreaming(false); abortRef.current = null; },
-      onError: (err) => toast({ title: "AI Error", description: err, variant: "destructive" }),
+      onError: (err) => {
+        setMessages(prev => [...prev, {
+          id: `error-${Date.now()}`, role: "assistant",
+          content: err, error: true,
+          retryPayload: { text: lastUser.content },
+        }]);
+      },
       signal: controller.signal,
     });
   }, [isStreaming, isGeneratingImage, messages, mode, handleImageGen]);
@@ -979,56 +887,61 @@ export default function Chat() {
     e.target.value = "";
   };
 
-  const handleQuickAction = (action: typeof QUICK_ACTIONS[0]) => {
-    if (action.action === "image" || action.action === "file") {
-      fileInputRef.current?.click();
-      return;
-    }
-    if (action.action === "imagegen") {
-      setShowStylePicker(true);
-      inputRef.current?.focus();
-      return;
-    }
+  const handleQuickAction = (action: typeof QUICK_CHIPS[0]) => {
     if (action.prompt) {
       setInput(action.prompt);
       setTimeout(() => sendMessage(action.prompt), 100);
     }
   };
 
-  const handleImageGenVariation = (prompt: string, variation: string) => {
-    let newPrompt = prompt;
-    if (variation === "minimal") newPrompt = `${prompt}, minimalist style, clean and simple`;
-    else if (variation === "detailed") newPrompt = `${prompt}, highly detailed, intricate`;
-    else if (variation === "different") newPrompt = `${prompt}, alternative version, different approach`;
-    handleImageGen(newPrompt);
-  };
+  const handleSend = useCallback(() => sendMessage(input), [sendMessage, input]);
+  const handleStop = () => abortRef.current?.abort();
 
   const currentMode = TUTOR_MODES.find(m => m.id === mode) || TUTOR_MODES[0];
   const hasMessages = messages.length > 0;
   const isBusy = isStreaming || isGeneratingImage;
 
+  // ===== RENDER MESSAGE =====
   const renderMessageContent = (msg: ChatMessage) => {
+    // Error state with retry
+    if (msg.error && msg.retryPayload) {
+      return (
+        <div className="flex items-start gap-2">
+          <AlertCircle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm text-muted-foreground">{msg.content}</p>
+            <button onClick={() => handleRetry(msg.retryPayload!)}
+              className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-primary/10 px-3 py-1.5 text-xs text-primary font-medium hover:bg-primary/20 transition-colors">
+              <RotateCcw className="h-3 w-3" /> Retry
+            </button>
+          </div>
+        </div>
+      );
+    }
+
     if (msg.role === "user") {
       return (
         <>
-          {msg.imagePreview && (
-            <img src={msg.imagePreview} alt="Upload" className="rounded-xl max-h-40 w-auto mb-2" />
-          )}
+          {msg.imagePreview && <img src={msg.imagePreview} alt="Upload" className="rounded-xl max-h-40 w-auto mb-2" />}
           {msg.imageUrl && !msg.imagePreview && msg.fileType !== "file" && (
             <img src={msg.imageUrl} alt="Upload" className="rounded-xl max-h-40 w-auto mb-2" />
           )}
           {msg.fileName && (
             <div className="flex items-center gap-2 mb-2 rounded-lg bg-primary-foreground/10 px-3 py-2">
               <FileText className="h-4 w-4 shrink-0" />
-              <span className="text-caption truncate">{msg.fileName}</span>
+              <span className="text-xs truncate">{msg.fileName}</span>
             </div>
           )}
-          {msg.content && <p>{msg.content}</p>}
+          {msg.content && <p className="text-sm">{msg.content}</p>}
         </>
       );
     }
 
     const { text, charts } = extractCharts(msg.content);
+
+    // Loading states
+    const isLoading = msg.content?.startsWith("🎨 Generating") || msg.content?.startsWith("🌐 Searching") || msg.content?.startsWith("📄 Generating") || msg.content?.startsWith("🧠 Running") || msg.content?.startsWith("🔥 Scraping");
+
     return (
       <>
         {/* Generated image */}
@@ -1045,26 +958,18 @@ export default function Chat() {
                 <Download className="h-3 w-3 inline mr-0.5" /> Download
               </button>
               <button onClick={() => handleImageGen(msg.generatedPrompt || "")}
-                className="rounded-lg bg-surface-2 px-2.5 py-1 text-[11px] text-muted-foreground font-medium hover:bg-surface-hover transition-colors">
+                className="rounded-lg bg-muted/50 px-2.5 py-1 text-[11px] text-muted-foreground font-medium hover:bg-muted transition-colors">
                 🔄 Regenerate
-              </button>
-              <button onClick={() => handleImageGenVariation(msg.generatedPrompt || "", "minimal")}
-                className="rounded-lg bg-surface-2 px-2.5 py-1 text-[11px] text-muted-foreground font-medium hover:bg-surface-hover transition-colors">
-                ◻️ More minimal
-              </button>
-              <button onClick={() => handleImageGenVariation(msg.generatedPrompt || "", "detailed")}
-                className="rounded-lg bg-surface-2 px-2.5 py-1 text-[11px] text-muted-foreground font-medium hover:bg-surface-hover transition-colors">
-                ✨ More detailed
               </button>
             </div>
           </div>
         )}
 
-        {/* Loading states */}
-        {(msg.content === "🎨 Generating your image…" || msg.content?.startsWith("🌐 Searching") || msg.content?.startsWith("📄 Generating") || msg.content?.startsWith("🧠 Running") || msg.content?.startsWith("🔥 Scraping")) && (
-          <div className="flex items-center gap-2 text-muted-foreground">
+        {/* Loading indicator */}
+        {isLoading && (
+          <div className="flex items-center gap-2.5 text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" />
-            <span className="text-caption">{msg.content.replace(/^[^\s]+\s/, "")}</span>
+            <span className="text-sm">{msg.content.replace(/^[^\s]+\s/, "")}</span>
           </div>
         )}
 
@@ -1075,12 +980,10 @@ export default function Chat() {
               const blob = new Blob([msg.docDownload!.content], { type: msg.docDownload!.mimeType });
               const url = URL.createObjectURL(blob);
               const a = document.createElement("a");
-              a.href = url;
-              a.download = msg.docDownload!.fileName;
-              a.click();
+              a.href = url; a.download = msg.docDownload!.fileName; a.click();
               URL.revokeObjectURL(url);
             }}
-              className="flex items-center gap-2 rounded-xl bg-primary/10 px-4 py-3 text-caption text-primary font-medium hover:bg-primary/20 transition-colors w-full">
+              className="flex items-center gap-2.5 rounded-xl bg-primary/10 px-4 py-3 text-sm text-primary font-medium hover:bg-primary/20 transition-colors w-full">
               <FileDown className="h-5 w-5" />
               <div className="text-left">
                 <p className="font-semibold">Download {msg.docDownload.format.toUpperCase()}</p>
@@ -1091,23 +994,35 @@ export default function Chat() {
         )}
 
         {/* Text content */}
-        {text && !msg.content?.startsWith("🎨 Generating") && !msg.content?.startsWith("🌐 Searching") && !msg.content?.startsWith("📄 Generating") && !msg.content?.startsWith("🧠 Running") && !msg.content?.startsWith("🔥 Scraping") && (
-          <div className="prose prose-invert prose-sm max-w-none [&_p]:my-1 [&_ul]:my-1 [&_ol]:my-1 [&_li]:my-0.5 [&_h1]:text-lg [&_h2]:text-base [&_h3]:text-sm [&_code]:bg-surface-2 [&_code]:px-1 [&_code]:rounded [&_pre]:bg-surface-2 [&_pre]:p-3 [&_pre]:rounded-xl [&_strong]:text-foreground">
+        {text && !isLoading && (
+          <div className="prose prose-invert prose-sm max-w-none
+            [&_p]:my-2 [&_p]:leading-relaxed
+            [&_ul]:my-2 [&_ol]:my-2 [&_li]:my-0.5
+            [&_h1]:text-base [&_h1]:font-semibold [&_h1]:mt-4 [&_h1]:mb-2
+            [&_h2]:text-sm [&_h2]:font-semibold [&_h2]:mt-3 [&_h2]:mb-1.5
+            [&_h3]:text-sm [&_h3]:font-medium [&_h3]:mt-2 [&_h3]:mb-1
+            [&_code]:bg-muted [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-xs
+            [&_pre]:bg-muted [&_pre]:p-4 [&_pre]:rounded-xl [&_pre]:my-3
+            [&_strong]:text-foreground
+            [&_blockquote]:border-l-2 [&_blockquote]:border-primary/30 [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:text-muted-foreground">
             <ReactMarkdown>{text}</ReactMarkdown>
           </div>
         )}
+
         {charts.map((chart, i) => (
           <ChartRenderer key={`${msg.id}-chart-${i}`} data={chart}
             onSave={() => handleSaveChart(chart, `${msg.id}-${i}`)} saved={savedChartIds.has(`${msg.id}-${i}`)} />
         ))}
+
         {msg.toolsUsed && <ToolBadges tools={msg.toolsUsed} confidence={msg.confidence} sourcesCount={(msg.citations?.length || 0) + (msg.sitesReviewed?.length || 0)} />}
-        {/* Save strategic analysis to library */}
+
+        {/* Save strategic analysis */}
         {msg.strategicType && (
           <button
             onClick={() => {
               const snapshot = {
                 id: `strategic-${Date.now()}`,
-                title: STRATEGIC_LABELS[msg.strategicType as StrategicType]?.label || "Strategic Analysis",
+                title: STRATEGIC_LABELS[msg.strategicType as StrategicType]?.label || "Analysis",
                 mentalModel: msg.strategicType || "analysis",
                 keyInsight: msg.content.slice(0, 200),
                 bragLine: `${msg.toolsUsed?.join(" + ") || "AI"} analysis`,
@@ -1117,20 +1032,14 @@ export default function Chat() {
               const snapshots = JSON.parse(localStorage.getItem("wisdom-ai-snapshots") || "[]");
               snapshots.unshift(snapshot);
               localStorage.setItem("wisdom-ai-snapshots", JSON.stringify(snapshots));
-              // Also save the full content
               const strategicSaves = JSON.parse(localStorage.getItem("wisdom-strategic-saves") || "[]");
               strategicSaves.unshift({
-                id: snapshot.id,
-                type: msg.strategicType,
-                content: msg.content,
-                toolsUsed: msg.toolsUsed,
-                citations: msg.citations,
-                sitesReviewed: msg.sitesReviewed,
-                confidence: msg.confidence,
-                savedAt: Date.now(),
+                id: snapshot.id, type: msg.strategicType, content: msg.content,
+                toolsUsed: msg.toolsUsed, citations: msg.citations,
+                sitesReviewed: msg.sitesReviewed, confidence: msg.confidence, savedAt: Date.now(),
               });
               localStorage.setItem("wisdom-strategic-saves", JSON.stringify(strategicSaves));
-              toast({ title: `📋 ${STRATEGIC_LABELS[msg.strategicType as StrategicType]?.label || "Analysis"} saved to Library!` });
+              toast({ title: `📋 Analysis saved to Library!` });
             }}
             className="mt-2 rounded-lg bg-primary/10 px-2.5 py-1 text-[11px] text-primary font-medium hover:bg-primary/20 transition-colors"
           >
@@ -1141,26 +1050,23 @@ export default function Chat() {
     );
   };
 
+  // ===== RENDER =====
   return (
-    <div className="flex flex-col h-screen">
-      {/* Header */}
-      <div className="px-5 pt-12 pb-2 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <OwlIcon size={20} />
-          <span className="font-display text-lg font-bold text-foreground">Owl</span>
+    <div className="flex flex-col h-screen bg-background">
+      {/* Header — minimal */}
+      <div className="px-5 pt-12 pb-3 flex items-center justify-between">
+        <div className="flex items-center gap-2.5">
+          <OwlIcon size={22} />
+          <span className="font-display text-lg font-bold text-foreground tracking-tight">Owl</span>
         </div>
-        <div className="flex items-center gap-2">
-          <OwlHuntTracker />
-          <div className="flex items-center gap-1.5 text-micro text-muted-foreground">
-            <span>✦ {progress.tokens}</span><span>·</span><span>🔥 {progress.streak}</span>
-          </div>
+        <div className="flex items-center gap-1.5">
           <button onClick={() => { setThreads(loadChatThreads()); setShowHistory(!showHistory); }}
-            className="flex h-8 w-8 items-center justify-center rounded-xl bg-surface-2 hover:bg-surface-hover transition-colors">
-            <History className="h-3.5 w-3.5 text-muted-foreground" />
+            className="flex h-8 w-8 items-center justify-center rounded-xl hover:bg-muted/50 transition-colors">
+            <History className="h-4 w-4 text-muted-foreground" />
           </button>
           <button onClick={handleNewChat}
-            className="flex h-8 w-8 items-center justify-center rounded-xl bg-surface-2 hover:bg-surface-hover transition-colors">
-            <Plus className="h-3.5 w-3.5 text-muted-foreground" />
+            className="flex h-8 w-8 items-center justify-center rounded-xl hover:bg-muted/50 transition-colors">
+            <Plus className="h-4 w-4 text-muted-foreground" />
           </button>
         </div>
       </div>
@@ -1169,30 +1075,30 @@ export default function Chat() {
       <AnimatePresence>
         {showHistory && (
           <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }}
-            className="overflow-hidden border-b border-border bg-card">
+            className="overflow-hidden border-b border-border">
             <div className="px-5 py-3 max-h-64 overflow-y-auto hide-scrollbar">
-              <p className="section-label mb-2">Chat History</p>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">History</p>
               {threads.length === 0 ? (
-                <p className="text-caption text-muted-foreground py-4 text-center">No saved chats yet.</p>
+                <p className="text-sm text-muted-foreground py-4 text-center">No saved chats yet.</p>
               ) : (
                 <div className="space-y-1">
                   {threads.slice(0, 20).map(t => (
-                    <div key={t.id} className={`rounded-xl p-3 flex items-center gap-2 transition-all cursor-pointer ${
-                      currentThreadId === t.id ? "bg-primary/10 border border-primary/20" : "bg-surface-2 hover:bg-surface-hover"}`}>
+                    <div key={t.id} className={`rounded-xl p-2.5 flex items-center gap-2 transition-all cursor-pointer ${
+                      currentThreadId === t.id ? "bg-primary/10 border border-primary/20" : "hover:bg-muted/50"}`}>
                       {renamingId === t.id ? (
                         <input value={renameValue} onChange={e => setRenameValue(e.target.value)}
                           onBlur={() => handleRename(t.id)} onKeyDown={e => e.key === "Enter" && handleRename(t.id)}
-                          className="flex-1 bg-transparent text-caption text-foreground outline-none" autoFocus />
+                          className="flex-1 bg-transparent text-sm text-foreground outline-none" autoFocus />
                       ) : (
                         <button onClick={() => handleOpenThread(t)} className="flex-1 text-left min-w-0">
-                          <p className="text-caption font-medium text-foreground truncate">{t.title}</p>
-                          <p className="text-micro text-muted-foreground">{t.messages.length} msgs · {new Date(t.updatedAt).toLocaleDateString()}</p>
+                          <p className="text-sm font-medium text-foreground truncate">{t.title}</p>
+                          <p className="text-xs text-muted-foreground">{t.messages.length} msgs · {new Date(t.updatedAt).toLocaleDateString()}</p>
                         </button>
                       )}
                       <button onClick={() => { setRenamingId(t.id); setRenameValue(t.title); }}
-                        className="shrink-0 p-1 rounded-lg hover:bg-surface-hover"><Pencil className="h-3 w-3 text-text-tertiary" /></button>
+                        className="shrink-0 p-1 rounded-lg hover:bg-muted/50"><Pencil className="h-3 w-3 text-muted-foreground" /></button>
                       <button onClick={() => handleDelete(t.id)}
-                        className="shrink-0 p-1 rounded-lg hover:bg-destructive/10"><Trash2 className="h-3 w-3 text-text-tertiary" /></button>
+                        className="shrink-0 p-1 rounded-lg hover:bg-destructive/10"><Trash2 className="h-3 w-3 text-muted-foreground" /></button>
                     </div>
                   ))}
                 </div>
@@ -1203,54 +1109,43 @@ export default function Chat() {
       </AnimatePresence>
 
       {/* Messages Area */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 py-4 space-y-4 hide-scrollbar">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 py-6 space-y-5 hide-scrollbar">
         {!hasMessages && (
-          <div className="flex flex-col items-center justify-center min-h-[60vh]">
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-6">
-              <p className="font-display text-xl font-bold text-foreground">{displayGreeting}</p>
-              <p className="text-micro text-muted-foreground mt-1">{clock.dateStr} · {clock.timeStr}</p>
+          <div className="flex flex-col items-center justify-center min-h-[65vh]">
+            {/* Greeting */}
+            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-8">
+              <p className="font-display text-2xl font-bold text-foreground tracking-tight">{displayGreeting}</p>
             </motion.div>
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-              className="w-full max-w-sm mb-6">
-              <div className="glass-card p-4 text-center">
-                <p className="text-caption italic text-muted-foreground leading-relaxed">"{dailyQuote}"</p>
+
+            {/* Daily Quote */}
+            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
+              className="w-full max-w-md mb-8">
+              <div className="text-center px-6">
+                <p className="text-sm italic text-muted-foreground leading-relaxed">"{dailyQuote}"</p>
                 <button onClick={handleSaveQuote}
-                  className={`mt-2 text-micro font-medium transition-colors ${savedQuote ? "text-accent-gold" : "text-text-tertiary hover:text-muted-foreground"}`}>
+                  className={`mt-2 text-xs font-medium transition-colors ${savedQuote ? "text-primary" : "text-muted-foreground/50 hover:text-muted-foreground"}`}>
                   <Bookmark className="h-3 w-3 inline mr-1" />{savedQuote ? "Saved" : "Save"}
                 </button>
               </div>
             </motion.div>
 
-            {/* Proactive Suggestions */}
-            {(() => {
-              const analytics = getAnalytics();
-              const topSuggestion = analytics.suggestions[0];
-              const topInsight = analytics.insights[0];
-              return (
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.15 }}
-                  className="w-full max-w-sm mb-4 space-y-3">
-                  {topSuggestion && <NextMoveCard suggestion={topSuggestion} delay={0.15} />}
-                  {topInsight && <InsightCard insight={topInsight} delay={0.2} />}
-                </motion.div>
-              );
-            })()}
-
-            {/* Quick Actions */}
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.25 }}
-              className="w-full max-w-sm mb-6">
+            {/* Quick Action Chips — just a few, minimal */}
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}
+              className="w-full max-w-md mb-6">
               <div className="flex flex-wrap gap-2 justify-center">
-                {QUICK_ACTIONS.map((action, i) => (
+                {QUICK_CHIPS.map((action, i) => (
                   <button key={i} onClick={() => handleQuickAction(action)}
-                    className="rounded-xl bg-surface-2 px-3 py-2 text-micro text-muted-foreground hover:bg-surface-hover hover:text-foreground transition-all">
+                    className="rounded-full border border-border px-4 py-2 text-xs text-muted-foreground hover:text-foreground hover:border-muted-foreground/50 transition-all">
                     {action.label}
                   </button>
                 ))}
               </div>
             </motion.div>
 
+            {/* Mode Selector */}
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}>
               <button onClick={() => setShowModes(!showModes)}
-                className="flex items-center gap-2 rounded-xl bg-surface-2 px-3 py-2 text-micro text-muted-foreground hover:bg-surface-hover transition-colors">
+                className="flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">
                 <span>{currentMode.icon}</span><span>{currentMode.label}</span>
                 <ChevronDown className={`h-3 w-3 transition-transform ${showModes ? "rotate-180" : ""}`} />
               </button>
@@ -1258,11 +1153,11 @@ export default function Chat() {
             <AnimatePresence>
               {showModes && (
                 <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }}
-                  className="overflow-hidden mt-2">
+                  className="overflow-hidden mt-3">
                   <div className="flex flex-wrap gap-1.5 justify-center max-w-sm">
                     {TUTOR_MODES.map((m) => (
                       <button key={m.id} onClick={() => { setMode(m.id); setShowModes(false); }}
-                        className={`rounded-xl px-3 py-1.5 text-micro font-medium transition-all ${mode === m.id ? "bg-primary text-primary-foreground" : "bg-surface-2 text-muted-foreground hover:bg-surface-hover"}`}>
+                        className={`rounded-full px-3 py-1.5 text-xs font-medium transition-all ${mode === m.id ? "bg-primary text-primary-foreground" : "border border-border text-muted-foreground hover:text-foreground"}`}>
                         {m.icon} {m.label}
                       </button>
                     ))}
@@ -1275,10 +1170,11 @@ export default function Chat() {
 
         {hasMessages && (
           <>
+            {/* Compact mode selector */}
             {!showModes && (
-              <div className="flex justify-center mb-2">
+              <div className="flex justify-center mb-1">
                 <button onClick={() => setShowModes(!showModes)}
-                  className="flex items-center gap-1.5 rounded-xl bg-surface-2 px-3 py-1.5 text-micro text-muted-foreground hover:bg-surface-hover transition-colors">
+                  className="flex items-center gap-1.5 rounded-full border border-border/50 px-3 py-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors">
                   <span>{currentMode.icon}</span> <span>{currentMode.label}</span>
                   <ChevronDown className="h-2.5 w-2.5" />
                 </button>
@@ -1291,7 +1187,7 @@ export default function Chat() {
                   <div className="flex flex-wrap gap-1.5 justify-center">
                     {TUTOR_MODES.map((m) => (
                       <button key={m.id} onClick={() => { setMode(m.id); setShowModes(false); }}
-                        className={`rounded-xl px-3 py-1.5 text-micro font-medium transition-all ${mode === m.id ? "bg-primary text-primary-foreground" : "bg-surface-2 text-muted-foreground hover:bg-surface-hover"}`}>
+                        className={`rounded-full px-3 py-1.5 text-xs font-medium transition-all ${mode === m.id ? "bg-primary text-primary-foreground" : "border border-border text-muted-foreground hover:text-foreground"}`}>
                         {m.icon} {m.label}
                       </button>
                     ))}
@@ -1300,17 +1196,22 @@ export default function Chat() {
               )}
             </AnimatePresence>
 
+            {/* Messages */}
             <AnimatePresence initial={false}>
               {messages.map((msg) => (
-                <motion.div key={msg.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}
+                <motion.div key={msg.id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}
                   className={`flex gap-3 ${msg.role === "user" ? "justify-end" : ""}`}>
                   {msg.role === "assistant" && (
-                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-primary/10 mt-0.5">
-                      <OwlIcon size={16} />
+                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 mt-0.5">
+                      <OwlIcon size={14} />
                     </div>
                   )}
-                  <div className={`max-w-[85%] rounded-2xl px-4 py-3 text-body leading-relaxed ${
-                    msg.role === "user" ? "bg-primary text-primary-foreground" : "bg-card border border-border text-foreground"
+                  <div className={`max-w-[82%] rounded-2xl px-4 py-3 ${
+                    msg.role === "user"
+                      ? "bg-primary text-primary-foreground"
+                      : msg.error
+                        ? "bg-destructive/5 border border-destructive/20 text-foreground"
+                        : "bg-card border border-border/50 text-foreground"
                   }`}>
                     {renderMessageContent(msg)}
                   </div>
@@ -1318,16 +1219,17 @@ export default function Chat() {
               ))}
             </AnimatePresence>
 
+            {/* Typing indicator */}
             {isStreaming && messages[messages.length - 1]?.role !== "assistant" && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex gap-3">
-                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-primary/10 mt-0.5">
-                  <OwlIcon size={16} />
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 mt-0.5">
+                  <OwlIcon size={14} />
                 </div>
-                <div className="bg-card border border-border rounded-2xl px-4 py-3">
+                <div className="bg-card border border-border/50 rounded-2xl px-4 py-3">
                   <div className="flex gap-1.5">
-                    <span className="h-2 w-2 rounded-full bg-muted-foreground animate-pulse" />
-                    <span className="h-2 w-2 rounded-full bg-muted-foreground animate-pulse [animation-delay:0.2s]" />
-                    <span className="h-2 w-2 rounded-full bg-muted-foreground animate-pulse [animation-delay:0.4s]" />
+                    <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/60 animate-pulse" />
+                    <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/60 animate-pulse [animation-delay:0.2s]" />
+                    <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/60 animate-pulse [animation-delay:0.4s]" />
                   </div>
                 </div>
               </motion.div>
@@ -1339,37 +1241,36 @@ export default function Chat() {
       {/* Controls */}
       {isStreaming && (
         <div className="flex justify-center pb-2">
-          <button onClick={handleStop} className="flex items-center gap-2 rounded-xl bg-surface-2 px-4 py-2 text-caption text-muted-foreground hover:bg-surface-hover transition-colors">
+          <button onClick={handleStop} className="flex items-center gap-2 rounded-full border border-border px-4 py-2 text-xs text-muted-foreground hover:text-foreground transition-colors">
             <Square className="h-3 w-3" /> Stop
           </button>
         </div>
       )}
-      {!isBusy && hasMessages && messages[messages.length - 1]?.role === "assistant" && (
+      {!isBusy && hasMessages && messages[messages.length - 1]?.role === "assistant" && !messages[messages.length - 1]?.error && (
         <div className="flex justify-center pb-2">
-          <button onClick={handleRegenerate} className="flex items-center gap-2 rounded-xl bg-surface-2 px-4 py-2 text-caption text-muted-foreground hover:bg-surface-hover transition-colors">
+          <button onClick={handleRegenerate} className="flex items-center gap-2 rounded-full border border-border px-4 py-2 text-xs text-muted-foreground hover:text-foreground transition-colors">
             <RotateCcw className="h-3 w-3" /> Regenerate
           </button>
         </div>
       )}
 
-      {/* Style Picker for Image Gen */}
+      {/* Style Picker */}
       <AnimatePresence>
         {showStylePicker && (
           <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }}
             className="overflow-hidden px-5 pb-2">
             <div className="flex items-center gap-2 mb-1.5">
               <Wand2 className="h-3.5 w-3.5 text-primary" />
-              <span className="text-micro text-muted-foreground">Image style (optional):</span>
-              <button onClick={() => setShowStylePicker(false)} className="ml-auto p-1 rounded hover:bg-surface-hover">
+              <span className="text-xs text-muted-foreground">Image style:</span>
+              <button onClick={() => setShowStylePicker(false)} className="ml-auto p-1 rounded hover:bg-muted/50">
                 <X className="h-3 w-3 text-muted-foreground" />
               </button>
             </div>
             <div className="flex flex-wrap gap-1.5">
               {IMAGE_STYLES.map(s => (
                 <button key={s.id} onClick={() => setSelectedStyle(selectedStyle === s.id ? null : s.id)}
-                  className={`rounded-xl px-3 py-1.5 text-micro font-medium transition-all ${
-                    selectedStyle === s.id ? "bg-primary text-primary-foreground" : "bg-surface-2 text-muted-foreground hover:bg-surface-hover"
-                  }`}>
+                  className={`rounded-full px-3 py-1.5 text-xs font-medium transition-all ${
+                    selectedStyle === s.id ? "bg-primary text-primary-foreground" : "border border-border text-muted-foreground hover:text-foreground"}`}>
                   {s.icon} {s.label}
                 </button>
               ))}
@@ -1378,23 +1279,36 @@ export default function Chat() {
         )}
       </AnimatePresence>
 
-      {/* Pending Attachments Preview */}
+      {/* Upload progress */}
+      {uploadProgress !== null && (
+        <div className="px-5 pb-2">
+          <div className="flex items-center gap-2">
+            <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
+            <div className="flex-1 h-1 rounded-full bg-muted overflow-hidden">
+              <div className="h-full bg-primary rounded-full transition-all duration-300" style={{ width: `${uploadProgress}%` }} />
+            </div>
+            <span className="text-xs text-muted-foreground">{uploadProgress}%</span>
+          </div>
+        </div>
+      )}
+
+      {/* Pending Attachments */}
       {pendingAttachments.length > 0 && (
         <div className="px-5 pb-2">
           <div className="flex gap-2 flex-wrap">
             {pendingAttachments.map((att, i) => (
               <div key={i} className="relative">
                 {att.type === "image" ? (
-                  <img src={att.preview} alt={att.name} className="h-16 rounded-xl border border-border" />
+                  <img src={att.preview} alt={att.name} className="h-14 rounded-xl border border-border" />
                 ) : (
-                  <div className="flex items-center gap-1.5 rounded-xl border border-border bg-surface-2 px-3 py-2">
+                  <div className="flex items-center gap-1.5 rounded-xl border border-border px-3 py-2">
                     <span className="text-sm">{getFileIcon(att.name)}</span>
-                    <span className="text-micro text-muted-foreground truncate max-w-[120px]">{att.name}</span>
+                    <span className="text-xs text-muted-foreground truncate max-w-[100px]">{att.name}</span>
                   </div>
                 )}
                 <button onClick={() => removeAttachment(i)}
-                  className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center">
-                  <X className="h-3 w-3" />
+                  className="absolute -top-1.5 -right-1.5 h-4 w-4 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center text-[10px]">
+                  <X className="h-2.5 w-2.5" />
                 </button>
               </div>
             ))}
@@ -1403,32 +1317,23 @@ export default function Chat() {
       )}
 
       {/* Input */}
-      <div className="border-t border-border px-5 py-3 pb-24 bg-background">
-        <div className="flex items-center gap-2 rounded-2xl border border-border bg-card px-4 py-3">
-          <input
-            type="file"
-            ref={fileInputRef}
-            accept="image/*,.pdf,.doc,.docx,.txt,.csv,.md,.json,.xml"
-            multiple
-            className="hidden"
-            onChange={handleFileSelect}
-          />
+      <div className="border-t border-border/50 px-5 py-3 pb-24 bg-background">
+        <div className="flex items-center gap-2 rounded-2xl border border-border bg-card px-3 py-2.5">
+          <input type="file" ref={fileInputRef} accept="image/*,.pdf,.doc,.docx,.txt,.csv,.md,.json,.xml" multiple className="hidden" onChange={handleFileSelect} />
           <button onClick={() => fileInputRef.current?.click()}
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-surface-2 hover:bg-surface-hover transition-colors"
-            title="Attach image or file">
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl hover:bg-muted/50 transition-colors" title="Attach">
             <Paperclip className="h-4 w-4 text-muted-foreground" />
           </button>
           <button onClick={() => setShowStylePicker(!showStylePicker)}
             className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl transition-colors ${
-              showStylePicker || selectedStyle ? "bg-primary/10 text-primary" : "bg-surface-2 hover:bg-surface-hover text-muted-foreground"
-            }`}
+              showStylePicker || selectedStyle ? "bg-primary/10 text-primary" : "hover:bg-muted/50 text-muted-foreground"}`}
             title="Generate image">
             <Wand2 className="h-4 w-4" />
           </button>
           <input ref={inputRef} value={input} onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSend()}
-            placeholder={showStylePicker ? "Describe the image you want…" : "Ask Owl anything… or attach a file"}
-            className="flex-1 bg-transparent text-body text-foreground placeholder:text-text-tertiary outline-none" />
+            placeholder={showStylePicker ? "Describe the image…" : "Ask Owl anything…"}
+            className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground/50 outline-none" />
           <button onClick={handleSend} disabled={(!input.trim() && pendingAttachments.length === 0) || isBusy}
             className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground disabled:opacity-20 transition-opacity">
             <Send className="h-4 w-4" />
