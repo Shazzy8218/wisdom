@@ -80,6 +80,7 @@ export default function Library() {
   );
 
   const tabs: { id: Tab; label: string; icon: typeof BookOpen }[] = [
+    { id: "courses", label: "My Courses", icon: ShoppingBag },
     { id: "snapshots", label: "Wisdom Packs", icon: Brain },
     { id: "prompts", label: "Prompts", icon: Sparkles },
     { id: "charts", label: "Charts", icon: BarChart3 },
@@ -88,6 +89,17 @@ export default function Library() {
     { id: "threads", label: "Q&A", icon: MessageCircle },
     { id: "quotes", label: "Quotes", icon: Quote },
   ];
+
+  const STORE_ITEMS: Record<string, { name: string; icon: string; type: string }> = {
+    "s1": { name: "Advanced Prompting Masterclass", icon: "🎓", type: "Course" },
+    "s2": { name: "Industry Playbook: Marketing", icon: "📘", type: "Playbook" },
+    "s3": { name: "Boss Challenge: Prompt Architecture", icon: "🏆", type: "Challenge" },
+    "s4": { name: "AI Workflow Templates Pack", icon: "⚡", type: "Templates" },
+    "s5": { name: "Industry Playbook: Finance", icon: "📗", type: "Playbook" },
+    "s6": { name: "Creative AI Deep Dive", icon: "🎨", type: "Course" },
+  };
+
+  const unlockedItems = progress.unlockedItems || [];
 
   const categories = [...new Set(filteredPrompts.map(p => p.category))];
 
