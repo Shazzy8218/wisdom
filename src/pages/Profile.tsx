@@ -139,7 +139,7 @@ export default function Profile() {
         {[
           { icon: Wallet, label: "Wisdom Wallet", subtitle: `${progress.tokens} tokens`, to: "/wallet" },
           { icon: Sparkles, label: "Token Store", subtitle: "Unlock content", to: "/store" },
-          { icon: Crown, label: "Upgrade to Pro", subtitle: "Unlock all tracks", to: "/upgrade", accent: true },
+          { icon: Crown, label: "Your Plan", subtitle: "Full access active", to: "/upgrade", accent: false },
           { icon: Settings, label: "Settings", subtitle: "Memory, privacy, data", to: "/settings" },
         ].map((item, i) => (
           <motion.div key={item.label} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
