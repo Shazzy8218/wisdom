@@ -100,7 +100,7 @@ function extractCharts(content: string): { text: string; charts: ChartData[] } {
 }
 
 // Tool indicator badges
-type ExtToolUsed = OwlTool | "profile" | "memory" | "mastery" | "goals" | "vision";
+type ExtToolUsed = OwlTool | "profile" | "memory" | "mastery" | "goals" | "vision" | "perplexity" | "firecrawl" | "ai-knowledge";
 
 const TOOL_ICON_MAP: Record<string, { icon: React.ReactNode; label: string }> = {
   profile: { icon: <User className="h-2.5 w-2.5" />, label: "Profile" },
@@ -110,18 +110,28 @@ const TOOL_ICON_MAP: Record<string, { icon: React.ReactNode; label: string }> = 
   goals: { icon: <Target className="h-2.5 w-2.5" />, label: "Goals" },
   mastery: { icon: <BarChart3 className="h-2.5 w-2.5" />, label: "Mastery" },
   imagegen: { icon: <Wand2 className="h-2.5 w-2.5" />, label: "Image Gen" },
-  web: { icon: <Globe className="h-2.5 w-2.5" />, label: "Web" },
+  web: { icon: <Globe className="h-2.5 w-2.5" />, label: "Web Search" },
+  perplexity: { icon: <Search className="h-2.5 w-2.5" />, label: "Perplexity" },
+  firecrawl: { icon: <Flame className="h-2.5 w-2.5" />, label: "Firecrawl" },
+  strategic: { icon: <Brain className="h-2.5 w-2.5" />, label: "Strategic Analysis" },
   docgen: { icon: <FileDown className="h-2.5 w-2.5" />, label: "Doc Gen" },
   calculator: { icon: <Calculator className="h-2.5 w-2.5" />, label: "Calculator" },
   reminder: { icon: <Clock className="h-2.5 w-2.5" />, label: "Reminder" },
   localtime: { icon: <Clock className="h-2.5 w-2.5" />, label: "Using local device time" },
   chat: { icon: <Brain className="h-2.5 w-2.5" />, label: "Chat" },
+  "ai-knowledge": { icon: <Brain className="h-2.5 w-2.5" />, label: "AI Knowledge" },
 };
 
-function ToolBadges({ tools }: { tools: string[] }) {
-  if (tools.length === 0) return null;
+const CONFIDENCE_COLORS: Record<string, string> = {
+  high: "text-green-400",
+  medium: "text-yellow-400",
+  low: "text-muted-foreground",
+};
+
+function ToolBadges({ tools, confidence, sourcesCount }: { tools: string[]; confidence?: string; sourcesCount?: number }) {
+  if (tools.length === 0 && !confidence) return null;
   return (
-    <div className="flex flex-wrap gap-1 mt-1.5">
+    <div className="flex flex-wrap gap-1 mt-1.5 items-center">
       {tools.map(t => {
         const info = TOOL_ICON_MAP[t] || { icon: null, label: t };
         return (
@@ -130,6 +140,16 @@ function ToolBadges({ tools }: { tools: string[] }) {
           </span>
         );
       })}
+      {confidence && (
+        <span className={`inline-flex items-center gap-0.5 rounded-md bg-surface-2 px-1.5 py-0.5 text-[10px] font-medium ${CONFIDENCE_COLORS[confidence] || "text-muted-foreground"}`}>
+          <Shield className="h-2.5 w-2.5" /> {confidence.charAt(0).toUpperCase() + confidence.slice(1)} confidence
+        </span>
+      )}
+      {sourcesCount && sourcesCount > 0 && (
+        <span className="inline-flex items-center gap-0.5 rounded-md bg-surface-2 px-1.5 py-0.5 text-[10px] text-muted-foreground font-medium">
+          📎 {sourcesCount} source{sourcesCount !== 1 ? "s" : ""}
+        </span>
+      )}
     </div>
   );
 }
