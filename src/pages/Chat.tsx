@@ -1,10 +1,10 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, Square, RotateCcw, ChevronDown, Plus, History, Pencil, Trash2, Bookmark, Image, X, Brain, BarChart3, User, Target, Eye, FileText, Paperclip, Wand2, Download, Loader2, Globe, Calculator, FileDown, Clock } from "lucide-react";
+import { Send, Square, RotateCcw, ChevronDown, Plus, History, Pencil, Trash2, Bookmark, Image, X, Brain, BarChart3, User, Target, Eye, FileText, Paperclip, Wand2, Download, Loader2, Globe, Calculator, FileDown, Clock, Flame, Search, Shield } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { streamChat, type Msg } from "@/lib/ai-stream";
 import { parseAndSaveWisdomPack } from "@/lib/wisdom-packs";
-import { routeToTool, TOOL_LABELS, WEB_SUB_LABELS, type OwlTool } from "@/lib/tool-router";
+import { routeToTool, TOOL_LABELS, WEB_SUB_LABELS, STRATEGIC_LABELS, type OwlTool, type StrategicType } from "@/lib/tool-router";
 import { toast } from "@/hooks/use-toast";
 import { useSearchParams } from "react-router-dom";
 import {
