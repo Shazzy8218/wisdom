@@ -34,7 +34,8 @@ const WISDOM_QUOTES = [
 ];
 
 export default function Library() {
-  const [tab, setTab] = useState<Tab>("snapshots");
+  const { progress } = useProgress();
+  const [tab, setTab] = useState<Tab>("courses");
   const [editedPrompts, setEditedPrompts] = useState<Record<string, string>>({});
   const [editingPromptId, setEditingPromptId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
