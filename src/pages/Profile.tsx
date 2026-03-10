@@ -63,7 +63,7 @@ export default function Profile() {
               </button>
             </div>
           )}
-          <p className="text-caption text-muted-foreground">{profile.plan === "pro" ? "Pro" : "Free"} Plan · {profile.learningStyle} learner</p>
+          <p className="text-caption text-muted-foreground">{getEffectivePlan(profile.plan)} · {profile.learningStyle} learner</p>
         </div>
       </motion.div>
 
