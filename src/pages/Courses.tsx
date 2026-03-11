@@ -388,7 +388,7 @@ function PersonalizedTab({
   onComplete: (id: string) => void;
 }) {
   return (
-    <div className="px-5">
+    <div className="px-4 md:px-8 lg:px-12">
       {/* Filters */}
       <div className="flex gap-1.5 mb-3 overflow-x-auto hide-scrollbar">
         {(["newest", "goal", "category", "difficulty"] as PFilter[]).map(f => (
