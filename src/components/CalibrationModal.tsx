@@ -148,7 +148,7 @@ export default function CalibrationModal({ onComplete }: CalibrationModalProps) 
           whileTap={ready ? { scale: 0.97 } : {}}
           onClick={handleFinish}
           disabled={!ready || saving}
-          className={`w-full rounded-2xl py-4 text-sm font-bold tracking-wide transition-all duration-300 flex items-center justify-center gap-2 ${
+          className={`w-full md:max-w-xs md:mx-auto rounded-2xl py-4 text-sm font-bold tracking-wide transition-all duration-300 flex items-center justify-center gap-2 ${
             ready
               ? "bg-primary text-primary-foreground shadow-[0_4px_24px_hsl(355_78%_50%/0.4)] hover:shadow-[0_4px_32px_hsl(355_78%_50%/0.5)]"
               : "bg-muted text-muted-foreground cursor-not-allowed"
