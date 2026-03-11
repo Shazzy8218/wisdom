@@ -431,7 +431,7 @@ function PersonalizedTab({
       )}
 
       {/* Lesson cards */}
-      <div className="space-y-1.5">
+      <div className="space-y-1.5 md:grid md:grid-cols-2 lg:grid-cols-3 md:gap-3 md:space-y-0">
         {lessons.map((lesson, i) => (
           <motion.div key={lesson.id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.03 }}>
