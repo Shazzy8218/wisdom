@@ -70,15 +70,20 @@ export function useUserProfile() {
 
 export function getUserProfileForAI(): Record<string, string> {
   const p = loadProfile();
-  // Load calibration from profiles cache
   let goalMode = "income";
   let outputMode = "blueprints";
+  let primaryDesire = "";
+  let answerTone = "calm";
+  let intensity = "normal";
   try {
     const cached = localStorage.getItem("wisdom-calibration-cache");
     if (cached) {
       const parsed = JSON.parse(cached);
       goalMode = parsed.goalMode || "income";
       outputMode = parsed.outputMode || "blueprints";
+      primaryDesire = parsed.primaryDesire || "";
+      answerTone = parsed.answerTone || "calm";
+      intensity = parsed.intensity || "normal";
     }
   } catch {}
   return {
@@ -90,5 +95,8 @@ export function getUserProfileForAI(): Record<string, string> {
     tokens: String(p.tokens),
     goal_mode: goalMode,
     output_mode: outputMode,
+    primary_desire: primaryDesire,
+    answer_tone: answerTone,
+    intensity: intensity,
   };
 }

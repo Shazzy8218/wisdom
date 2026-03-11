@@ -5,31 +5,60 @@ import { useAuth } from "./useAuth";
 export interface CalibrationData {
   goalMode: "income" | "impact";
   outputMode: "blueprints" | "components";
+  primaryDesire: string;
+  answerTone: string;
+  learningStyle: string;
+  intensity: string;
   calibrationDone: boolean;
 }
 
-const DEFAULT: CalibrationData = { goalMode: "income", outputMode: "blueprints", calibrationDone: false };
+const DEFAULT: CalibrationData = {
+  goalMode: "income",
+  outputMode: "blueprints",
+  primaryDesire: "",
+  answerTone: "",
+  learningStyle: "",
+  intensity: "normal",
+  calibrationDone: false,
+};
 
 export function useCalibration() {
   const { user } = useAuth();
   const [data, setData] = useState<CalibrationData>(() => {
     const cached = localStorage.getItem("wisdom-calibration-cache");
     if (cached) {
-      try { return JSON.parse(cached); } catch { /* ignore */ }
+      try {
+        const parsed = JSON.parse(cached);
+        // If cached says calibration is done, trust it immediately to avoid flash
+        if (parsed.calibrationDone) return { ...DEFAULT, ...parsed };
+      } catch { /* ignore */ }
     }
     return DEFAULT;
   });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user) { setLoading(false); return; }
-    supabase.from("profiles").select("goal_mode, output_mode, calibration_done").eq("id", user.id).single()
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+
+    supabase
+      .from("profiles")
+      .select("goal_mode, output_mode, calibration_done, primary_desire, answer_tone, learning_style, intensity")
+      .eq("id", user.id)
+      .single()
       .then(({ data: row, error }) => {
         if (row && !error) {
+          const r = row as any;
           const d: CalibrationData = {
-            goalMode: ((row as any).goal_mode || "income") as any,
-            outputMode: ((row as any).output_mode || "blueprints") as any,
-            calibrationDone: (row as any).calibration_done || false,
+            goalMode: (r.goal_mode || "income") as any,
+            outputMode: (r.output_mode || "blueprints") as any,
+            primaryDesire: r.primary_desire || "",
+            answerTone: r.answer_tone || "",
+            learningStyle: r.learning_style || "visual",
+            intensity: r.intensity || "normal",
+            calibrationDone: r.calibration_done || false,
           };
           setData(d);
           localStorage.setItem("wisdom-calibration-cache", JSON.stringify(d));
@@ -38,48 +67,73 @@ export function useCalibration() {
       });
   }, [user]);
 
-  const completeCalibration = useCallback(async (goalMode: string, outputMode: string) => {
-    if (!user) throw new Error("Not authenticated");
-    
-    // Try update first (profile should exist via trigger)
-    const { error: updateError } = await supabase.from("profiles")
-      .update({
-        goal_mode: goalMode,
-        output_mode: outputMode,
-        calibration_done: true,
-      } as any)
-      .eq("id", user.id);
-    
-    // If update affected 0 rows, insert
-    if (updateError) {
-      const { error: insertError } = await supabase.from("profiles").insert({
-        id: user.id,
-        goal_mode: goalMode,
-        output_mode: outputMode,
-        calibration_done: true,
-        email: user.email || "",
-        display_name: user.email?.split("@")[0] || "Learner",
-      } as any);
-      if (insertError) throw insertError;
-    }
-    
-    const newData: CalibrationData = { goalMode: goalMode as any, outputMode: outputMode as any, calibrationDone: true };
-    setData(newData);
-    localStorage.setItem("wisdom-calibration-cache", JSON.stringify(newData));
-  }, [user]);
+  const completeCalibration = useCallback(
+    async (answers: {
+      goalMode: string;
+      outputMode: string;
+      primaryDesire: string;
+      answerTone: string;
+      learningStyle: string;
+      intensity: string;
+    }) => {
+      if (!user) throw new Error("Not authenticated");
 
-  const updateCalibration = useCallback(async (updates: Partial<Pick<CalibrationData, "goalMode" | "outputMode">>) => {
-    if (!user) return;
-    const dbUpdates: any = {};
-    if (updates.goalMode) dbUpdates.goal_mode = updates.goalMode;
-    if (updates.outputMode) dbUpdates.output_mode = updates.outputMode;
-    await supabase.from("profiles").update(dbUpdates).eq("id", user.id);
-    setData(prev => ({
-      ...prev,
-      ...(updates.goalMode ? { goalMode: updates.goalMode } : {}),
-      ...(updates.outputMode ? { outputMode: updates.outputMode } : {}),
-    }));
-  }, [user]);
+      const payload = {
+        goal_mode: answers.goalMode,
+        output_mode: answers.outputMode,
+        primary_desire: answers.primaryDesire,
+        answer_tone: answers.answerTone,
+        learning_style: answers.learningStyle,
+        intensity: answers.intensity,
+        calibration_done: true,
+      } as any;
+
+      // Try update first (profile should exist via trigger)
+      const { error: updateError } = await supabase
+        .from("profiles")
+        .update(payload)
+        .eq("id", user.id);
+
+      if (updateError) {
+        const { error: insertError } = await supabase.from("profiles").insert({
+          id: user.id,
+          email: user.email || "",
+          display_name: user.email?.split("@")[0] || "Learner",
+          ...payload,
+        } as any);
+        if (insertError) throw insertError;
+      }
+
+      const newData: CalibrationData = {
+        goalMode: answers.goalMode as any,
+        outputMode: answers.outputMode as any,
+        primaryDesire: answers.primaryDesire,
+        answerTone: answers.answerTone,
+        learningStyle: answers.learningStyle,
+        intensity: answers.intensity,
+        calibrationDone: true,
+      };
+      setData(newData);
+      localStorage.setItem("wisdom-calibration-cache", JSON.stringify(newData));
+    },
+    [user]
+  );
+
+  const updateCalibration = useCallback(
+    async (updates: Partial<Pick<CalibrationData, "goalMode" | "outputMode" | "primaryDesire" | "answerTone" | "learningStyle" | "intensity">>) => {
+      if (!user) return;
+      const dbUpdates: any = {};
+      if (updates.goalMode) dbUpdates.goal_mode = updates.goalMode;
+      if (updates.outputMode) dbUpdates.output_mode = updates.outputMode;
+      if (updates.primaryDesire) dbUpdates.primary_desire = updates.primaryDesire;
+      if (updates.answerTone) dbUpdates.answer_tone = updates.answerTone;
+      if (updates.learningStyle) dbUpdates.learning_style = updates.learningStyle;
+      if (updates.intensity) dbUpdates.intensity = updates.intensity;
+      await supabase.from("profiles").update(dbUpdates).eq("id", user.id);
+      setData((prev) => ({ ...prev, ...updates }));
+    },
+    [user]
+  );
 
   return { calibration: data, loading, completeCalibration, updateCalibration };
 }
