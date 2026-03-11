@@ -190,7 +190,7 @@ export default function Courses() {
               className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none"
             />
           </div>
-          <div className="space-y-0.5">
+          <div className="space-y-0.5 md:grid md:grid-cols-2 lg:grid-cols-3 md:gap-0.5 md:space-y-0">
             {filteredCategories.map(cat => {
               const score = progress.masteryScores[cat.id] || 0;
               return (
