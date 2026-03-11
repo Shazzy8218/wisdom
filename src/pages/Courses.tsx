@@ -223,11 +223,11 @@ export default function Courses() {
   }, [recommended, coreTracks, moneyTracks, filteredCategories, search, progress.masteryScores, calibration.goalMode]);
 
   return (
-    <div className="min-h-screen pb-24">
+    <div className="min-h-screen pb-24 md:pb-8">
       {/* Header */}
-      <div className="px-5 pt-14 pb-3">
+      <div className="px-4 md:px-8 lg:px-12 pt-14 md:pt-8 pb-3">
         <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary mb-1">Courses</p>
-        <h1 className="font-display text-2xl font-bold text-foreground">Master AI. Make It Pay.</h1>
+        <h1 className="font-display text-2xl md:text-3xl font-bold text-foreground">Master AI. Make It Pay.</h1>
       </div>
 
       {/* Tab switcher */}
