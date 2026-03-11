@@ -41,15 +41,15 @@ export default function CalibrationModal({ onComplete }: CalibrationModalProps) 
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background px-5">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background px-4 md:px-8">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-        className="w-full max-w-sm"
+        className="w-full max-w-sm md:max-w-lg md:rounded-2xl md:border md:border-border md:bg-card/80 md:backdrop-blur-md md:p-8 md:shadow-xl"
       >
         {/* Header */}
-        <div className="text-center mb-10">
+        <div className="text-center mb-8 md:mb-6">
           <motion.div
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
@@ -64,79 +64,82 @@ export default function CalibrationModal({ onComplete }: CalibrationModalProps) 
           <p className="text-sm text-muted-foreground mt-2">Two questions so Owl adapts to you</p>
         </div>
 
-        {/* Question 1: The Why */}
-        <div className="mb-8">
-          <p className="text-xs font-semibold text-primary uppercase tracking-wider mb-3">1 — The Why</p>
-          <div className="grid grid-cols-2 gap-3">
-            {goalOptions.map((opt, i) => {
-              const selected = goalMode === opt.id;
-              return (
-                <motion.button
-                  key={opt.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.3 + i * 0.08 }}
-                  whileTap={{ scale: 0.97 }}
-                  onClick={() => setGoalMode(opt.id)}
-                  className={`relative rounded-2xl p-5 text-left transition-all duration-200 border ${
-                    selected
-                      ? "border-primary bg-primary/10 shadow-[0_0_20px_hsl(355_78%_50%/0.15)]"
-                      : "border-border bg-card hover:border-muted-foreground/30"
-                  }`}
-                >
-                  {selected && (
-                    <motion.div
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      className="absolute top-3 right-3 h-5 w-5 rounded-full bg-primary flex items-center justify-center"
-                    >
-                      <Check className="h-3 w-3 text-primary-foreground" />
-                    </motion.div>
-                  )}
-                  <span className="text-2xl block mb-2">{opt.emoji}</span>
-                  <p className="text-sm font-semibold text-foreground">{opt.label}</p>
-                  <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{opt.desc}</p>
-                </motion.button>
-              );
-            })}
+        {/* Questions — stack on mobile, side-by-side on desktop */}
+        <div className="md:grid md:grid-cols-2 md:gap-6 mb-8 md:mb-6">
+          {/* Question 1: The Why */}
+          <div className="mb-8 md:mb-0">
+            <p className="text-xs font-semibold text-primary uppercase tracking-wider mb-3">1 — The Why</p>
+            <div className="grid grid-cols-2 md:grid-cols-1 gap-3">
+              {goalOptions.map((opt, i) => {
+                const selected = goalMode === opt.id;
+                return (
+                  <motion.button
+                    key={opt.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.3 + i * 0.08 }}
+                    whileTap={{ scale: 0.97 }}
+                    onClick={() => setGoalMode(opt.id)}
+                    className={`relative rounded-2xl p-5 text-left transition-all duration-200 border ${
+                      selected
+                        ? "border-primary bg-primary/10 shadow-[0_0_20px_hsl(355_78%_50%/0.15)]"
+                        : "border-border bg-card hover:border-muted-foreground/30"
+                    }`}
+                  >
+                    {selected && (
+                      <motion.div
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        className="absolute top-3 right-3 h-5 w-5 rounded-full bg-primary flex items-center justify-center"
+                      >
+                        <Check className="h-3 w-3 text-primary-foreground" />
+                      </motion.div>
+                    )}
+                    <span className="text-2xl block mb-2">{opt.emoji}</span>
+                    <p className="text-sm font-semibold text-foreground">{opt.label}</p>
+                    <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{opt.desc}</p>
+                  </motion.button>
+                );
+              })}
+            </div>
           </div>
-        </div>
 
-        {/* Question 2: The How */}
-        <div className="mb-10">
-          <p className="text-xs font-semibold text-primary uppercase tracking-wider mb-3">2 — The How</p>
-          <div className="grid grid-cols-2 gap-3">
-            {outputOptions.map((opt, i) => {
-              const selected = outputMode === opt.id;
-              return (
-                <motion.button
-                  key={opt.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.5 + i * 0.08 }}
-                  whileTap={{ scale: 0.97 }}
-                  onClick={() => setOutputMode(opt.id)}
-                  className={`relative rounded-2xl p-5 text-left transition-all duration-200 border ${
-                    selected
-                      ? "border-primary bg-primary/10 shadow-[0_0_20px_hsl(355_78%_50%/0.15)]"
-                      : "border-border bg-card hover:border-muted-foreground/30"
-                  }`}
-                >
-                  {selected && (
-                    <motion.div
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      className="absolute top-3 right-3 h-5 w-5 rounded-full bg-primary flex items-center justify-center"
-                    >
-                      <Check className="h-3 w-3 text-primary-foreground" />
-                    </motion.div>
-                  )}
-                  <span className="text-2xl block mb-2">{opt.emoji}</span>
-                  <p className="text-sm font-semibold text-foreground">{opt.label}</p>
-                  <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{opt.desc}</p>
-                </motion.button>
-              );
-            })}
+          {/* Question 2: The How */}
+          <div>
+            <p className="text-xs font-semibold text-primary uppercase tracking-wider mb-3">2 — The How</p>
+            <div className="grid grid-cols-2 md:grid-cols-1 gap-3">
+              {outputOptions.map((opt, i) => {
+                const selected = outputMode === opt.id;
+                return (
+                  <motion.button
+                    key={opt.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.5 + i * 0.08 }}
+                    whileTap={{ scale: 0.97 }}
+                    onClick={() => setOutputMode(opt.id)}
+                    className={`relative rounded-2xl p-5 text-left transition-all duration-200 border ${
+                      selected
+                        ? "border-primary bg-primary/10 shadow-[0_0_20px_hsl(355_78%_50%/0.15)]"
+                        : "border-border bg-card hover:border-muted-foreground/30"
+                    }`}
+                  >
+                    {selected && (
+                      <motion.div
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        className="absolute top-3 right-3 h-5 w-5 rounded-full bg-primary flex items-center justify-center"
+                      >
+                        <Check className="h-3 w-3 text-primary-foreground" />
+                      </motion.div>
+                    )}
+                    <span className="text-2xl block mb-2">{opt.emoji}</span>
+                    <p className="text-sm font-semibold text-foreground">{opt.label}</p>
+                    <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{opt.desc}</p>
+                  </motion.button>
+                );
+              })}
+            </div>
           </div>
         </div>
 
@@ -148,7 +151,7 @@ export default function CalibrationModal({ onComplete }: CalibrationModalProps) 
           whileTap={ready ? { scale: 0.97 } : {}}
           onClick={handleFinish}
           disabled={!ready || saving}
-          className={`w-full rounded-2xl py-4 text-sm font-bold tracking-wide transition-all duration-300 flex items-center justify-center gap-2 ${
+          className={`w-full md:max-w-xs md:mx-auto rounded-2xl py-4 text-sm font-bold tracking-wide transition-all duration-300 flex items-center justify-center gap-2 ${
             ready
               ? "bg-primary text-primary-foreground shadow-[0_4px_24px_hsl(355_78%_50%/0.4)] hover:shadow-[0_4px_32px_hsl(355_78%_50%/0.5)]"
               : "bg-muted text-muted-foreground cursor-not-allowed"
