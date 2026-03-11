@@ -132,7 +132,7 @@ export default function Courses() {
       sublabel: `${recommended.length} tracks · ${calibration.goalMode} focus`,
       accent: "border-l-primary",
       content: (
-        <div className="space-y-1 md:grid md:grid-cols-2 md:gap-1 md:space-y-0">
+        <div className="space-y-1">
           {recommended.slice(0, 5).map(track => (
             <TrackRow key={track.id} track={track} />
           ))}
@@ -148,7 +148,7 @@ export default function Courses() {
       sublabel: `${coreTracks.length} tracks · ${coreTracks.reduce((a, t) => a + t.modules.length, 0)} modules`,
       accent: "border-l-primary",
       content: (
-        <div className="space-y-1 md:grid md:grid-cols-2 md:gap-1 md:space-y-0">
+        <div className="space-y-1">
           {coreTracks.map(track => (
             <TrackRow key={track.id} track={track} />
           ))}
@@ -164,7 +164,7 @@ export default function Courses() {
       sublabel: `${moneyTracks.length} tracks · income-focused`,
       accent: "border-l-accent-gold",
       content: (
-        <div className="space-y-1 md:grid md:grid-cols-2 md:gap-1 md:space-y-0">
+        <div className="space-y-1">
           {moneyTracks.map(track => (
             <TrackRow key={track.id} track={track} />
           ))}
@@ -190,7 +190,7 @@ export default function Courses() {
               className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none"
             />
           </div>
-          <div className="space-y-0.5 md:grid md:grid-cols-2 lg:grid-cols-3 md:gap-0.5 md:space-y-0">
+          <div className="space-y-0.5">
             {filteredCategories.map(cat => {
               const score = progress.masteryScores[cat.id] || 0;
               return (
@@ -223,16 +223,16 @@ export default function Courses() {
   }, [recommended, coreTracks, moneyTracks, filteredCategories, search, progress.masteryScores, calibration.goalMode]);
 
   return (
-    <div className="min-h-screen pb-24 md:pb-8">
+    <div className="min-h-screen pb-24">
       {/* Header */}
-      <div className="px-4 md:px-8 lg:px-12 pt-14 md:pt-8 pb-3">
+      <div className="px-5 pt-14 pb-3">
         <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary mb-1">Courses</p>
-        <h1 className="font-display text-2xl md:text-3xl font-bold text-foreground">Master AI. Make It Pay.</h1>
+        <h1 className="font-display text-2xl font-bold text-foreground">Master AI. Make It Pay.</h1>
       </div>
 
       {/* Tab switcher */}
-      <div className="px-4 md:px-8 lg:px-12 mb-4">
-        <div className="flex rounded-xl bg-surface-2 p-0.5 gap-0.5 max-w-sm md:max-w-md">
+      <div className="px-5 mb-4">
+        <div className="flex rounded-xl bg-surface-2 p-0.5 gap-0.5">
           <button
             onClick={() => setTab("catalog")}
             className={`flex-1 rounded-lg py-2 text-xs font-semibold transition-all ${
@@ -261,7 +261,7 @@ export default function Courses() {
         {tab === "catalog" ? (
           <motion.div key="catalog" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             {/* Mastery Widget — ultra compact */}
-            <div className="px-4 md:px-8 lg:px-12 mb-4">
+            <div className="px-5 mb-4">
               <button
                 onClick={() => setMasteryExpanded(!masteryExpanded)}
                 className="w-full rounded-xl border border-border bg-card/60 backdrop-blur-sm p-3 flex items-center gap-3 text-left hover:border-primary/20 transition-all"
@@ -294,7 +294,7 @@ export default function Courses() {
             </div>
 
             {/* Accordion sections */}
-            <div className="px-4 md:px-8 lg:px-12 space-y-2">
+            <div className="px-5 space-y-2">
               {catalogSections.map(section => (
                 <div
                   key={section.id}
@@ -388,7 +388,7 @@ function PersonalizedTab({
   onComplete: (id: string) => void;
 }) {
   return (
-    <div className="px-4 md:px-8 lg:px-12">
+    <div className="px-5">
       {/* Filters */}
       <div className="flex gap-1.5 mb-3 overflow-x-auto hide-scrollbar">
         {(["newest", "goal", "category", "difficulty"] as PFilter[]).map(f => (
@@ -408,7 +408,7 @@ function PersonalizedTab({
       <button
         onClick={onGenerate}
         disabled={generating}
-        className="w-full md:max-w-md rounded-xl border border-border bg-card/60 p-3 flex items-center justify-center gap-2 text-sm font-medium text-primary hover:border-primary/20 transition-all mb-3"
+        className="w-full rounded-xl border border-border bg-card/60 p-3 flex items-center justify-center gap-2 text-sm font-medium text-primary hover:border-primary/20 transition-all mb-3"
       >
         {generating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
         {generating ? "Generating…" : "Generate More Lessons"}
@@ -431,7 +431,7 @@ function PersonalizedTab({
       )}
 
       {/* Lesson cards */}
-      <div className="space-y-1.5 md:grid md:grid-cols-2 lg:grid-cols-3 md:gap-3 md:space-y-0">
+      <div className="space-y-1.5">
         {lessons.map((lesson, i) => (
           <motion.div key={lesson.id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.03 }}>
