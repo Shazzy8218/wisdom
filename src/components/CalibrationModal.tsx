@@ -66,7 +66,7 @@ const questions: Question[] = [
   },
 ];
 
-export default function CalibrationModal({ onComplete }: CalibrationModalProps) {
+export default function CalibrationModal({ onComplete, onSkip, onBack }: CalibrationModalProps) {
   const [answers, setAnswers] = useState<Record<string, string>>({
     intensity: "normal",
   });
