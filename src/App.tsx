@@ -4,7 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import BottomNav from "@/components/BottomNav";
+import AppLayout from "@/components/AppLayout";
 import SplashQuote from "@/components/SplashQuote";
 import ScrollToTop from "@/components/ScrollToTop";
 import { useAuth } from "@/hooks/useAuth";
@@ -78,7 +78,7 @@ function AppRoutes() {
   return (
     <>
       <ScrollToTop />
-      <div className="mx-auto max-w-lg">
+      <AppLayout>
         <Routes>
           {/* Chat is now the default home */}
           <Route path="/" element={<Chat />} />
@@ -114,8 +114,7 @@ function AppRoutes() {
           <Route path="/chat" element={<Navigate to="/" replace />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
-        <BottomNav />
-      </div>
+      </AppLayout>
     </>
   );
 }

@@ -22,7 +22,7 @@ export default function Games() {
         <HiddenOwl locationId="games-header" className="absolute right-6 top-16" size={18} />
       </div>
       <div className="editorial-divider mx-5 mb-6" />
-      <div className="px-5 space-y-3">
+      <div className="px-5 space-y-3 md:grid md:grid-cols-2 lg:grid-cols-3 md:gap-4 md:space-y-0">
         {GAMES.map((game, i) => {
           const route = GAME_ROUTES[game.id];
           const cardClass = "glass-card p-5 flex items-center gap-4 cursor-pointer hover:border-primary/20 transition-all duration-200 block";
