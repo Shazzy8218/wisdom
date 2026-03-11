@@ -408,7 +408,7 @@ function PersonalizedTab({
       <button
         onClick={onGenerate}
         disabled={generating}
-        className="w-full rounded-xl border border-border bg-card/60 p-3 flex items-center justify-center gap-2 text-sm font-medium text-primary hover:border-primary/20 transition-all mb-3"
+        className="w-full md:max-w-md rounded-xl border border-border bg-card/60 p-3 flex items-center justify-center gap-2 text-sm font-medium text-primary hover:border-primary/20 transition-all mb-3"
       >
         {generating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
         {generating ? "Generating…" : "Generate More Lessons"}
