@@ -112,43 +112,52 @@ export type Database = {
       }
       profiles: {
         Row: {
+          answer_tone: string
           calibration_done: boolean
           created_at: string
           display_name: string
           email: string | null
           goal_mode: string
           id: string
+          intensity: string
           last_login_at: string
           learning_goal: string | null
           learning_style: string
           output_mode: string
           plan: string
+          primary_desire: string
         }
         Insert: {
+          answer_tone?: string
           calibration_done?: boolean
           created_at?: string
           display_name?: string
           email?: string | null
           goal_mode?: string
           id: string
+          intensity?: string
           last_login_at?: string
           learning_goal?: string | null
           learning_style?: string
           output_mode?: string
           plan?: string
+          primary_desire?: string
         }
         Update: {
+          answer_tone?: string
           calibration_done?: boolean
           created_at?: string
           display_name?: string
           email?: string | null
           goal_mode?: string
           id?: string
+          intensity?: string
           last_login_at?: string
           learning_goal?: string | null
           learning_style?: string
           output_mode?: string
           plan?: string
+          primary_desire?: string
         }
         Relationships: []
       }
