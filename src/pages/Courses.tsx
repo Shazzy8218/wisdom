@@ -164,7 +164,7 @@ export default function Courses() {
       sublabel: `${moneyTracks.length} tracks · income-focused`,
       accent: "border-l-accent-gold",
       content: (
-        <div className="space-y-1">
+        <div className="space-y-1 md:grid md:grid-cols-2 md:gap-1 md:space-y-0">
           {moneyTracks.map(track => (
             <TrackRow key={track.id} track={track} />
           ))}
