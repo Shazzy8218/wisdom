@@ -129,7 +129,28 @@ export default function CalibrationModal({ onComplete, onSkip, onBack }: Calibra
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background overflow-y-auto py-8 px-4">
+    <div className="fixed inset-0 z-50 flex flex-col bg-background">
+      {/* Top header bar */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-background/80 backdrop-blur-sm shrink-0">
+        <button
+          onClick={onBack}
+          className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <ArrowLeft className="h-4 w-4" />
+        </button>
+        <span className="text-sm font-semibold text-foreground tracking-wide">
+          Calibration
+        </span>
+        <button
+          onClick={onSkip}
+          className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+        >
+          Skip
+        </button>
+      </div>
+
+      {/* Scrollable body */}
+      <div className="flex-1 overflow-y-auto flex items-start justify-center py-8 px-4">
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
@@ -138,14 +159,11 @@ export default function CalibrationModal({ onComplete, onSkip, onBack }: Calibra
       >
         {/* Card */}
         <div className="rounded-2xl border border-border bg-card p-8 shadow-lg">
-          {/* Header */}
+          {/* Intro */}
           <div className="flex items-center gap-3 mb-2">
             <div className="h-10 w-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
               <OwlIcon size={22} />
             </div>
-            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">
-              Calibration
-            </span>
           </div>
 
           <h2 className="text-lg font-semibold text-foreground mt-5 leading-snug">
