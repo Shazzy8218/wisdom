@@ -1317,7 +1317,7 @@ export default function Chat() {
       )}
 
       {/* Input */}
-      <div className="border-t border-border/50 px-5 py-3 pb-24 bg-background">
+      <div className="border-t border-border/50 px-5 py-3 pb-24 md:pb-4 bg-background">
         <div className="flex items-center gap-2 rounded-2xl border border-border bg-card px-3 py-2.5">
           <input type="file" ref={fileInputRef} accept="image/*,.pdf,.doc,.docx,.txt,.csv,.md,.json,.xml" multiple className="hidden" onChange={handleFileSelect} />
           <button onClick={() => fileInputRef.current?.click()}
