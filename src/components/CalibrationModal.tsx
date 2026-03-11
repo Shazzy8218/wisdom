@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Check, Loader2 } from "lucide-react";
+import { Check, Loader2, ArrowLeft } from "lucide-react";
 import OwlIcon from "@/components/OwlIcon";
 import { toast } from "@/hooks/use-toast";
 
@@ -13,6 +13,8 @@ interface CalibrationModalProps {
     learningStyle: string;
     intensity: string;
   }) => Promise<void>;
+  onSkip: () => void;
+  onBack: () => void;
 }
 
 interface Question {
