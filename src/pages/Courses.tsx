@@ -132,7 +132,7 @@ export default function Courses() {
       sublabel: `${recommended.length} tracks · ${calibration.goalMode} focus`,
       accent: "border-l-primary",
       content: (
-        <div className="space-y-1">
+        <div className="space-y-1 md:grid md:grid-cols-2 md:gap-1 md:space-y-0">
           {recommended.slice(0, 5).map(track => (
             <TrackRow key={track.id} track={track} />
           ))}
