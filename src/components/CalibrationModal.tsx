@@ -273,6 +273,7 @@ export default function CalibrationModal({ onComplete, onSkip, onBack }: Calibra
           </p>
         </div>
       </motion.div>
+      </div>
     </div>
   );
 }
