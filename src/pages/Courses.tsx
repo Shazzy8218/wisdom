@@ -294,7 +294,7 @@ export default function Courses() {
             </div>
 
             {/* Accordion sections */}
-            <div className="px-5 space-y-2">
+            <div className="px-4 md:px-8 lg:px-12 space-y-2">
               {catalogSections.map(section => (
                 <div
                   key={section.id}
