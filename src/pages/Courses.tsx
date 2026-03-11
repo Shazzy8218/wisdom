@@ -231,8 +231,8 @@ export default function Courses() {
       </div>
 
       {/* Tab switcher */}
-      <div className="px-5 mb-4">
-        <div className="flex rounded-xl bg-surface-2 p-0.5 gap-0.5">
+      <div className="px-4 md:px-8 lg:px-12 mb-4">
+        <div className="flex rounded-xl bg-surface-2 p-0.5 gap-0.5 max-w-sm md:max-w-md">
           <button
             onClick={() => setTab("catalog")}
             className={`flex-1 rounded-lg py-2 text-xs font-semibold transition-all ${
