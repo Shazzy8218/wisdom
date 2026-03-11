@@ -261,7 +261,7 @@ export default function Courses() {
         {tab === "catalog" ? (
           <motion.div key="catalog" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             {/* Mastery Widget — ultra compact */}
-            <div className="px-5 mb-4">
+            <div className="px-4 md:px-8 lg:px-12 mb-4">
               <button
                 onClick={() => setMasteryExpanded(!masteryExpanded)}
                 className="w-full rounded-xl border border-border bg-card/60 backdrop-blur-sm p-3 flex items-center gap-3 text-left hover:border-primary/20 transition-all"
