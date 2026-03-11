@@ -72,9 +72,18 @@ function AppRoutes() {
     );
   }
 
-  // Show calibration modal for first-time users
+  // Show calibration modal only for genuinely new users who haven't completed it
   if (!calLoading && user && !calibration.calibrationDone) {
     return <CalibrationModal onComplete={completeCalibration} />;
+  }
+
+  // Still loading calibration — show spinner to avoid flash
+  if (calLoading && user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="w-6 h-6 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+      </div>
+    );
   }
 
   return (

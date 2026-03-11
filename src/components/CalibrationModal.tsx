@@ -5,167 +5,253 @@ import OwlIcon from "@/components/OwlIcon";
 import { toast } from "@/hooks/use-toast";
 
 interface CalibrationModalProps {
-  onComplete: (goalMode: string, outputMode: string) => Promise<void>;
+  onComplete: (answers: {
+    goalMode: string;
+    outputMode: string;
+    primaryDesire: string;
+    answerTone: string;
+    learningStyle: string;
+    intensity: string;
+  }) => Promise<void>;
 }
 
-const goalOptions = [
-  { id: "income", emoji: "💰", label: "Income", desc: "Speed, cash flow, practical wins" },
-  { id: "impact", emoji: "🚀", label: "Impact", desc: "Scalability, legacy, long-term build" },
-];
+interface Question {
+  id: string;
+  label: string;
+  options: { id: string; label: string }[];
+  required: boolean;
+}
 
-const outputOptions = [
-  { id: "blueprints", emoji: "📐", label: "Structural Blueprints", desc: "Layouts, systems, flows, strategy" },
-  { id: "components", emoji: "🧩", label: "Raw Components", desc: "Scripts, templates, code, assets" },
+const questions: Question[] = [
+  {
+    id: "primaryDesire",
+    label: "What do you want most right now?",
+    options: [
+      { id: "money", label: "More money" },
+      { id: "stress", label: "Less stress" },
+      { id: "thinking", label: "Better thinking" },
+      { id: "skills", label: "Stronger skills" },
+    ],
+    required: true,
+  },
+  {
+    id: "answerTone",
+    label: "How do you like answers?",
+    options: [
+      { id: "blunt", label: "Blunt and direct" },
+      { id: "calm", label: "Calm but honest" },
+    ],
+    required: true,
+  },
+  {
+    id: "learningStyle",
+    label: "How do you like to learn?",
+    options: [
+      { id: "visual", label: "Short and visual" },
+      { id: "reader", label: "Simple and clear" },
+      { id: "hands-on", label: "Deep breakdowns" },
+    ],
+    required: true,
+  },
+  {
+    id: "intensity",
+    label: "How intense should I be?",
+    options: [
+      { id: "normal", label: "Normal mentor" },
+      { id: "ruthless", label: "Ruthless mentor" },
+    ],
+    required: false,
+  },
 ];
 
 export default function CalibrationModal({ onComplete }: CalibrationModalProps) {
-  const [goalMode, setGoalMode] = useState<string | null>(null);
-  const [outputMode, setOutputMode] = useState<string | null>(null);
+  const [answers, setAnswers] = useState<Record<string, string>>({
+    intensity: "normal",
+  });
   const [saving, setSaving] = useState(false);
+  const [success, setSuccess] = useState(false);
 
-  const ready = goalMode && outputMode;
+  const requiredIds = questions.filter((q) => q.required).map((q) => q.id);
+  const allRequiredAnswered = requiredIds.every((id) => !!answers[id]);
+
+  const select = (questionId: string, optionId: string) => {
+    setAnswers((prev) => ({ ...prev, [questionId]: optionId }));
+  };
 
   const handleFinish = async () => {
-    if (!goalMode || !outputMode || saving) return;
+    if (!allRequiredAnswered || saving) return;
     setSaving(true);
     try {
-      await onComplete(goalMode, outputMode);
-      const goalLabel = goalOptions.find(g => g.id === goalMode)?.label;
-      const outputLabel = outputOptions.find(o => o.id === outputMode)?.label;
-      toast({ title: `Locked in: ${goalLabel} + ${outputLabel}`, description: "Owl is calibrated to you." });
+      await onComplete({
+        goalMode: "income",
+        outputMode: "blueprints",
+        primaryDesire: answers.primaryDesire || "",
+        answerTone: answers.answerTone || "calm",
+        learningStyle: answers.learningStyle || "visual",
+        intensity: answers.intensity || "normal",
+      });
+      setSuccess(true);
     } catch (e) {
       console.error("Calibration save failed:", e);
-      toast({ title: "Save failed — tap to retry", variant: "destructive" });
+      toast({
+        title: "Couldn't save. Check your connection and try again.",
+        variant: "destructive",
+      });
       setSaving(false);
     }
   };
 
+  // Success transition
+  if (success) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-background">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0 }}
+          className="text-center"
+        >
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ type: "spring", stiffness: 200, damping: 15 }}
+            className="mx-auto mb-5 h-16 w-16 rounded-full bg-primary/15 flex items-center justify-center"
+          >
+            <Check className="h-7 w-7 text-primary" />
+          </motion.div>
+          <p className="text-base font-medium text-foreground">You're all set.</p>
+          <p className="text-sm text-muted-foreground mt-1">Entering Wisdom Owl…</p>
+        </motion.div>
+      </div>
+    );
+  }
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background px-5">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background overflow-y-auto py-8 px-4">
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-        className="w-full max-w-sm"
+        className="w-full max-w-md"
       >
-        {/* Header */}
-        <div className="text-center mb-10">
-          <motion.div
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ delay: 0.2, duration: 0.4 }}
-            className="flex justify-center mb-5"
-          >
-            <div className="h-16 w-16 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center">
-              <OwlIcon size={32} />
+        {/* Card */}
+        <div className="rounded-2xl border border-border bg-card p-8 shadow-lg">
+          {/* Header */}
+          <div className="flex items-center gap-3 mb-2">
+            <div className="h-10 w-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
+              <OwlIcon size={22} />
             </div>
-          </motion.div>
-          <h2 className="font-display text-2xl font-bold text-foreground tracking-tight">Quick Calibration</h2>
-          <p className="text-sm text-muted-foreground mt-2">Two questions so Owl adapts to you</p>
-        </div>
-
-        {/* Question 1: The Why */}
-        <div className="mb-8">
-          <p className="text-xs font-semibold text-primary uppercase tracking-wider mb-3">1 — The Why</p>
-          <div className="grid grid-cols-2 gap-3">
-            {goalOptions.map((opt, i) => {
-              const selected = goalMode === opt.id;
-              return (
-                <motion.button
-                  key={opt.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.3 + i * 0.08 }}
-                  whileTap={{ scale: 0.97 }}
-                  onClick={() => setGoalMode(opt.id)}
-                  className={`relative rounded-2xl p-5 text-left transition-all duration-200 border ${
-                    selected
-                      ? "border-primary bg-primary/10 shadow-[0_0_20px_hsl(355_78%_50%/0.15)]"
-                      : "border-border bg-card hover:border-muted-foreground/30"
-                  }`}
-                >
-                  {selected && (
-                    <motion.div
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      className="absolute top-3 right-3 h-5 w-5 rounded-full bg-primary flex items-center justify-center"
-                    >
-                      <Check className="h-3 w-3 text-primary-foreground" />
-                    </motion.div>
-                  )}
-                  <span className="text-2xl block mb-2">{opt.emoji}</span>
-                  <p className="text-sm font-semibold text-foreground">{opt.label}</p>
-                  <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{opt.desc}</p>
-                </motion.button>
-              );
-            })}
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">
+              Calibration
+            </span>
           </div>
-        </div>
 
-        {/* Question 2: The How */}
-        <div className="mb-10">
-          <p className="text-xs font-semibold text-primary uppercase tracking-wider mb-3">2 — The How</p>
-          <div className="grid grid-cols-2 gap-3">
-            {outputOptions.map((opt, i) => {
-              const selected = outputMode === opt.id;
-              return (
-                <motion.button
-                  key={opt.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.5 + i * 0.08 }}
-                  whileTap={{ scale: 0.97 }}
-                  onClick={() => setOutputMode(opt.id)}
-                  className={`relative rounded-2xl p-5 text-left transition-all duration-200 border ${
-                    selected
-                      ? "border-primary bg-primary/10 shadow-[0_0_20px_hsl(355_78%_50%/0.15)]"
-                      : "border-border bg-card hover:border-muted-foreground/30"
-                  }`}
-                >
-                  {selected && (
-                    <motion.div
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      className="absolute top-3 right-3 h-5 w-5 rounded-full bg-primary flex items-center justify-center"
-                    >
-                      <Check className="h-3 w-3 text-primary-foreground" />
-                    </motion.div>
-                  )}
-                  <span className="text-2xl block mb-2">{opt.emoji}</span>
-                  <p className="text-sm font-semibold text-foreground">{opt.label}</p>
-                  <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{opt.desc}</p>
-                </motion.button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Let's Go Button */}
-        <motion.button
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.7 }}
-          whileTap={ready ? { scale: 0.97 } : {}}
-          onClick={handleFinish}
-          disabled={!ready || saving}
-          className={`w-full rounded-2xl py-4 text-sm font-bold tracking-wide transition-all duration-300 flex items-center justify-center gap-2 ${
-            ready
-              ? "bg-primary text-primary-foreground shadow-[0_4px_24px_hsl(355_78%_50%/0.4)] hover:shadow-[0_4px_32px_hsl(355_78%_50%/0.5)]"
-              : "bg-muted text-muted-foreground cursor-not-allowed"
-          }`}
-        >
-          {saving ? (
-            <><Loader2 className="h-4 w-4 animate-spin" /> Saving...</>
-          ) : (
-            "Let's Go ✦"
-          )}
-        </motion.button>
-
-        {!ready && (
-          <p className="text-center text-xs text-muted-foreground mt-3">
-            Select one option from each question
+          <h2 className="text-lg font-semibold text-foreground mt-5 leading-snug">
+            Let's tune Wisdom Owl to you.
+          </h2>
+          <p className="text-sm text-muted-foreground mt-1.5 mb-8">
+            Answer a few quick questions so I actually think like you do.
           </p>
-        )}
+
+          {/* Questions */}
+          <div className="space-y-7">
+            {questions.map((q, qi) => (
+              <motion.div
+                key={q.id}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.15 + qi * 0.07 }}
+              >
+                <p className="text-sm font-medium text-foreground mb-3">
+                  {q.label}
+                  {!q.required && (
+                    <span className="text-muted-foreground font-normal ml-1.5 text-xs">
+                      (optional)
+                    </span>
+                  )}
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {q.options.map((opt) => {
+                    const selected = answers[q.id] === opt.id;
+                    return (
+                      <motion.button
+                        key={opt.id}
+                        whileTap={{ scale: 0.96 }}
+                        onClick={() => select(q.id, opt.id)}
+                        className={`relative rounded-xl px-4 py-2.5 text-sm font-medium transition-all duration-200 border ${
+                          selected
+                            ? "border-primary bg-primary/12 text-primary shadow-[0_0_12px_hsl(var(--primary)/0.15)]"
+                            : "border-border bg-background text-muted-foreground hover:border-muted-foreground/40 hover:text-foreground"
+                        }`}
+                      >
+                        <span className="flex items-center gap-1.5">
+                          {selected && (
+                            <motion.span
+                              initial={{ scale: 0 }}
+                              animate={{ scale: 1 }}
+                              transition={{ type: "spring", stiffness: 400, damping: 15 }}
+                            >
+                              <Check className="h-3.5 w-3.5" />
+                            </motion.span>
+                          )}
+                          {opt.label}
+                        </span>
+                      </motion.button>
+                    );
+                  })}
+                </div>
+              </motion.div>
+            ))}
+          </div>
+
+          {/* Confirmation micro-copy */}
+          <AnimatePresence>
+            {allRequiredAnswered && (
+              <motion.p
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                className="text-xs text-primary mt-6 text-center font-medium"
+              >
+                Got it. I'll use this from now on.
+              </motion.p>
+            )}
+          </AnimatePresence>
+
+          {/* Let's Go */}
+          <motion.button
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5 }}
+            whileTap={allRequiredAnswered ? { scale: 0.97 } : {}}
+            onClick={handleFinish}
+            disabled={!allRequiredAnswered || saving}
+            className={`w-full mt-6 rounded-xl py-3.5 text-sm font-semibold tracking-wide transition-all duration-300 flex items-center justify-center gap-2 ${
+              allRequiredAnswered
+                ? "bg-primary text-primary-foreground shadow-[0_4px_20px_hsl(var(--primary)/0.35)] hover:shadow-[0_4px_28px_hsl(var(--primary)/0.45)]"
+                : "bg-muted text-muted-foreground cursor-not-allowed"
+            }`}
+          >
+            {saving ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" /> Saving…
+              </>
+            ) : (
+              "Let's go"
+            )}
+          </motion.button>
+
+          {!allRequiredAnswered && (
+            <p className="text-center text-xs text-muted-foreground mt-3">
+              Answer each question above to continue
+            </p>
+          )}
+
+          {/* Trust text */}
+          <p className="text-center text-[11px] text-muted-foreground/60 mt-6 leading-relaxed">
+            Your answers only help Owl talk to you better. You can change them anytime in Profile.
+          </p>
+        </div>
       </motion.div>
     </div>
   );
