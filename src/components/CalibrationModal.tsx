@@ -49,7 +49,7 @@ export default function CalibrationModal({ onComplete }: CalibrationModalProps) 
         className="w-full max-w-sm md:max-w-lg md:rounded-2xl md:border md:border-border md:bg-card/80 md:backdrop-blur-md md:p-8 md:shadow-xl"
       >
         {/* Header */}
-        <div className="text-center mb-10">
+        <div className="text-center mb-8 md:mb-6">
           <motion.div
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
