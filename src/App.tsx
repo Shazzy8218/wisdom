@@ -47,6 +47,19 @@ function AppRoutes() {
   const { calibration, loading: calLoading, completeCalibration } = useCalibration();
   useCloudSync();
   const [splashDismissed, setSplashDismissed] = useState(false);
+  const [calibrationSkipped, setCalibrationSkipped] = useState(() => {
+    return localStorage.getItem("wisdom-calibration-skipped") === "true";
+  });
+
+  const handleSkip = () => {
+    localStorage.setItem("wisdom-calibration-skipped", "true");
+    setCalibrationSkipped(true);
+  };
+
+  const handleBack = () => {
+    // Go back to auth screen by signing out
+    import("@/integrations/supabase/client").then(({ supabase }) => supabase.auth.signOut());
+  };
 
   if (loading) {
     return (
@@ -72,9 +85,9 @@ function AppRoutes() {
     );
   }
 
-  // Show calibration modal only for genuinely new users who haven't completed it
-  if (!calLoading && user && !calibration.calibrationDone) {
-    return <CalibrationModal onComplete={completeCalibration} />;
+  // Show calibration only for new users who haven't completed or skipped it
+  if (!calLoading && user && !calibration.calibrationDone && !calibrationSkipped) {
+    return <CalibrationModal onComplete={completeCalibration} onSkip={handleSkip} onBack={handleBack} />;
   }
 
   // Still loading calibration — show spinner to avoid flash
