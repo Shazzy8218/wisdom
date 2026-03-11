@@ -88,22 +88,7 @@ export function useCalibration() {
         calibration_done: true,
       } as any;
 
-      // Try update first (profile should exist via trigger)
-      const { error: updateError } = await supabase
-        .from("profiles")
-        .update(payload)
-        .eq("id", user.id);
-
-      if (updateError) {
-        const { error: insertError } = await supabase.from("profiles").insert({
-          id: user.id,
-          email: user.email || "",
-          display_name: user.email?.split("@")[0] || "Learner",
-          ...payload,
-        } as any);
-        if (insertError) throw insertError;
-      }
-
+      // Always set local state first so UI unblocks even if DB is slow
       const newData: CalibrationData = {
         goalMode: answers.goalMode as any,
         outputMode: answers.outputMode as any,
@@ -113,8 +98,30 @@ export function useCalibration() {
         intensity: answers.intensity,
         calibrationDone: true,
       };
-      setData(newData);
       localStorage.setItem("wisdom-calibration-cache", JSON.stringify(newData));
+
+      // Try update first (profile should exist via trigger)
+      const { error: updateError, count } = await supabase
+        .from("profiles")
+        .update(payload)
+        .eq("id", user.id);
+
+      if (updateError) {
+        // Fallback: try insert
+        const { error: insertError } = await supabase.from("profiles").insert({
+          id: user.id,
+          email: user.email || "",
+          display_name: user.email?.split("@")[0] || "Learner",
+          ...payload,
+        } as any);
+        if (insertError) {
+          console.error("Calibration insert also failed:", insertError);
+          // Still set local state so user isn't stuck
+        }
+      }
+
+      // Set React state last to trigger parent re-render & unmount calibration
+      setData(newData);
     },
     [user]
   );

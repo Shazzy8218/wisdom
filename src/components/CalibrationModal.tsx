@@ -93,6 +93,11 @@ export default function CalibrationModal({ onComplete, onSkip, onBack }: Calibra
         intensity: answers.intensity || "normal",
       });
       setSuccess(true);
+      // Force-clear after 2s in case parent re-render doesn't unmount us
+      setTimeout(() => {
+        setSaving(false);
+        setSuccess(false);
+      }, 2000);
     } catch (e) {
       console.error("Calibration save failed:", e);
       toast({
