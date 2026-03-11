@@ -41,12 +41,12 @@ export default function CalibrationModal({ onComplete }: CalibrationModalProps) 
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background px-5">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background px-4 md:px-8">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-        className="w-full max-w-sm"
+        className="w-full max-w-sm md:max-w-lg md:rounded-2xl md:border md:border-border md:bg-card/80 md:backdrop-blur-md md:p-8 md:shadow-xl"
       >
         {/* Header */}
         <div className="text-center mb-10">
