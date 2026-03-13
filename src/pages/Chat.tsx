@@ -171,40 +171,68 @@ function validateUploadFile(file: File): string | null {
   return null;
 }
 
-async function uploadChatFile(file: File, onProgress?: (pct: number) => void): Promise<string | null> {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
+interface UploadResult {
+  url: string | null;
+  error?: string;
+}
+
+async function uploadChatFile(file: File, onProgress?: (pct: number) => void): Promise<UploadResult> {
+  console.log("[Upload] Starting upload:", file.name, file.size, file.type);
+
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) {
+    console.error("[Upload] Auth error:", authError?.message || "No user session");
+    return { url: null, error: "Not logged in. Please sign in and try again." };
+  }
+
+  if (!file.size || file.size === 0) {
+    return { url: null, error: "File is empty (0 bytes)." };
+  }
+
   const ext = file.name.split(".").pop() || "bin";
   const path = `${user.id}/${Date.now()}.${ext}`;
+  const bucket = "chat-uploads";
 
-  onProgress?.(10);
-  let currentPct = 10;
+  console.log("[Upload] Uploading to bucket:", bucket, "path:", path);
+
+  onProgress?.(5);
+  let currentPct = 5;
   const progressTimer = setInterval(() => {
-    currentPct = Math.min(currentPct + 5, 80);
+    currentPct = Math.min(currentPct + 3, 75);
     onProgress?.(currentPct);
-  }, 600);
+  }, 400);
 
   // Wrap upload in a race with timeout
-  const uploadPromise = supabase.storage.from("chat-uploads").upload(path, file);
-  const timeoutPromise = new Promise<{ error: { message: string } }>((resolve) =>
-    setTimeout(() => resolve({ error: { message: "Upload timed out after 30 seconds" } }), UPLOAD_TIMEOUT_MS)
+  const uploadPromise = supabase.storage.from(bucket).upload(path, file, {
+    cacheControl: '3600',
+    upsert: false,
+  });
+  const timeoutPromise = new Promise<{ data: null; error: { message: string } }>((resolve) =>
+    setTimeout(() => resolve({ data: null, error: { message: "Upload timed out after 30 seconds. Check your connection." } }), UPLOAD_TIMEOUT_MS)
   );
 
   try {
-    const result = await Promise.race([uploadPromise, timeoutPromise]) as any;
+    const result = await Promise.race([uploadPromise, timeoutPromise]);
     clearInterval(progressTimer);
+
     if (result.error) {
-      console.error("Upload error:", result.error);
-      return null;
+      const msg = typeof result.error === 'object' && 'message' in result.error
+        ? (result.error as any).message
+        : String(result.error);
+      console.error("[Upload] Storage error:", msg);
+      return { url: null, error: `Upload error: ${msg}` };
     }
+
     onProgress?.(90);
-    const { data } = supabase.storage.from("chat-uploads").getPublicUrl(path);
+    const { data } = supabase.storage.from(bucket).getPublicUrl(path);
+    console.log("[Upload] Success, public URL:", data.publicUrl);
     onProgress?.(100);
-    return data.publicUrl;
-  } catch (e) {
+    return { url: data.publicUrl };
+  } catch (e: any) {
     clearInterval(progressTimer);
-    console.error("Upload exception:", e);
-    return null;
+    const msg = e?.message || "Unexpected upload failure";
+    console.error("[Upload] Exception:", msg);
+    return { url: null, error: msg };
   }
 }
 
