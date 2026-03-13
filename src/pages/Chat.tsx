@@ -488,8 +488,9 @@ export default function Chat() {
   }, [contextParam, autoSendParam]);
 
   const addAttachment = (file: File) => {
-    if (file.size > 20 * 1024 * 1024) {
-      toast({ title: "File too large (max 20MB)", variant: "destructive" });
+    const validationError = validateUploadFile(file);
+    if (validationError) {
+      toast({ title: validationError, variant: "destructive" });
       return;
     }
     const type = getAttachmentType(file);
