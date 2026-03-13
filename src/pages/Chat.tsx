@@ -283,6 +283,7 @@ async function uploadChatFile(
 
   onProgress?.(0);
 
+  // Root-cause guard: auth/session retrieval can stall before the storage request starts; timeout it so 0% never hangs forever.
   let accessToken = "";
   try {
     const sessionResult = await withTimeout(
