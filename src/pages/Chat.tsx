@@ -605,7 +605,9 @@ export default function Chat() {
   const [showStylePicker, setShowStylePicker] = useState(false);
   const [selectedStyle, setSelectedStyle] = useState<string | null>(null);
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const [lastUploadDebug, setLastUploadDebug] = useState<UploadDebugInfo | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const autoSentRef = useRef(false);
