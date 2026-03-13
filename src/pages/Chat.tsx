@@ -609,27 +609,34 @@ export default function Chat() {
     // Upload attachments with progress
     if (attachments.length > 0) {
       setUploadProgress(0);
-      for (let i = 0; i < attachments.length; i++) {
-        const att = attachments[i];
-        const url = await uploadChatFile(att.file, (pct) => {
-          setUploadProgress(Math.round((i / attachments.length + pct / 100 / attachments.length) * 100));
-        });
-        if (!url) {
-          toast({ title: `Upload failed: ${att.name}`, description: "Please try again.", variant: "destructive" });
-          setUploadProgress(null);
-          return;
+      try {
+        for (let i = 0; i < attachments.length; i++) {
+          const att = attachments[i];
+          const url = await uploadChatFile(att.file, (pct) => {
+            setUploadProgress(Math.round((i / attachments.length + pct / 100 / attachments.length) * 100));
+          });
+          if (!url) {
+            toast({ title: `Upload failed: ${att.name}`, description: "Check your connection and try again.", variant: "destructive" });
+            setUploadProgress(null);
+            return;
+          }
+          if (att.type === "image") {
+            imageUrl = url;
+            imagePreview = att.preview;
+            fileType = "image";
+          } else {
+            const extracted = await extractFileText(att.file);
+            fileTextContent += `\n\n--- File: ${att.name} ---\n${extracted}`;
+            fileName = att.name;
+            fileType = "file";
+            imageUrl = url;
+          }
         }
-        if (att.type === "image") {
-          imageUrl = url;
-          imagePreview = att.preview;
-          fileType = "image";
-        } else {
-          const extracted = await extractFileText(att.file);
-          fileTextContent += `\n\n--- File: ${att.name} ---\n${extracted}`;
-          fileName = att.name;
-          fileType = "file";
-          imageUrl = url;
-        }
+      } catch (e) {
+        console.error("Upload error:", e);
+        toast({ title: "Upload failed", description: "Check your connection and try again.", variant: "destructive" });
+        setUploadProgress(null);
+        return;
       }
       setPendingAttachments([]);
       setUploadProgress(null);
