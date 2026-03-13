@@ -776,18 +776,29 @@ export default function Chat() {
 
     // Upload attachments with progress
     if (attachments.length > 0) {
+      setIsUploading(true);
       setUploadProgress(0);
+
       try {
         for (let i = 0; i < attachments.length; i++) {
           const att = attachments[i];
-          const result = await uploadChatFile(att.file, (pct) => {
-            setUploadProgress(Math.round((i / attachments.length + pct / 100 / attachments.length) * 100));
-          });
+          const result = await uploadChatFile(
+            att.file,
+            (pct) => {
+              setUploadProgress(Math.round((i / attachments.length + pct / 100 / attachments.length) * 100));
+            },
+            (debug) => setLastUploadDebug(debug),
+          );
+
           if (!result.url) {
-            toast({ title: `Upload failed: ${att.name}`, description: result.error || "Check your connection and try again.", variant: "destructive" });
-            setUploadProgress(null);
+            toast({
+              title: "Upload error",
+              description: result.error || "Upload failed. Please try again.",
+              variant: "destructive",
+            });
             return;
           }
+
           if (att.type === "image") {
             imageUrl = result.url;
             imagePreview = att.preview;
@@ -800,14 +811,21 @@ export default function Chat() {
             imageUrl = result.url;
           }
         }
-      } catch (e) {
+
+        setUploadProgress(100);
+        setPendingAttachments([]);
+      } catch (e: any) {
         console.error("Upload error:", e);
-        toast({ title: "Upload failed", description: "Check your connection and try again.", variant: "destructive" });
-        setUploadProgress(null);
+        toast({
+          title: "Upload error",
+          description: e?.message || "Upload failed. Check your connection and try again.",
+          variant: "destructive",
+        });
         return;
+      } finally {
+        setIsUploading(false);
+        setTimeout(() => setUploadProgress(null), 250);
       }
-      setPendingAttachments([]);
-      setUploadProgress(null);
     }
 
     let userContent = text || "";
