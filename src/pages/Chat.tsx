@@ -777,6 +777,7 @@ export default function Chat() {
     // Upload attachments with progress
     if (attachments.length > 0) {
       setIsUploading(true);
+      setLastUploadDebug(null);
       setUploadProgress(0);
 
       try {
