@@ -10,8 +10,8 @@ serve(async (req) => {
 
   try {
     const { mode, learningStyle, excludeIds } = await req.json();
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+    const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
+    if (!OPENROUTER_API_KEY) throw new Error("OPENROUTER_API_KEY is not configured");
 
     const types = ["quick-fact", "micro-lesson", "challenge", "myth-vs-truth", "news"];
     const cardType = types[Math.floor(Math.random() * types.length)];
@@ -40,11 +40,13 @@ ${cardType === "myth-vs-truth" ? "Include a mythStatement (the common misconcept
 ${cardType === "news" ? "Generate an EVERGREEN tech/AI concept explainer. Label source as 'General Update — Evergreen Concept'. Set confidence 85-95. Do NOT pretend it's current news." : ""}
 ${cardType === "challenge" ? "Create a multiple-choice challenge where only one option is correct. Make wrong answers plausible but clearly wrong to someone who knows the material." : ""}`;
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        Authorization: `Bearer ${OPENROUTER_API_KEY}`,
         "Content-Type": "application/json",
+        "HTTP-Referer": "https://wisdom-owl.app",
+        "X-Title": "Wisdom Owl",
       },
       body: JSON.stringify({
         model: "google/gemini-3-flash-preview",
@@ -139,3 +141,4 @@ ${cardType === "challenge" ? "Create a multiple-choice challenge where only one 
     });
   }
 });
+
