@@ -236,7 +236,7 @@ function mapUploadError({
 
 /**
  * Upload flow summary:
- * - Uses Lovable Cloud storage REST endpoint: /storage/v1/object/chat-uploads/{userId}/{timestamp}.{ext}
+ * - Uses Lovable Cloud storage REST endpoint: /storage/v1/object/chat-uploads/{userId}/{fileName}
  * - Authenticates with current user access token + publishable key headers
  * - Logs endpoint, status, and backend error; returns either a public URL (success) or mapped user-safe error (failure)
  */
