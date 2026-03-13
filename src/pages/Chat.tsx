@@ -154,6 +154,7 @@ function getFileIcon(name: string) {
 }
 
 const UPLOAD_TIMEOUT_MS = 30_000;
+const AUTH_TIMEOUT_MS = 8_000;
 const MAX_UPLOAD_SIZE = 20 * 1024 * 1024; // 20MB
 const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 const ALLOWED_FILE_EXTS = ["pdf", "txt", "md", "csv", "json", "xml", "doc", "docx"];
@@ -171,69 +172,206 @@ function validateUploadFile(file: File): string | null {
   return null;
 }
 
+interface UploadDebugInfo {
+  endpoint: string;
+  bucket: string;
+  path: string;
+  status: number | null;
+  shortError: string;
+  rawError?: string;
+}
+
 interface UploadResult {
   url: string | null;
   error?: string;
+  status?: number | null;
+  endpoint?: string;
+  debug?: UploadDebugInfo;
 }
 
-async function uploadChatFile(file: File, onProgress?: (pct: number) => void): Promise<UploadResult> {
-  console.log("[Upload] Starting upload:", file.name, file.size, file.type);
+function withTimeout<T>(promise: Promise<T>, ms: number, timeoutMessage: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(timeoutMessage)), ms);
+    promise
+      .then((value) => {
+        clearTimeout(timer);
+        resolve(value);
+      })
+      .catch((err) => {
+        clearTimeout(timer);
+        reject(err);
+      });
+  });
+}
 
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
-  if (authError || !user) {
-    console.error("[Upload] Auth error:", authError?.message || "No user session");
-    return { url: null, error: "Not logged in. Please sign in and try again." };
+function mapUploadError({
+  status,
+  rawError,
+  timedOut,
+  networkError,
+}: {
+  status: number | null;
+  rawError?: string;
+  timedOut?: boolean;
+  networkError?: boolean;
+}): string {
+  if (timedOut) return "Upload timed out, please try again.";
+  if (status === 401 || status === 403) return "Upload not authorized – check storage auth/config.";
+  if (status === 404) return "Upload target not found – bucket/path is wrong.";
+
+  if (networkError || status === 0 || status === null) {
+    if (typeof navigator !== "undefined" && navigator.onLine === false) {
+      return "No connection – check internet and try again.";
+    }
+    const raw = (rawError || "").toLowerCase();
+    if (raw.includes("cors") || raw.includes("blocked")) {
+      return "Upload blocked by CORS / permissions; check storage settings.";
+    }
+    return "Network error during upload. Please try again.";
+  }
+
+  if (rawError?.trim()) return `Upload error: ${rawError.trim().slice(0, 180)}`;
+  return `Upload failed with status ${status}.`;
+}
+
+/**
+ * Upload flow summary:
+ * - Uses Lovable Cloud storage REST endpoint: /storage/v1/object/chat-uploads/{userId}/{timestamp}.{ext}
+ * - Authenticates with current user access token + publishable key headers
+ * - Logs endpoint, status, and backend error; returns either a public URL (success) or mapped user-safe error (failure)
+ */
+async function uploadChatFile(
+  file: File,
+  onProgress?: (pct: number) => void,
+  onDebug?: (debug: UploadDebugInfo) => void,
+): Promise<UploadResult> {
+  const storageBaseUrl = import.meta.env.VITE_SUPABASE_URL?.trim();
+  const publishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY?.trim();
+  const bucket = "chat-uploads";
+  const ext = file.name.split(".").pop()?.toLowerCase() || "bin";
+  const path = `uploads/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+  const endpoint = `${storageBaseUrl || ""}/storage/v1/object/${bucket}/${path}`;
+
+  const reportDebug = (status: number | null, shortError: string, rawError?: string): UploadDebugInfo => {
+    const debug: UploadDebugInfo = { endpoint, bucket, path, status, shortError, rawError };
+    onDebug?.(debug);
+    return debug;
+  };
+
+  console.log("[Upload] Starting upload", {
+    endpoint,
+    bucket,
+    path,
+    fileName: file.name,
+    fileType: file.type || "application/octet-stream",
+    fileSize: file.size,
+  });
+
+  if (!storageBaseUrl || !publishableKey) {
+    const error = "Upload config missing – storage URL or API key is empty.";
+    const debug = reportDebug(null, error, error);
+    console.error("[Upload] Config error", debug);
+    return { url: null, error, status: null, endpoint, debug };
   }
 
   if (!file.size || file.size === 0) {
-    return { url: null, error: "File is empty (0 bytes)." };
+    const error = "File is empty (0 bytes).";
+    const debug = reportDebug(null, error, error);
+    console.error("[Upload] File error", debug);
+    return { url: null, error, status: null, endpoint, debug };
   }
 
-  const ext = file.name.split(".").pop() || "bin";
-  const path = `${user.id}/${Date.now()}.${ext}`;
-  const bucket = "chat-uploads";
+  onProgress?.(0);
 
-  console.log("[Upload] Uploading to bucket:", bucket, "path:", path);
-
-  onProgress?.(5);
-  let currentPct = 5;
-  const progressTimer = setInterval(() => {
-    currentPct = Math.min(currentPct + 3, 75);
-    onProgress?.(currentPct);
-  }, 400);
-
-  // Wrap upload in a race with timeout
-  const uploadPromise = supabase.storage.from(bucket).upload(path, file, {
-    cacheControl: '3600',
-    upsert: false,
-  });
-  const timeoutPromise = new Promise<{ data: null; error: { message: string } }>((resolve) =>
-    setTimeout(() => resolve({ data: null, error: { message: "Upload timed out after 30 seconds. Check your connection." } }), UPLOAD_TIMEOUT_MS)
-  );
-
+  let accessToken = "";
   try {
-    const result = await Promise.race([uploadPromise, timeoutPromise]);
-    clearInterval(progressTimer);
-
-    if (result.error) {
-      const msg = typeof result.error === 'object' && 'message' in result.error
-        ? (result.error as any).message
-        : String(result.error);
-      console.error("[Upload] Storage error:", msg);
-      return { url: null, error: `Upload error: ${msg}` };
-    }
-
-    onProgress?.(90);
-    const { data } = supabase.storage.from(bucket).getPublicUrl(path);
-    console.log("[Upload] Success, public URL:", data.publicUrl);
-    onProgress?.(100);
-    return { url: data.publicUrl };
+    const sessionResult = await withTimeout(
+      supabase.auth.getSession(),
+      AUTH_TIMEOUT_MS,
+      "Auth session check timed out while preparing upload.",
+    );
+    accessToken = sessionResult.data.session?.access_token || "";
   } catch (e: any) {
-    clearInterval(progressTimer);
-    const msg = e?.message || "Unexpected upload failure";
-    console.error("[Upload] Exception:", msg);
-    return { url: null, error: msg };
+    const rawError = e?.message || "Auth session lookup failed";
+    const error = mapUploadError({ status: 401, rawError });
+    const debug = reportDebug(401, error, rawError);
+    console.error("[Upload] Auth lookup error", debug);
+    return { url: null, error, status: 401, endpoint, debug };
   }
+
+  if (!accessToken) {
+    const error = "Upload not authorized – check storage auth/config.";
+    const debug = reportDebug(401, error, "Missing auth session token");
+    console.error("[Upload] Missing token", debug);
+    return { url: null, error, status: 401, endpoint, debug };
+  }
+
+  type XhrUploadResult = {
+    status: number;
+    responseText: string;
+    timedOut: boolean;
+    networkError: boolean;
+  };
+
+  const xhrResult = await new Promise<XhrUploadResult>((resolve) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", endpoint, true);
+    xhr.timeout = UPLOAD_TIMEOUT_MS;
+    xhr.setRequestHeader("apikey", publishableKey);
+    xhr.setRequestHeader("Authorization", `Bearer ${accessToken}`);
+    xhr.setRequestHeader("x-upsert", "false");
+    xhr.setRequestHeader("content-type", file.type || "application/octet-stream");
+
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable && event.total > 0) {
+        const pct = Math.max(1, Math.min(95, Math.round((event.loaded / event.total) * 95)));
+        onProgress?.(pct);
+      } else {
+        onProgress?.(10);
+      }
+    };
+
+    xhr.onload = () => resolve({ status: xhr.status, responseText: xhr.responseText || "", timedOut: false, networkError: false });
+    xhr.onerror = () => resolve({ status: xhr.status || 0, responseText: xhr.responseText || "", timedOut: false, networkError: true });
+    xhr.ontimeout = () => resolve({ status: xhr.status || 0, responseText: xhr.responseText || "", timedOut: true, networkError: false });
+    xhr.onabort = () => resolve({ status: xhr.status || 0, responseText: xhr.responseText || "", timedOut: true, networkError: false });
+
+    xhr.send(file);
+  });
+
+  let backendMessage = "";
+  try {
+    const parsed = xhrResult.responseText ? JSON.parse(xhrResult.responseText) : null;
+    backendMessage = parsed?.error || parsed?.message || "";
+  } catch {
+    backendMessage = xhrResult.responseText || "";
+  }
+
+  console.log("[Upload] Upload response", {
+    endpoint,
+    bucket,
+    path,
+    status: xhrResult.status,
+    backendMessage,
+  });
+
+  if (xhrResult.timedOut || xhrResult.networkError || xhrResult.status < 200 || xhrResult.status >= 300) {
+    const error = mapUploadError({
+      status: xhrResult.status || null,
+      rawError: backendMessage,
+      timedOut: xhrResult.timedOut,
+      networkError: xhrResult.networkError,
+    });
+    const debug = reportDebug(xhrResult.status || null, error, backendMessage);
+    console.error("[Upload] Upload failed", debug);
+    return { url: null, error, status: xhrResult.status || null, endpoint, debug };
+  }
+
+  onProgress?.(100);
+  const { data } = supabase.storage.from(bucket).getPublicUrl(path);
+  const debug = reportDebug(xhrResult.status, "OK", backendMessage || "success");
+  console.log("[Upload] Success", { endpoint, status: xhrResult.status, publicUrl: data.publicUrl });
+  return { url: data.publicUrl, status: xhrResult.status, endpoint, debug };
 }
 
 async function extractFileText(file: File): Promise<string> {
