@@ -249,8 +249,8 @@ async function uploadChatFile(
   const publishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY?.trim();
   const bucket = "chat-uploads";
   const ext = file.name.split(".").pop()?.toLowerCase() || "bin";
-  const path = `uploads/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-  const endpoint = `${storageBaseUrl || ""}/storage/v1/object/${bucket}/${path}`;
+  let path = `uploads/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+  let endpoint = `${storageBaseUrl || ""}/storage/v1/object/${bucket}/${path}`;
 
   const reportDebug = (status: number | null, shortError: string, rawError?: string): UploadDebugInfo => {
     const debug: UploadDebugInfo = { endpoint, bucket, path, status, shortError, rawError };
