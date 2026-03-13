@@ -290,7 +290,11 @@ async function uploadChatFile(
       AUTH_TIMEOUT_MS,
       "Auth session check timed out while preparing upload.",
     );
-    accessToken = sessionResult.data.session?.access_token || "";
+    const session = sessionResult.data.session;
+    accessToken = session?.access_token || "";
+    const userId = session?.user?.id || "anonymous";
+    path = `${userId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    endpoint = `${storageBaseUrl}/storage/v1/object/${bucket}/${path}`;
   } catch (e: any) {
     const rawError = e?.message || "Auth session lookup failed";
     const error = mapUploadError({ status: 401, rawError });
