@@ -60,25 +60,7 @@ const IMAGE_GEN_PATTERNS = [
 
 const IMAGE_EXTS = ["png", "jpg", "jpeg", "gif", "webp", "bmp", "svg"];
 
-// Quick chips adapt based on whether user is a business owner
-function getQuickChips(calibration: Record<string, string> | null) {
-  const isOwner = calibration?.role === "owner" || !!(calibration?.businessType);
-  if (isOwner) {
-    return [
-      { label: "💸 Fix my pricing", prompt: "Audit my pricing strategy and tell me where I'm leaving money on the table" },
-      { label: "🔥 Market heat check", prompt: "Is my market getting crowded? Tell me the heat and best positioning angle" },
-      { label: "🎯 Weekly priorities", prompt: "Based on my business situation, what are the 3 highest-leverage moves I should make this week?" },
-      { label: "🔬 Audit my business", prompt: "Do a complete business health audit — find the biggest gaps and blind spots in my business" },
-    ];
-  }
-  return [
-    { label: "🌐 Search the web", prompt: "Search the web for the latest AI news today" },
-    { label: "🎯 What should I learn?", prompt: "What should I learn next based on my progress?" },
-    { label: "📊 Chart my progress", prompt: "Chart my mastery % by category" },
-    { label: "🔥 Market heat check", prompt: "Is building AI automation agencies getting crowded right now?" },
-  ];
-}
-const QUICK_CHIPS_DEFAULT = [
+const QUICK_CHIPS = [
   { label: "🌐 Search the web", prompt: "Search the web for the latest AI news today" },
   { label: "🎯 What should I learn?", prompt: "What should I learn next based on my progress?" },
   { label: "📊 Chart my progress", prompt: "Chart my mastery % by category" },
@@ -172,6 +154,7 @@ function getFileIcon(name: string) {
 }
 
 const UPLOAD_TIMEOUT_MS = 30_000;
+const AUTH_TIMEOUT_MS = 8_000;
 const MAX_UPLOAD_SIZE = 20 * 1024 * 1024; // 20MB
 const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 const ALLOWED_FILE_EXTS = ["pdf", "txt", "md", "csv", "json", "xml", "doc", "docx"];
@@ -189,69 +172,211 @@ function validateUploadFile(file: File): string | null {
   return null;
 }
 
+interface UploadDebugInfo {
+  endpoint: string;
+  bucket: string;
+  path: string;
+  status: number | null;
+  shortError: string;
+  rawError?: string;
+}
+
 interface UploadResult {
   url: string | null;
   error?: string;
+  status?: number | null;
+  endpoint?: string;
+  debug?: UploadDebugInfo;
 }
 
-async function uploadChatFile(file: File, onProgress?: (pct: number) => void): Promise<UploadResult> {
-  console.log("[Upload] Starting upload:", file.name, file.size, file.type);
+function withTimeout<T>(promise: Promise<T>, ms: number, timeoutMessage: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(timeoutMessage)), ms);
+    promise
+      .then((value) => {
+        clearTimeout(timer);
+        resolve(value);
+      })
+      .catch((err) => {
+        clearTimeout(timer);
+        reject(err);
+      });
+  });
+}
 
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
-  if (authError || !user) {
-    console.error("[Upload] Auth error:", authError?.message || "No user session");
-    return { url: null, error: "Not logged in. Please sign in and try again." };
+function mapUploadError({
+  status,
+  rawError,
+  timedOut,
+  networkError,
+}: {
+  status: number | null;
+  rawError?: string;
+  timedOut?: boolean;
+  networkError?: boolean;
+}): string {
+  if (timedOut) return "Upload timed out, please try again.";
+  if (status === 401 || status === 403) return "Upload not authorized – check storage auth/config.";
+  if (status === 404) return "Upload target not found – bucket/path is wrong.";
+
+  if (networkError || status === 0 || status === null) {
+    if (typeof navigator !== "undefined" && navigator.onLine === false) {
+      return "No connection – check internet and try again.";
+    }
+    const raw = (rawError || "").toLowerCase();
+    if (raw.includes("cors") || raw.includes("blocked")) {
+      return "Upload blocked by CORS / permissions; check storage settings.";
+    }
+    return "Network error during upload. Please try again.";
+  }
+
+  if (rawError?.trim()) return `Upload error: ${rawError.trim().slice(0, 180)}`;
+  return `Upload failed with status ${status}.`;
+}
+
+/**
+ * Upload flow summary:
+ * - Uses Lovable Cloud storage REST endpoint: /storage/v1/object/chat-uploads/{userId}/{fileName}
+ * - Authenticates with current user access token + publishable key headers
+ * - Logs endpoint, status, and backend error; returns either a public URL (success) or mapped user-safe error (failure)
+ */
+async function uploadChatFile(
+  file: File,
+  onProgress?: (pct: number) => void,
+  onDebug?: (debug: UploadDebugInfo) => void,
+): Promise<UploadResult> {
+  const storageBaseUrl = import.meta.env.VITE_SUPABASE_URL?.trim();
+  const publishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY?.trim();
+  const bucket = "chat-uploads";
+  const ext = file.name.split(".").pop()?.toLowerCase() || "bin";
+  let path = `uploads/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+  let endpoint = `${storageBaseUrl || ""}/storage/v1/object/${bucket}/${path}`;
+
+  const reportDebug = (status: number | null, shortError: string, rawError?: string): UploadDebugInfo => {
+    const debug: UploadDebugInfo = { endpoint, bucket, path, status, shortError, rawError };
+    onDebug?.(debug);
+    return debug;
+  };
+
+  console.log("[Upload] Starting upload", {
+    endpoint,
+    bucket,
+    path,
+    fileName: file.name,
+    fileType: file.type || "application/octet-stream",
+    fileSize: file.size,
+  });
+
+  if (!storageBaseUrl || !publishableKey) {
+    const error = "Upload config missing – storage URL or API key is empty.";
+    const debug = reportDebug(null, error, error);
+    console.error("[Upload] Config error", debug);
+    return { url: null, error, status: null, endpoint, debug };
   }
 
   if (!file.size || file.size === 0) {
-    return { url: null, error: "File is empty (0 bytes)." };
+    const error = "File is empty (0 bytes).";
+    const debug = reportDebug(null, error, error);
+    console.error("[Upload] File error", debug);
+    return { url: null, error, status: null, endpoint, debug };
   }
 
-  const ext = file.name.split(".").pop() || "bin";
-  const path = `${user.id}/${Date.now()}.${ext}`;
-  const bucket = "chat-uploads";
+  onProgress?.(0);
 
-  console.log("[Upload] Uploading to bucket:", bucket, "path:", path);
-
-  onProgress?.(5);
-  let currentPct = 5;
-  const progressTimer = setInterval(() => {
-    currentPct = Math.min(currentPct + 3, 75);
-    onProgress?.(currentPct);
-  }, 400);
-
-  // Wrap upload in a race with timeout
-  const uploadPromise = supabase.storage.from(bucket).upload(path, file, {
-    cacheControl: '3600',
-    upsert: false,
-  });
-  const timeoutPromise = new Promise<{ data: null; error: { message: string } }>((resolve) =>
-    setTimeout(() => resolve({ data: null, error: { message: "Upload timed out after 30 seconds. Check your connection." } }), UPLOAD_TIMEOUT_MS)
-  );
-
+  // Root-cause guard: auth/session retrieval can stall before the storage request starts; timeout it so 0% never hangs forever.
+  let accessToken = "";
   try {
-    const result = await Promise.race([uploadPromise, timeoutPromise]);
-    clearInterval(progressTimer);
-
-    if (result.error) {
-      const msg = typeof result.error === 'object' && 'message' in result.error
-        ? (result.error as any).message
-        : String(result.error);
-      console.error("[Upload] Storage error:", msg);
-      return { url: null, error: `Upload error: ${msg}` };
-    }
-
-    onProgress?.(90);
-    const { data } = supabase.storage.from(bucket).getPublicUrl(path);
-    console.log("[Upload] Success, public URL:", data.publicUrl);
-    onProgress?.(100);
-    return { url: data.publicUrl };
+    const sessionResult = await withTimeout(
+      supabase.auth.getSession(),
+      AUTH_TIMEOUT_MS,
+      "Auth session check timed out while preparing upload.",
+    );
+    const session = sessionResult.data.session;
+    accessToken = session?.access_token || "";
+    const userId = session?.user?.id || "anonymous";
+    path = `${userId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    endpoint = `${storageBaseUrl}/storage/v1/object/${bucket}/${path}`;
   } catch (e: any) {
-    clearInterval(progressTimer);
-    const msg = e?.message || "Unexpected upload failure";
-    console.error("[Upload] Exception:", msg);
-    return { url: null, error: msg };
+    const rawError = e?.message || "Auth session lookup failed";
+    const error = mapUploadError({ status: 401, rawError });
+    const debug = reportDebug(401, error, rawError);
+    console.error("[Upload] Auth lookup error", debug);
+    return { url: null, error, status: 401, endpoint, debug };
   }
+
+  if (!accessToken) {
+    const error = "Upload not authorized – check storage auth/config.";
+    const debug = reportDebug(401, error, "Missing auth session token");
+    console.error("[Upload] Missing token", debug);
+    return { url: null, error, status: 401, endpoint, debug };
+  }
+
+  type XhrUploadResult = {
+    status: number;
+    responseText: string;
+    timedOut: boolean;
+    networkError: boolean;
+  };
+
+  const xhrResult = await new Promise<XhrUploadResult>((resolve) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", endpoint, true);
+    xhr.timeout = UPLOAD_TIMEOUT_MS;
+    xhr.setRequestHeader("apikey", publishableKey);
+    xhr.setRequestHeader("Authorization", `Bearer ${accessToken}`);
+    xhr.setRequestHeader("x-upsert", "false");
+    xhr.setRequestHeader("content-type", file.type || "application/octet-stream");
+
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable && event.total > 0) {
+        const pct = Math.max(1, Math.min(95, Math.round((event.loaded / event.total) * 95)));
+        onProgress?.(pct);
+      } else {
+        onProgress?.(10);
+      }
+    };
+
+    xhr.onload = () => resolve({ status: xhr.status, responseText: xhr.responseText || "", timedOut: false, networkError: false });
+    xhr.onerror = () => resolve({ status: xhr.status || 0, responseText: xhr.responseText || "", timedOut: false, networkError: true });
+    xhr.ontimeout = () => resolve({ status: xhr.status || 0, responseText: xhr.responseText || "", timedOut: true, networkError: false });
+    xhr.onabort = () => resolve({ status: xhr.status || 0, responseText: xhr.responseText || "", timedOut: true, networkError: false });
+
+    xhr.send(file);
+  });
+
+  let backendMessage = "";
+  try {
+    const parsed = xhrResult.responseText ? JSON.parse(xhrResult.responseText) : null;
+    backendMessage = parsed?.error || parsed?.message || "";
+  } catch {
+    backendMessage = xhrResult.responseText || "";
+  }
+
+  console.log("[Upload] Upload response", {
+    endpoint,
+    bucket,
+    path,
+    status: xhrResult.status,
+    backendMessage,
+  });
+
+  if (xhrResult.timedOut || xhrResult.networkError || xhrResult.status < 200 || xhrResult.status >= 300) {
+    const error = mapUploadError({
+      status: xhrResult.status || null,
+      rawError: backendMessage,
+      timedOut: xhrResult.timedOut,
+      networkError: xhrResult.networkError,
+    });
+    const debug = reportDebug(xhrResult.status || null, error, backendMessage);
+    console.error("[Upload] Upload failed", debug);
+    return { url: null, error, status: xhrResult.status || null, endpoint, debug };
+  }
+
+  onProgress?.(100);
+  const { data } = supabase.storage.from(bucket).getPublicUrl(path);
+  const debug = reportDebug(xhrResult.status, "OK", backendMessage || "success");
+  console.log("[Upload] Success", { endpoint, status: xhrResult.status, publicUrl: data.publicUrl });
+  return { url: data.publicUrl, status: xhrResult.status, endpoint, debug };
 }
 
 async function extractFileText(file: File): Promise<string> {
@@ -485,7 +610,9 @@ export default function Chat() {
   const [showStylePicker, setShowStylePicker] = useState(false);
   const [selectedStyle, setSelectedStyle] = useState<string | null>(null);
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const [lastUploadDebug, setLastUploadDebug] = useState<UploadDebugInfo | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const autoSentRef = useRef(false);
@@ -495,12 +622,6 @@ export default function Chat() {
   const clock = useLiveClock();
   const { profile } = useUserProfile();
   const { progress } = useProgress();
-
-  // Load calibration for context-aware quick chips
-  const calibrationRaw = (() => {
-    try { return JSON.parse(localStorage.getItem("wisdom-calibration-cache") || "null"); } catch { return null; }
-  })();
-  const quickChips = getQuickChips(calibrationRaw);
   const [dailyQuote] = useState(() => getDailyQuote());
 
   const displayGreeting = profile.displayName
@@ -660,18 +781,30 @@ export default function Chat() {
 
     // Upload attachments with progress
     if (attachments.length > 0) {
+      setIsUploading(true);
+      setLastUploadDebug(null);
       setUploadProgress(0);
+
       try {
         for (let i = 0; i < attachments.length; i++) {
           const att = attachments[i];
-          const result = await uploadChatFile(att.file, (pct) => {
-            setUploadProgress(Math.round((i / attachments.length + pct / 100 / attachments.length) * 100));
-          });
+          const result = await uploadChatFile(
+            att.file,
+            (pct) => {
+              setUploadProgress(Math.round((i / attachments.length + pct / 100 / attachments.length) * 100));
+            },
+            (debug) => setLastUploadDebug(debug),
+          );
+
           if (!result.url) {
-            toast({ title: `Upload failed: ${att.name}`, description: result.error || "Check your connection and try again.", variant: "destructive" });
-            setUploadProgress(null);
+            toast({
+              title: "Upload error",
+              description: result.error || "Upload failed. Please try again.",
+              variant: "destructive",
+            });
             return;
           }
+
           if (att.type === "image") {
             imageUrl = result.url;
             imagePreview = att.preview;
@@ -684,14 +817,21 @@ export default function Chat() {
             imageUrl = result.url;
           }
         }
-      } catch (e) {
+
+        setUploadProgress(100);
+        setPendingAttachments([]);
+      } catch (e: any) {
         console.error("Upload error:", e);
-        toast({ title: "Upload failed", description: "Check your connection and try again.", variant: "destructive" });
-        setUploadProgress(null);
+        toast({
+          title: "Upload error",
+          description: e?.message || "Upload failed. Check your connection and try again.",
+          variant: "destructive",
+        });
         return;
+      } finally {
+        setIsUploading(false);
+        setTimeout(() => setUploadProgress(null), 250);
       }
-      setPendingAttachments([]);
-      setUploadProgress(null);
     }
 
     let userContent = text || "";
@@ -977,7 +1117,7 @@ export default function Chat() {
     e.target.value = "";
   };
 
-  const handleQuickAction = (action: { label: string; prompt: string }) => {
+  const handleQuickAction = (action: typeof QUICK_CHIPS[0]) => {
     if (action.prompt) {
       setInput(action.prompt);
       setTimeout(() => sendMessage(action.prompt), 100);
@@ -989,7 +1129,7 @@ export default function Chat() {
 
   const currentMode = TUTOR_MODES.find(m => m.id === mode) || TUTOR_MODES[0];
   const hasMessages = messages.length > 0;
-  const isBusy = isStreaming || isGeneratingImage || uploadProgress !== null;
+  const isBusy = isStreaming || isGeneratingImage || isUploading || uploadProgress !== null;
 
   // ===== RENDER MESSAGE =====
   const renderMessageContent = (msg: ChatMessage) => {
@@ -1223,7 +1363,7 @@ export default function Chat() {
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}
               className="w-full max-w-md mb-6">
               <div className="flex flex-wrap gap-2 justify-center">
-                {quickChips.map((action, i) => (
+                {QUICK_CHIPS.map((action, i) => (
                   <button key={i} onClick={() => handleQuickAction(action)}
                     className="rounded-full border border-border px-4 py-2 text-xs text-muted-foreground hover:text-foreground hover:border-muted-foreground/50 transition-all">
                     {action.label}
@@ -1382,6 +1522,19 @@ export default function Chat() {
         </div>
       )}
 
+      {import.meta.env.DEV && lastUploadDebug && (
+        <div className="px-5 pb-2">
+          <div className="rounded-lg border border-border/60 bg-muted/40 p-2">
+            <p className="text-[10px] font-medium text-muted-foreground">Upload debug (dev only)</p>
+            <textarea
+              readOnly
+              value={`URL: ${lastUploadDebug.endpoint}\nStatus: ${lastUploadDebug.status ?? "n/a"}\nError: ${lastUploadDebug.shortError}`}
+              className="mt-1 h-16 w-full resize-none rounded-md border border-border/60 bg-background px-2 py-1 text-[10px] text-foreground outline-none"
+            />
+          </div>
+        </div>
+      )}
+
       {/* Pending Attachments */}
       {pendingAttachments.length > 0 && (
         <div className="px-5 pb-2">
@@ -1433,4 +1586,3 @@ export default function Chat() {
     </div>
   );
 }
-
