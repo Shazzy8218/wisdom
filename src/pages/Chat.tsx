@@ -640,16 +640,16 @@ export default function Chat() {
       try {
         for (let i = 0; i < attachments.length; i++) {
           const att = attachments[i];
-          const url = await uploadChatFile(att.file, (pct) => {
+          const result = await uploadChatFile(att.file, (pct) => {
             setUploadProgress(Math.round((i / attachments.length + pct / 100 / attachments.length) * 100));
           });
-          if (!url) {
-            toast({ title: `Upload failed: ${att.name}`, description: "Check your connection and try again.", variant: "destructive" });
+          if (!result.url) {
+            toast({ title: `Upload failed: ${att.name}`, description: result.error || "Check your connection and try again.", variant: "destructive" });
             setUploadProgress(null);
             return;
           }
           if (att.type === "image") {
-            imageUrl = url;
+            imageUrl = result.url;
             imagePreview = att.preview;
             fileType = "image";
           } else {
@@ -657,7 +657,7 @@ export default function Chat() {
             fileTextContent += `\n\n--- File: ${att.name} ---\n${extracted}`;
             fileName = att.name;
             fileType = "file";
-            imageUrl = url;
+            imageUrl = result.url;
           }
         }
       } catch (e) {
