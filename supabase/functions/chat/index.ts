@@ -309,8 +309,8 @@ serve(async (req) => {
 
   try {
     const { messages, mode = "default", context } = await req.json();
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+    const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
+    if (!OPENROUTER_API_KEY) throw new Error("OPENROUTER_API_KEY is not configured");
 
     const modeConfig = TUTOR_MODES[mode] || TUTOR_MODES["default"];
     
@@ -342,6 +342,11 @@ serve(async (req) => {
       if (context.behavioral_hints) contextInfo += `\nBehavioral insights: ${context.behavioral_hints}`;
       if (context.recommendation_context) contextInfo += `\n\nPROACTIVE ANALYTICS — use to guide advice: ${context.recommendation_context}`;
 
+      // Business context — makes advice industry-specific
+      if (context.business_context) {
+        contextInfo += `\n\nBUSINESS CONTEXT (CRITICAL — use this to make every answer specific to their situation):\n${context.business_context}\nWhen they ask about strategy, pricing, leads, operations, or growth — always frame your answer through the lens of their specific business type, stage, and challenge. Do NOT give generic advice that could apply to anyone.`;
+      }
+
       // Real-time local context
       if (context.local_time) contextInfo += `\nUser's current local time: ${context.local_time}`;
       if (context.local_date) contextInfo += `\nUser's current local date: ${context.local_date}`;
@@ -361,11 +366,13 @@ serve(async (req) => {
 
     const systemPrompt = modeConfig.prompt + "\n" + toneOverlay + contextInfo;
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        Authorization: `Bearer ${OPENROUTER_API_KEY}`,
         "Content-Type": "application/json",
+        "HTTP-Referer": "https://wisdom-owl.app",
+        "X-Title": "Wisdom Owl",
       },
       body: JSON.stringify({
         model: modeConfig.model,
@@ -405,3 +412,4 @@ serve(async (req) => {
     });
   }
 });
+
