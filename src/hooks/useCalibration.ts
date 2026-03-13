@@ -10,6 +10,12 @@ export interface CalibrationData {
   learningStyle: string;
   intensity: string;
   calibrationDone: boolean;
+  // Business context fields
+  businessType?: string;
+  revenueStage?: string;
+  biggestChallenge?: string;
+  teamSize?: string;
+  role?: string;
 }
 
 const DEFAULT: CalibrationData = {
@@ -29,7 +35,6 @@ export function useCalibration() {
     if (cached) {
       try {
         const parsed = JSON.parse(cached);
-        // If cached says calibration is done, trust it immediately to avoid flash
         if (parsed.calibrationDone) return { ...DEFAULT, ...parsed };
       } catch { /* ignore */ }
     }
@@ -45,7 +50,7 @@ export function useCalibration() {
 
     supabase
       .from("profiles")
-      .select("goal_mode, output_mode, calibration_done, primary_desire, answer_tone, learning_style, intensity")
+      .select("goal_mode, output_mode, calibration_done, primary_desire, answer_tone, learning_style, intensity, business_type, revenue_stage, biggest_challenge, team_size, role")
       .eq("id", user.id)
       .single()
       .then(({ data: row, error }) => {
@@ -59,6 +64,11 @@ export function useCalibration() {
             learningStyle: r.learning_style || "visual",
             intensity: r.intensity || "normal",
             calibrationDone: r.calibration_done || false,
+            businessType: r.business_type || "",
+            revenueStage: r.revenue_stage || "",
+            biggestChallenge: r.biggest_challenge || "",
+            teamSize: r.team_size || "",
+            role: r.role || "",
           };
           setData(d);
           localStorage.setItem("wisdom-calibration-cache", JSON.stringify(d));
@@ -75,6 +85,11 @@ export function useCalibration() {
       answerTone: string;
       learningStyle: string;
       intensity: string;
+      businessType?: string;
+      revenueStage?: string;
+      biggestChallenge?: string;
+      teamSize?: string;
+      role?: string;
     }) => {
       if (!user) throw new Error("Not authenticated");
 
@@ -86,9 +101,14 @@ export function useCalibration() {
         learning_style: answers.learningStyle,
         intensity: answers.intensity,
         calibration_done: true,
+        // Business context — stored as text columns (add migration if needed)
+        business_type: answers.businessType || "",
+        revenue_stage: answers.revenueStage || "",
+        biggest_challenge: answers.biggestChallenge || "",
+        team_size: answers.teamSize || "",
+        role: answers.role || "",
       } as any;
 
-      // Always set local state first so UI unblocks even if DB is slow
       const newData: CalibrationData = {
         goalMode: answers.goalMode as any,
         outputMode: answers.outputMode as any,
@@ -97,17 +117,20 @@ export function useCalibration() {
         learningStyle: answers.learningStyle,
         intensity: answers.intensity,
         calibrationDone: true,
+        businessType: answers.businessType,
+        revenueStage: answers.revenueStage,
+        biggestChallenge: answers.biggestChallenge,
+        teamSize: answers.teamSize,
+        role: answers.role,
       };
       localStorage.setItem("wisdom-calibration-cache", JSON.stringify(newData));
 
-      // Try update first (profile should exist via trigger)
-      const { error: updateError, count } = await supabase
+      const { error: updateError } = await supabase
         .from("profiles")
         .update(payload)
         .eq("id", user.id);
 
       if (updateError) {
-        // Fallback: try insert
         const { error: insertError } = await supabase.from("profiles").insert({
           id: user.id,
           email: user.email || "",
@@ -116,18 +139,16 @@ export function useCalibration() {
         } as any);
         if (insertError) {
           console.error("Calibration insert also failed:", insertError);
-          // Still set local state so user isn't stuck
         }
       }
 
-      // Set React state last to trigger parent re-render & unmount calibration
       setData(newData);
     },
     [user]
   );
 
   const updateCalibration = useCallback(
-    async (updates: Partial<Pick<CalibrationData, "goalMode" | "outputMode" | "primaryDesire" | "answerTone" | "learningStyle" | "intensity">>) => {
+    async (updates: Partial<CalibrationData>) => {
       if (!user) return;
       const dbUpdates: any = {};
       if (updates.goalMode) dbUpdates.goal_mode = updates.goalMode;
@@ -136,6 +157,10 @@ export function useCalibration() {
       if (updates.answerTone) dbUpdates.answer_tone = updates.answerTone;
       if (updates.learningStyle) dbUpdates.learning_style = updates.learningStyle;
       if (updates.intensity) dbUpdates.intensity = updates.intensity;
+      if (updates.businessType !== undefined) dbUpdates.business_type = updates.businessType;
+      if (updates.revenueStage !== undefined) dbUpdates.revenue_stage = updates.revenueStage;
+      if (updates.biggestChallenge !== undefined) dbUpdates.biggest_challenge = updates.biggestChallenge;
+      if (updates.teamSize !== undefined) dbUpdates.team_size = updates.teamSize;
       await supabase.from("profiles").update(dbUpdates).eq("id", user.id);
       setData((prev) => ({ ...prev, ...updates }));
     },
