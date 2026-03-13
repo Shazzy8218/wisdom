@@ -178,8 +178,10 @@ async function uploadChatFile(file: File, onProgress?: (pct: number) => void): P
   const path = `${user.id}/${Date.now()}.${ext}`;
 
   onProgress?.(10);
+  let currentPct = 10;
   const progressTimer = setInterval(() => {
-    onProgress?.((prev) => Math.min((typeof prev === 'number' ? prev : 10) + 5, 80));
+    currentPct = Math.min(currentPct + 5, 80);
+    onProgress?.(currentPct);
   }, 600);
 
   // Wrap upload in a race with timeout
