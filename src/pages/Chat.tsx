@@ -153,26 +153,54 @@ function getFileIcon(name: string) {
   return "📎";
 }
 
+const UPLOAD_TIMEOUT_MS = 30_000;
+const MAX_UPLOAD_SIZE = 20 * 1024 * 1024; // 20MB
+const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+const ALLOWED_FILE_EXTS = ["pdf", "txt", "md", "csv", "json", "xml", "doc", "docx"];
+
+function validateUploadFile(file: File): string | null {
+  if (file.size > MAX_UPLOAD_SIZE) return `File too large (${(file.size / 1024 / 1024).toFixed(1)}MB). Max is 20MB.`;
+  const ext = file.name.split(".").pop()?.toLowerCase() || "";
+  const isImage = file.type.startsWith("image/") || IMAGE_EXTS.includes(ext);
+  if (isImage && !ALLOWED_IMAGE_TYPES.includes(file.type) && !IMAGE_EXTS.includes(ext)) {
+    return `Unsupported image format. Use JPEG, PNG, WebP, or GIF.`;
+  }
+  if (!isImage && !ALLOWED_FILE_EXTS.includes(ext)) {
+    return `Unsupported file type (.${ext}). Supported: PDF, TXT, MD, CSV, JSON, XML, DOC, DOCX.`;
+  }
+  return null;
+}
+
 async function uploadChatFile(file: File, onProgress?: (pct: number) => void): Promise<string | null> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
   const ext = file.name.split(".").pop() || "bin";
   const path = `${user.id}/${Date.now()}.${ext}`;
 
-  // Simulate progress for UX
-  onProgress?.(20);
-  const timeout = setTimeout(() => onProgress?.(50), 800);
+  onProgress?.(10);
+  const progressTimer = setInterval(() => {
+    onProgress?.((prev) => Math.min((typeof prev === 'number' ? prev : 10) + 5, 80));
+  }, 600);
+
+  // Wrap upload in a race with timeout
+  const uploadPromise = supabase.storage.from("chat-uploads").upload(path, file);
+  const timeoutPromise = new Promise<{ error: { message: string } }>((resolve) =>
+    setTimeout(() => resolve({ error: { message: "Upload timed out after 30 seconds" } }), UPLOAD_TIMEOUT_MS)
+  );
 
   try {
-    const { error } = await supabase.storage.from("chat-uploads").upload(path, file);
-    clearTimeout(timeout);
-    if (error) { console.error("Upload error:", error); return null; }
+    const result = await Promise.race([uploadPromise, timeoutPromise]) as any;
+    clearInterval(progressTimer);
+    if (result.error) {
+      console.error("Upload error:", result.error);
+      return null;
+    }
     onProgress?.(90);
     const { data } = supabase.storage.from("chat-uploads").getPublicUrl(path);
     onProgress?.(100);
     return data.publicUrl;
   } catch (e) {
-    clearTimeout(timeout);
+    clearInterval(progressTimer);
     console.error("Upload exception:", e);
     return null;
   }
