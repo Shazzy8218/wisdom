@@ -1516,6 +1516,19 @@ export default function Chat() {
         </div>
       )}
 
+      {import.meta.env.DEV && lastUploadDebug && (
+        <div className="px-5 pb-2">
+          <div className="rounded-lg border border-border/60 bg-muted/40 p-2">
+            <p className="text-[10px] font-medium text-muted-foreground">Upload debug (dev only)</p>
+            <textarea
+              readOnly
+              value={`URL: ${lastUploadDebug.endpoint}\nStatus: ${lastUploadDebug.status ?? "n/a"}\nError: ${lastUploadDebug.shortError}`}
+              className="mt-1 h-16 w-full resize-none rounded-md border border-border/60 bg-background px-2 py-1 text-[10px] text-foreground outline-none"
+            />
+          </div>
+        </div>
+      )}
+
       {/* Pending Attachments */}
       {pendingAttachments.length > 0 && (
         <div className="px-5 pb-2">
