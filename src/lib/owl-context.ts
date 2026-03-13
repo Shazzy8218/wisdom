@@ -24,6 +24,40 @@ function loadCalibration() {
   } catch { return {}; }
 }
 
+// Human-readable labels for business context fields
+const BUSINESS_TYPE_LABELS: Record<string, string> = {
+  construction: "Construction / Trades",
+  retail: "Retail / E-commerce",
+  service: "Service Business",
+  saas: "SaaS / Tech",
+  agency: "Agency / Consulting",
+  "real-estate": "Real Estate",
+  restaurant: "Food & Hospitality",
+  other: "Other",
+};
+
+const REVENUE_STAGE_LABELS: Record<string, string> = {
+  idea: "pre-revenue (idea stage)",
+  early: "early-stage ($0–$10K/month)",
+  growing: "growing ($10K–$100K/month)",
+  scaling: "scaling ($100K+/month)",
+};
+
+const CHALLENGE_LABELS: Record<string, string> = {
+  leads: "not enough leads",
+  cashflow: "cash flow and pricing",
+  team: "team and operations",
+  growth: "hitting a growth ceiling",
+  clarity: "lack of strategy and clarity",
+};
+
+const TEAM_SIZE_LABELS: Record<string, string> = {
+  solo: "solo (just themselves)",
+  small: "small team (2–5 people)",
+  medium: "mid-size team (6–20 people)",
+  large: "large team (20+ people)",
+};
+
 export interface OwlContext {
   // Profile
   user_name: string;
@@ -50,6 +84,8 @@ export interface OwlContext {
   behavioral_hints: string;
   // Tools used
   tools_used: string;
+  // Business context
+  business_context?: string;
   // Screen context
   screen?: string;
   lessonTitle?: string;
@@ -78,7 +114,6 @@ export function buildOwlContext(extras?: Record<string, string>): Record<string,
   
   // Tone preference
   try {
-    const settings = loadSettings();
     ctx.tone_preference = (localStorage.getItem("wisdom-tone-preference")) || "ruthless";
   } catch { ctx.tone_preference = "ruthless"; }
 
@@ -98,6 +133,32 @@ export function buildOwlContext(extras?: Record<string, string>): Record<string,
   const scores = progress.masteryScores || {};
   const vals = Object.values(scores) as number[];
   ctx.mastery = vals.length ? String(Math.round(vals.reduce((a, b) => a + b, 0) / vals.length)) : "0";
+
+  // ── BUSINESS CONTEXT (new) ──
+  // Build a rich business context string so every AI response is industry-specific
+  const bizParts: string[] = [];
+  if (calibration.role === "owner" || calibration.businessType) {
+    bizParts.push("The user is a business owner.");
+    if (calibration.businessType) {
+      const bizLabel = BUSINESS_TYPE_LABELS[calibration.businessType] || calibration.businessType;
+      bizParts.push(`Their business is in the ${bizLabel} industry.`);
+    }
+    if (calibration.revenueStage) {
+      const stageLabel = REVENUE_STAGE_LABELS[calibration.revenueStage] || calibration.revenueStage;
+      bizParts.push(`They are ${stageLabel}.`);
+    }
+    if (calibration.biggestChallenge) {
+      const challengeLabel = CHALLENGE_LABELS[calibration.biggestChallenge] || calibration.biggestChallenge;
+      bizParts.push(`Their biggest challenge is ${challengeLabel}.`);
+    }
+    if (calibration.teamSize) {
+      const teamLabel = TEAM_SIZE_LABELS[calibration.teamSize] || calibration.teamSize;
+      bizParts.push(`They run a ${teamLabel}.`);
+    }
+  }
+  if (bizParts.length > 0) {
+    ctx.business_context = bizParts.join(" ");
+  }
 
   // Consent-based: activity personalization
   if (settings.useActivity !== false) {
