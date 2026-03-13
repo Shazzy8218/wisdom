@@ -1123,7 +1123,7 @@ export default function Chat() {
 
   const currentMode = TUTOR_MODES.find(m => m.id === mode) || TUTOR_MODES[0];
   const hasMessages = messages.length > 0;
-  const isBusy = isStreaming || isGeneratingImage || uploadProgress !== null;
+  const isBusy = isStreaming || isGeneratingImage || isUploading || uploadProgress !== null;
 
   // ===== RENDER MESSAGE =====
   const renderMessageContent = (msg: ChatMessage) => {
