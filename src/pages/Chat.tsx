@@ -60,7 +60,25 @@ const IMAGE_GEN_PATTERNS = [
 
 const IMAGE_EXTS = ["png", "jpg", "jpeg", "gif", "webp", "bmp", "svg"];
 
-const QUICK_CHIPS = [
+// Quick chips adapt based on whether user is a business owner
+function getQuickChips(calibration: Record<string, string> | null) {
+  const isOwner = calibration?.role === "owner" || !!(calibration?.businessType);
+  if (isOwner) {
+    return [
+      { label: "💸 Fix my pricing", prompt: "Audit my pricing strategy and tell me where I'm leaving money on the table" },
+      { label: "🔥 Market heat check", prompt: "Is my market getting crowded? Tell me the heat and best positioning angle" },
+      { label: "🎯 Weekly priorities", prompt: "Based on my business situation, what are the 3 highest-leverage moves I should make this week?" },
+      { label: "🔬 Audit my business", prompt: "Do a complete business health audit — find the biggest gaps and blind spots in my business" },
+    ];
+  }
+  return [
+    { label: "🌐 Search the web", prompt: "Search the web for the latest AI news today" },
+    { label: "🎯 What should I learn?", prompt: "What should I learn next based on my progress?" },
+    { label: "📊 Chart my progress", prompt: "Chart my mastery % by category" },
+    { label: "🔥 Market heat check", prompt: "Is building AI automation agencies getting crowded right now?" },
+  ];
+}
+const QUICK_CHIPS_DEFAULT = [
   { label: "🌐 Search the web", prompt: "Search the web for the latest AI news today" },
   { label: "🎯 What should I learn?", prompt: "What should I learn next based on my progress?" },
   { label: "📊 Chart my progress", prompt: "Chart my mastery % by category" },
@@ -477,6 +495,12 @@ export default function Chat() {
   const clock = useLiveClock();
   const { profile } = useUserProfile();
   const { progress } = useProgress();
+
+  // Load calibration for context-aware quick chips
+  const calibrationRaw = (() => {
+    try { return JSON.parse(localStorage.getItem("wisdom-calibration-cache") || "null"); } catch { return null; }
+  })();
+  const quickChips = getQuickChips(calibrationRaw);
   const [dailyQuote] = useState(() => getDailyQuote());
 
   const displayGreeting = profile.displayName
@@ -953,7 +977,7 @@ export default function Chat() {
     e.target.value = "";
   };
 
-  const handleQuickAction = (action: typeof QUICK_CHIPS[0]) => {
+  const handleQuickAction = (action: { label: string; prompt: string }) => {
     if (action.prompt) {
       setInput(action.prompt);
       setTimeout(() => sendMessage(action.prompt), 100);
@@ -1199,7 +1223,7 @@ export default function Chat() {
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}
               className="w-full max-w-md mb-6">
               <div className="flex flex-wrap gap-2 justify-center">
-                {QUICK_CHIPS.map((action, i) => (
+                {quickChips.map((action, i) => (
                   <button key={i} onClick={() => handleQuickAction(action)}
                     className="rounded-full border border-border px-4 py-2 text-xs text-muted-foreground hover:text-foreground hover:border-muted-foreground/50 transition-all">
                     {action.label}
@@ -1409,3 +1433,4 @@ export default function Chat() {
     </div>
   );
 }
+
