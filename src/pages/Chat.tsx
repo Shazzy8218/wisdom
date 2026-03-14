@@ -154,7 +154,7 @@ function getFileIcon(name: string) {
 }
 
 const UPLOAD_TIMEOUT_MS = 30_000;
-const AUTH_TIMEOUT_MS = 8_000;
+const AUTH_SESSION_LOOKUP_TIMEOUT_MS = 2_000;
 const MAX_UPLOAD_SIZE = 20 * 1024 * 1024; // 20MB
 const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 const ALLOWED_FILE_EXTS = ["pdf", "txt", "md", "csv", "json", "xml", "doc", "docx"];
@@ -189,6 +189,13 @@ interface UploadResult {
   debug?: UploadDebugInfo;
 }
 
+interface UploadAuthContext {
+  accessToken: string | null;
+  userId: string | null;
+  authSource: "session" | "localStorage" | "none";
+  rawError?: string;
+}
+
 function withTimeout<T>(promise: Promise<T>, ms: number, timeoutMessage: string): Promise<T> {
   return new Promise<T>((resolve, reject) => {
     const timer = setTimeout(() => reject(new Error(timeoutMessage)), ms);
@@ -204,6 +211,108 @@ function withTimeout<T>(promise: Promise<T>, ms: number, timeoutMessage: string)
   });
 }
 
+function decodeJwtSub(token: string | null | undefined): string | null {
+  if (!token) return null;
+  try {
+    const payload = token.split(".")[1];
+    if (!payload) return null;
+    const decoded = typeof window !== "undefined" ? window.atob(payload) : null;
+    if (!decoded) return null;
+    const parsed = JSON.parse(decoded);
+    return typeof parsed?.sub === "string" ? parsed.sub : null;
+  } catch {
+    return null;
+  }
+}
+
+function extractAccessTokenFromStoredAuth(raw: string): string | null {
+  try {
+    const parsed = JSON.parse(raw);
+    if (typeof parsed?.access_token === "string" && parsed.access_token) return parsed.access_token;
+    if (typeof parsed?.currentSession?.access_token === "string" && parsed.currentSession.access_token) {
+      return parsed.currentSession.access_token;
+    }
+    if (typeof parsed?.session?.access_token === "string" && parsed.session.access_token) {
+      return parsed.session.access_token;
+    }
+  } catch {
+    // ignore malformed local storage payloads
+  }
+  return null;
+}
+
+function getAccessTokenFromLocalStorage(): string | null {
+  if (typeof window === "undefined") return null;
+
+  const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID?.trim();
+  const knownKey = projectId ? `sb-${projectId}-auth-token` : null;
+  const discoveredKeys = Object.keys(localStorage).filter((key) => key.startsWith("sb-") && key.endsWith("-auth-token"));
+  const keys = Array.from(new Set([knownKey, ...discoveredKeys].filter(Boolean))) as string[];
+
+  for (const key of keys) {
+    const raw = localStorage.getItem(key);
+    if (!raw) continue;
+    const token = extractAccessTokenFromStoredAuth(raw);
+    if (token) return token;
+  }
+
+  return null;
+}
+
+async function resolveUploadAuth(): Promise<UploadAuthContext> {
+  const localToken = getAccessTokenFromLocalStorage();
+  const localUserId = decodeJwtSub(localToken);
+
+  try {
+    const sessionResult = await withTimeout(
+      supabase.auth.getSession(),
+      AUTH_SESSION_LOOKUP_TIMEOUT_MS,
+      "Auth session check timed out while preparing upload.",
+    );
+
+    const sessionToken = sessionResult.data.session?.access_token || null;
+    const sessionUserId = sessionResult.data.session?.user?.id || decodeJwtSub(sessionToken);
+
+    if (sessionToken) {
+      return {
+        accessToken: sessionToken,
+        userId: sessionUserId,
+        authSource: "session",
+      };
+    }
+  } catch (e: any) {
+    if (localToken) {
+      return {
+        accessToken: localToken,
+        userId: localUserId,
+        authSource: "localStorage",
+        rawError: e?.message || "Auth session lookup failed",
+      };
+    }
+
+    return {
+      accessToken: null,
+      userId: null,
+      authSource: "none",
+      rawError: e?.message || "Auth session lookup failed",
+    };
+  }
+
+  if (localToken) {
+    return {
+      accessToken: localToken,
+      userId: localUserId,
+      authSource: "localStorage",
+    };
+  }
+
+  return {
+    accessToken: null,
+    userId: null,
+    authSource: "none",
+  };
+}
+
 function mapUploadError({
   status,
   rawError,
@@ -215,15 +324,20 @@ function mapUploadError({
   timedOut?: boolean;
   networkError?: boolean;
 }): string {
+  const raw = (rawError || "").toLowerCase();
+
   if (timedOut) return "Upload timed out, please try again.";
-  if (status === 401 || status === 403) return "Upload not authorized – check storage auth/config.";
-  if (status === 404) return "Upload target not found – bucket/path is wrong.";
+  if (status === 401 || status === 403 || raw.includes("row-level security") || raw.includes("jwt")) {
+    return "Upload not authorized – check storage auth/config.";
+  }
+  if (status === 404 || raw.includes("bucket") && raw.includes("not")) {
+    return "Upload target not found – bucket/path is wrong.";
+  }
 
   if (networkError || status === 0 || status === null) {
     if (typeof navigator !== "undefined" && navigator.onLine === false) {
       return "No connection – check internet and try again.";
     }
-    const raw = (rawError || "").toLowerCase();
     if (raw.includes("cors") || raw.includes("blocked")) {
       return "Upload blocked by CORS / permissions; check storage settings.";
     }
@@ -236,9 +350,9 @@ function mapUploadError({
 
 /**
  * Upload flow summary:
- * - Uses Lovable Cloud storage REST endpoint: /storage/v1/object/chat-uploads/{userId}/{fileName}
- * - Authenticates with current user access token + publishable key headers
- * - Logs endpoint, status, and backend error; returns either a public URL (success) or mapped user-safe error (failure)
+ * - Uses Lovable Cloud storage REST endpoint: /storage/v1/object/chat-uploads/{path}
+ * - Uses access token from session when available, with localStorage fallback to avoid pre-request auth timeouts
+ * - Always sends the upload request (token when available), logs endpoint/status/error, and returns mapped UI-safe errors
  */
 async function uploadChatFile(
   file: File,
@@ -249,7 +363,8 @@ async function uploadChatFile(
   const publishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY?.trim();
   const bucket = "chat-uploads";
   const ext = file.name.split(".").pop()?.toLowerCase() || "bin";
-  let path = `uploads/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+  const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+  let path = `uploads/${fileName}`;
   let endpoint = `${storageBaseUrl || ""}/storage/v1/object/${bucket}/${path}`;
 
   const reportDebug = (status: number | null, shortError: string, rawError?: string): UploadDebugInfo => {
@@ -283,34 +398,28 @@ async function uploadChatFile(
 
   onProgress?.(0);
 
-  // Root-cause guard: auth/session retrieval can stall before the storage request starts; timeout it so 0% never hangs forever.
-  let accessToken = "";
-  try {
-    const sessionResult = await withTimeout(
-      supabase.auth.getSession(),
-      AUTH_TIMEOUT_MS,
-      "Auth session check timed out while preparing upload.",
-    );
-    const session = sessionResult.data.session;
-    accessToken = session?.access_token || "";
-    const userId = session?.user?.id || "anonymous";
-    path = `${userId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-    endpoint = `${storageBaseUrl}/storage/v1/object/${bucket}/${path}`;
-  } catch (e: any) {
-    const rawError = e?.message || "Auth session lookup failed";
-    const error = mapUploadError({ status: 401, rawError });
-    const debug = reportDebug(401, error, rawError);
-    console.error("[Upload] Auth lookup error", debug);
-    return { url: null, error, status: 401, endpoint, debug };
+  const auth = await resolveUploadAuth();
+  if (auth.userId) path = `${auth.userId}/${fileName}`;
+  endpoint = `${storageBaseUrl}/storage/v1/object/${bucket}/${path}`;
+
+  if (auth.rawError) {
+    console.warn("[Upload] Session lookup fallback", {
+      endpoint,
+      bucket,
+      path,
+      authSource: auth.authSource,
+      rawError: auth.rawError,
+    });
   }
 
-  if (!accessToken) {
-    const error = "Upload not authorized – check storage auth/config.";
-    const debug = reportDebug(401, error, "Missing auth session token");
-    console.error("[Upload] Missing token", debug);
-    return { url: null, error, status: 401, endpoint, debug };
-  }
-
+  console.log("[Upload] Auth context", {
+    endpoint,
+    bucket,
+    path,
+    authSource: auth.authSource,
+    hasAccessToken: Boolean(auth.accessToken),
+    userId: auth.userId || "anonymous",
+  });
   type XhrUploadResult = {
     status: number;
     responseText: string;
