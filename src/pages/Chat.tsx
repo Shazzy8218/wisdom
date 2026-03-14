@@ -432,7 +432,9 @@ async function uploadChatFile(
     xhr.open("POST", endpoint, true);
     xhr.timeout = UPLOAD_TIMEOUT_MS;
     xhr.setRequestHeader("apikey", publishableKey);
-    xhr.setRequestHeader("Authorization", `Bearer ${accessToken}`);
+    if (auth.accessToken) {
+      xhr.setRequestHeader("Authorization", `Bearer ${auth.accessToken}`);
+    }
     xhr.setRequestHeader("x-upsert", "false");
     xhr.setRequestHeader("content-type", file.type || "application/octet-stream");
 
