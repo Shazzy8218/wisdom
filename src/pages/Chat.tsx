@@ -1639,8 +1639,8 @@ export default function Chat() {
             <p className="text-[10px] font-medium text-muted-foreground">Upload debug (dev only)</p>
             <textarea
               readOnly
-              value={`URL: ${lastUploadDebug.endpoint}\nStatus: ${lastUploadDebug.status ?? "n/a"}\nError: ${lastUploadDebug.shortError}`}
-              className="mt-1 h-16 w-full resize-none rounded-md border border-border/60 bg-background px-2 py-1 text-[10px] text-foreground outline-none"
+              value={`URL: ${lastUploadDebug.endpoint}\nStatus: ${lastUploadDebug.status ?? "n/a"}\nError: ${lastUploadDebug.shortError}\nRaw: ${lastUploadDebug.rawError || "n/a"}`}
+              className="mt-1 h-20 w-full resize-none rounded-md border border-border/60 bg-background px-2 py-1 text-[10px] text-foreground outline-none"
             />
           </div>
         </div>
