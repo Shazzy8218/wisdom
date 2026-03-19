@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
+import { toast } from "@/hooks/use-toast";
 import { User, Wallet, Settings, Crown, ChevronRight, Sparkles, BarChart3, LogOut, Pencil, Target } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useUserProfile } from "@/hooks/useUserProfile";
