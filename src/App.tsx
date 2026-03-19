@@ -137,6 +137,9 @@ function AppRoutes() {
           <Route path="/games/mind-serpent" element={<MindSerpent />} />
           <Route path="/games/insight-pilot" element={<InsightPilot />} />
           <Route path="/games/syntax-smash" element={<SyntaxSmash />} />
+          <Route path="/games/synthesis-ascent" element={<SynthesisAscent />} />
+          <Route path="/games/chrono-drift" element={<ChronoDrift />} />
+          <Route path="/games/neural-nexus" element={<NeuralNexus />} />
           <Route path="/track/:trackId" element={<CoreTrackHub />} />
           <Route path="/mastery/:trackId" element={<MasteryTrackHub />} />
           <Route path="/mastery/:trackId/start" element={<MasteryTrackStart />} />

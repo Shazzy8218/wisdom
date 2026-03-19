@@ -88,6 +88,9 @@ export const ACHIEVEMENTS: Record<string, { icon: string; title: string; desc: s
   "serpent-ace": { icon: "🐍", title: "Serpent Ace", desc: "Scored 200+ in Mind Serpent" },
   "pilot-pro": { icon: "✈️", title: "Pilot Pro", desc: "Scored 300+ in Insight Pilot" },
   "syntax-king": { icon: "🏗️", title: "Syntax King", desc: "Scored 500+ in Syntax Smash" },
+  "ascent-legend": { icon: "🚀", title: "Ascent Legend", desc: "Scored 400+ in Synthesis Ascent" },
+  "drift-master": { icon: "🏎️", title: "Drift Master", desc: "Scored 500+ in Chrono-Drift" },
+  "nexus-architect": { icon: "🏙️", title: "Nexus Architect", desc: "Scored 300+ in Neural Nexus" },
 };
 
 // ---------- Content pools (AI concept data) ----------
