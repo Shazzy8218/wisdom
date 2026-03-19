@@ -34,6 +34,7 @@ import CategoryHub from "./pages/CategoryHub";
 import ModuleView from "./pages/ModuleView";
 import LessonView from "./pages/LessonView";
 import CoreTrackHub from "./pages/CoreTrackHub";
+import MasteryTrackHub from "./pages/MasteryTrackHub";
 import Auth from "./pages/Auth";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import Support from "./pages/Support";
