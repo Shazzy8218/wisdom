@@ -85,9 +85,53 @@ export default function CoreTrackHub() {
 
       {/* Info Cards */}
       <div className="px-5 space-y-3 mb-5">
+        {/* Elevated Value Proposition */}
+        {track.valueProp && (
+          <div className="glass-card p-4 border-primary/20">
+            <div className="flex items-center gap-2 mb-1.5">
+              <Sparkles className="h-3.5 w-3.5 text-primary" />
+              <p className="text-micro font-bold text-primary uppercase tracking-wider">Why This Track Matters</p>
+            </div>
+            <p className="text-caption text-foreground leading-relaxed font-medium">{track.valueProp}</p>
+          </div>
+        )}
+
         <InfoRow icon={Target} label="What you'll learn" value={track.outcome} />
         <InfoRow icon={DollarSign} label="Money angle" value={track.moneyAngle} />
         <InfoRow icon={Users} label="Who it's for" value={track.whoFor} />
+
+        {/* Core Outcomes */}
+        {track.outcomes && track.outcomes.length > 0 && (
+          <div className="glass-card p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <CheckCircle2 className="h-3.5 w-3.5 text-accent-green" />
+              <p className="text-micro font-bold text-accent-green uppercase tracking-wider">You Will Be Able To</p>
+            </div>
+            <ul className="space-y-2">
+              {track.outcomes.map((o, i) => (
+                <li key={i} className="flex items-start gap-2 text-caption text-muted-foreground">
+                  <span className="text-accent-green mt-0.5 shrink-0">✓</span>
+                  <span>{o}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* Advanced Examples */}
+        {track.advancedExamples && track.advancedExamples.length > 0 && (
+          <div className="glass-card p-4 border-accent-gold/15">
+            <div className="flex items-center gap-2 mb-2">
+              <Sparkles className="h-3.5 w-3.5 text-accent-gold" />
+              <p className="text-micro font-bold text-accent-gold uppercase tracking-wider">Real-World Breakthroughs</p>
+            </div>
+            <div className="space-y-2">
+              {track.advancedExamples.map((ex, i) => (
+                <p key={i} className="text-caption text-muted-foreground leading-relaxed italic">"{ex}"</p>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="editorial-divider mx-5 mb-4" />
