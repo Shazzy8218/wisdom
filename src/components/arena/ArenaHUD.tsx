@@ -68,11 +68,11 @@ export default function ArenaHUD({
         {/* Metric bars */}
         <div className="grid grid-cols-4 gap-2 mb-2">
           {([
-            { key: "pressure", label: "PRESSURE", color: "bg-primary", warn: true },
-            { key: "resources", label: "RESOURCES", color: "bg-accent-green" },
-            { key: "reputation", label: "REPUTATION", color: "bg-accent-gold" },
-            { key: "morale", label: "MORALE", color: "bg-blue-400" },
-          ] as const).map(m => {
+            { key: "pressure" as const, label: "PRESSURE", color: "bg-primary", warn: true },
+            { key: "resources" as const, label: "RESOURCES", color: "bg-accent-green", warn: false },
+            { key: "reputation" as const, label: "REPUTATION", color: "bg-accent-gold", warn: false },
+            { key: "morale" as const, label: "MORALE", color: "bg-blue-400", warn: false },
+          ]).map(m => {
             const val = metrics[m.key];
             const isDanger = m.warn ? val > 80 : val < 25;
             return (
