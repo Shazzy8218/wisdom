@@ -346,24 +346,23 @@ Format with markdown. Use bold headers. Be ruthlessly practical.`
                 <p className="text-micro text-muted-foreground mt-2">Pillar 1 initiated · {track.pillars.length} pillars total</p>
               </div>
 
-              {/* Pillars roadmap */}
+              {/* Pillars roadmap — all accessible, no "Upcoming" */}
               <div className="space-y-3">
                 {track.pillars.map((pillar, i) => {
-                  const isActive = i === 0;
-                  const isLocked = i > 0;
+                  const isFirst = i === 0;
                   return (
                     <motion.div
                       key={i}
                       initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: i * 0.08 }}
-                      className={`glass-card p-4 ${isActive ? "border-accent-gold/30" : "opacity-60"}`}
+                      className={`glass-card p-4 ${isFirst ? "border-accent-gold/30" : ""}`}
                     >
                       <div className="flex items-start gap-3">
                         <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
-                          isActive ? "bg-accent-gold/20" : "bg-surface-2"
+                          isFirst ? "bg-accent-gold/20" : "bg-surface-2"
                         }`}>
-                          {isActive ? (
+                          {isFirst ? (
                             <CheckCircle2 className="h-4 w-4 text-accent-gold" />
                           ) : (
                             <span className="text-micro font-bold text-muted-foreground">{i + 1}</span>
@@ -371,17 +370,17 @@ Format with markdown. Use bold headers. Be ruthlessly practical.`
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
-                            <p className={`text-caption font-semibold ${isActive ? "text-foreground" : "text-muted-foreground"}`}>
+                            <p className={`text-caption font-semibold text-foreground`}>
                               {pillar.title}
                             </p>
-                            {isActive && (
+                            {isFirst && (
                               <span className="text-[9px] font-bold uppercase tracking-wider bg-accent-gold/15 text-accent-gold px-1.5 py-0.5 rounded">
                                 Active
                               </span>
                             )}
-                            {isLocked && (
-                              <span className="text-[9px] font-bold uppercase tracking-wider bg-surface-2 text-muted-foreground px-1.5 py-0.5 rounded">
-                                Upcoming
+                            {!isFirst && (
+                              <span className="text-[9px] font-bold uppercase tracking-wider bg-primary/10 text-primary px-1.5 py-0.5 rounded">
+                                5 Lessons
                               </span>
                             )}
                           </div>
