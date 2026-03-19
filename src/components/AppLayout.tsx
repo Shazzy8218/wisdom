@@ -3,14 +3,18 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import BottomNav from "@/components/BottomNav";
+import MobileHeader from "@/components/MobileHeader";
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   const isMobile = useIsMobile();
 
   if (isMobile) {
     return (
-      <div className="mx-auto max-w-lg">
-        {children}
+      <div className="mx-auto max-w-lg min-h-screen flex flex-col">
+        <MobileHeader />
+        <main className="flex-1 pb-20">
+          {children}
+        </main>
         <BottomNav />
       </div>
     );
