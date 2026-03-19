@@ -1,8 +1,9 @@
 import { motion } from "framer-motion";
-import { ChevronRight, Sparkles, DollarSign, BookOpen, Star } from "lucide-react";
+import { ChevronRight, Sparkles, DollarSign, BookOpen, Star, Crown } from "lucide-react";
 import { Link } from "react-router-dom";
 import { MASTERY_CATEGORIES, getLevelLabel } from "@/lib/data";
 import { CORE_TRACKS, MONEY_TRACK_IDS, getRecommendedTracks } from "@/lib/core-tracks";
+import { MASTERY_TRACKS } from "@/lib/mastery-tracks";
 import { useProgress } from "@/hooks/useProgress";
 import { useCalibration } from "@/hooks/useCalibration";
 import ProgressRing from "@/components/ProgressRing";
