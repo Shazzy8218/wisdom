@@ -763,7 +763,8 @@ export default function Chat() {
   useEffect(() => {
     if (contextParam && autoSendParam === "true" && !autoSentRef.current) {
       autoSentRef.current = true;
-      const decoded = decodeURIComponent(contextParam);
+      let decoded: string;
+      try { decoded = decodeURIComponent(contextParam); } catch { decoded = contextParam; }
       setInput("");
       const thread = createThread("Lesson Q&A", lessonIdParam || undefined);
       setCurrentThreadId(thread.id);
