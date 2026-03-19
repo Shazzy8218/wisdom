@@ -1,8 +1,9 @@
 import { motion } from "framer-motion";
-import { ChevronRight, Sparkles, DollarSign, BookOpen, Star } from "lucide-react";
+import { ChevronRight, Sparkles, DollarSign, BookOpen, Star, Crown } from "lucide-react";
 import { Link } from "react-router-dom";
 import { MASTERY_CATEGORIES, getLevelLabel } from "@/lib/data";
 import { CORE_TRACKS, MONEY_TRACK_IDS, getRecommendedTracks } from "@/lib/core-tracks";
+import { MASTERY_TRACKS } from "@/lib/mastery-tracks";
 import { useProgress } from "@/hooks/useProgress";
 import { useCalibration } from "@/hooks/useCalibration";
 import ProgressRing from "@/components/ProgressRing";
@@ -137,7 +138,40 @@ export default function LearnPaths() {
 
       <div className="editorial-divider mx-5 mb-6" />
 
-      {/* SECTION 4 — Expand Your Knowledge */}
+      {/* SECTION 4 — Mastery Tier */}
+      <div className="px-5 mb-8">
+        <SectionHeader icon={Crown} label="Advanced Certification" title="Mastery Tier" />
+        <p className="text-caption text-muted-foreground mb-3">
+          University-level programs for elite practitioners and entrepreneurs.
+        </p>
+        <div className="space-y-2">
+          {MASTERY_TRACKS.map((track, i) => (
+            <motion.div
+              key={track.id}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.03, duration: 0.3 }}
+            >
+              <Link
+                to={`/mastery/${track.id}`}
+                className="glass-card p-4 flex items-center gap-3 hover:border-accent-gold/20 transition-all duration-200 block border-accent-gold/10"
+              >
+                <span className="text-xl">{track.icon}</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-body font-semibold text-foreground">{track.name}</p>
+                  <p className="text-micro text-muted-foreground line-clamp-1">{track.tagline}</p>
+                </div>
+                <Crown className="h-3.5 w-3.5 text-accent-gold" />
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              </Link>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+
+      <div className="editorial-divider mx-5 mb-6" />
+
+      {/* SECTION 5 — Expand Your Knowledge */}
       <div className="px-5 mb-8">
         <SectionHeader icon={BookOpen} label="22 Categories" title="Expand Your Knowledge" />
         <p className="text-caption text-muted-foreground mb-3">

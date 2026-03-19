@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, BookOpen, Zap, MessageSquare, Gamepad2, Sparkles, ChevronRight, Loader2 } from "lucide-react";
+import { ArrowLeft, BookOpen, Zap, MessageSquare, Gamepad2, Sparkles, ChevronRight, Loader2, CheckCircle2 } from "lucide-react";
 import { getCategoryTrack } from "@/lib/categories";
+import { getCategoryElevated } from "@/lib/category-elevated";
 import { MASTERY_CATEGORIES, getLevelLabel } from "@/lib/data";
 import { generateLesson } from "@/lib/ai-stream";
 import { useProgress } from "@/hooks/useProgress";
@@ -76,6 +77,37 @@ export default function CategoryHub() {
         <p className="text-body text-muted-foreground">{track.description}</p>
         <p className="text-caption text-primary mt-1 font-semibold">{getLevelLabel(masteryScore)} · {masteryScore}% mastery</p>
       </div>
+
+      {/* Elevated Metadata */}
+      {(() => {
+        const elevated = getCategoryElevated(categoryId || "");
+        if (!elevated) return null;
+        return (
+          <div className="px-5 mb-4 space-y-2">
+            <div className="glass-card p-4 border-primary/20">
+              <div className="flex items-center gap-2 mb-1.5">
+                <Sparkles className="h-3.5 w-3.5 text-primary" />
+                <p className="text-[10px] font-bold text-primary uppercase tracking-wider">Why This Track Matters</p>
+              </div>
+              <p className="text-xs text-foreground leading-relaxed font-medium">{elevated.valueProp}</p>
+            </div>
+            <div className="glass-card p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <CheckCircle2 className="h-3.5 w-3.5 text-accent-green" />
+                <p className="text-[10px] font-bold text-accent-green uppercase tracking-wider">You Will Be Able To</p>
+              </div>
+              <ul className="space-y-1.5">
+                {elevated.outcomes.map((o, i) => (
+                  <li key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
+                    <span className="text-accent-green mt-0.5 shrink-0">✓</span>
+                    <span>{o}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Level Selector */}
       <div className="px-5 mb-4">

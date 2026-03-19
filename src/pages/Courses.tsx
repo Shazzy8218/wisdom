@@ -3,10 +3,11 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "react-router-dom";
 import {
   ChevronRight, ChevronDown, Search, Sparkles, DollarSign, Star, BookOpen,
-  Loader2, RefreshCw, Zap, Filter, CheckCircle2
+  Loader2, RefreshCw, Zap, Filter, CheckCircle2, Crown
 } from "lucide-react";
 import { MASTERY_CATEGORIES, getLevelLabel } from "@/lib/data";
 import { CORE_TRACKS, MONEY_TRACK_IDS, getRecommendedTracks } from "@/lib/core-tracks";
+import { MASTERY_TRACKS } from "@/lib/mastery-tracks";
 import { useProgress } from "@/hooks/useProgress";
 import { useCalibration } from "@/hooks/useCalibration";
 import { useUserProfile } from "@/hooks/useUserProfile";
@@ -167,6 +168,34 @@ export default function Courses() {
         <div className="space-y-1">
           {moneyTracks.map(track => (
             <TrackRow key={track.id} track={track} />
+          ))}
+        </div>
+      ),
+    });
+
+    // Mastery Tier
+    sections.push({
+      id: "mastery",
+      icon: "👑",
+      label: "Mastery Tier",
+      sublabel: `${MASTERY_TRACKS.length} advanced tracks · certification-level`,
+      accent: "border-l-accent-gold",
+      content: (
+        <div className="space-y-1">
+          {MASTERY_TRACKS.map(track => (
+            <Link
+              key={track.id}
+              to={`/mastery/${track.id}`}
+              className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg hover:bg-surface-hover transition-colors"
+            >
+              <span className="text-sm">{track.icon}</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-foreground truncate">{track.name}</p>
+                <p className="text-[10px] text-muted-foreground truncate">{track.tagline}</p>
+              </div>
+              <Crown className="h-3 w-3 text-accent-gold" />
+              <ChevronRight className="h-3 w-3 text-muted-foreground/50" />
+            </Link>
           ))}
         </div>
       ),
