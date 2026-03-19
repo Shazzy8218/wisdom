@@ -30,6 +30,9 @@ import PromptPuzzle from "./pages/PromptPuzzle";
 import OutputDuel from "./pages/OutputDuel";
 import TimeTrial from "./pages/TimeTrial";
 import PromptSurgery from "./pages/PromptSurgery";
+import AINavigator from "./pages/AINavigator";
+import LogicLink from "./pages/LogicLink";
+import PromptPro from "./pages/PromptPro";
 import CategoryHub from "./pages/CategoryHub";
 import ModuleView from "./pages/ModuleView";
 import LessonView from "./pages/LessonView";
@@ -122,6 +125,9 @@ function AppRoutes() {
           <Route path="/games/output-duel" element={<OutputDuel />} />
           <Route path="/games/time-trial" element={<TimeTrial />} />
           <Route path="/games/prompt-surgery" element={<PromptSurgery />} />
+          <Route path="/games/ai-navigator" element={<AINavigator />} />
+          <Route path="/games/logic-link" element={<LogicLink />} />
+          <Route path="/games/prompt-pro" element={<PromptPro />} />
           <Route path="/track/:trackId" element={<CoreTrackHub />} />
           <Route path="/mastery/:trackId" element={<MasteryTrackHub />} />
           <Route path="/mastery/:trackId/start" element={<MasteryTrackStart />} />
