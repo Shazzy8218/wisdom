@@ -61,20 +61,9 @@ export default function Index() {
   const topInsight = analytics.insights[0] || null;
 
   return (
-    <div className="min-h-screen pb-24">
+    <div className="min-h-screen pb-4">
       {/* Section 1: Header */}
-      <div className="px-5 pt-14 pb-6">
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center justify-between mb-1">
-          <div className="flex items-center gap-2">
-            <img src={owlLogo} alt="Wisdom AI" className="w-6 h-6 drop-shadow-[0_0_8px_hsl(45,90%,55%,0.3)]" />
-            <p className="section-label text-accent-gold">Wisdom AI</p>
-          </div>
-          <div className="flex items-center gap-3">
-            <OwlHuntTracker />
-            <span className="text-[11px] font-mono text-muted-foreground">{clock.timeStr}</span>
-          </div>
-        </motion.div>
-
+      <div className="px-5 pt-6 pb-6">
         <motion.h1
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
