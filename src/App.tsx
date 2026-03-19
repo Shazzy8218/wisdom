@@ -163,7 +163,7 @@ function AppRoutes() {
           <Route path="/settings" element={<Settings />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/support" element={<Support />} />
-          <Route path="/drills" element={<LiveFireDrills />} />
+          <Route path="/drills" element={<MasteryArena />} />
           <Route path="/auth" element={<Navigate to="/" replace />} />
           <Route path="/chat" element={<Navigate to="/" replace />} />
           <Route path="*" element={<NotFound />} />
