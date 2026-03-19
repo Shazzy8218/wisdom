@@ -79,7 +79,7 @@ export default function Games() {
         <p className="text-sm text-muted-foreground mt-2 max-w-md leading-relaxed">
           Real games. Real skills. Every round reinforces what you're learning — no quizzes, no filler.
         </p>
-        <HiddenOwl locationId="arcade-header" className="absolute right-6 top-16" size={18} />
+        <HiddenOwl locationId="games-header" className="absolute right-6 top-16" size={18} />
       </div>
 
       {/* Stats */}
