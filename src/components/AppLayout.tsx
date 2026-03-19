@@ -9,7 +9,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
 
   if (isMobile) {
     return (
-      <div className="mx-auto max-w-lg min-h-[100dvh]">
+      <div className="mx-auto max-w-lg">
         {children}
         <BottomNav />
       </div>
