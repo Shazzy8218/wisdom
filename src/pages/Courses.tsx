@@ -3,10 +3,11 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "react-router-dom";
 import {
   ChevronRight, ChevronDown, Search, Sparkles, DollarSign, Star, BookOpen,
-  Loader2, RefreshCw, Zap, Filter, CheckCircle2
+  Loader2, RefreshCw, Zap, Filter, CheckCircle2, Crown
 } from "lucide-react";
 import { MASTERY_CATEGORIES, getLevelLabel } from "@/lib/data";
 import { CORE_TRACKS, MONEY_TRACK_IDS, getRecommendedTracks } from "@/lib/core-tracks";
+import { MASTERY_TRACKS } from "@/lib/mastery-tracks";
 import { useProgress } from "@/hooks/useProgress";
 import { useCalibration } from "@/hooks/useCalibration";
 import { useUserProfile } from "@/hooks/useUserProfile";
