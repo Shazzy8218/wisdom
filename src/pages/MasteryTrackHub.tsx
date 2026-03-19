@@ -99,7 +99,7 @@ export default function MasteryTrackHub() {
       {/* CTA */}
       <div className="px-5">
         <Link
-          to="/"
+          to={`/mastery/${trackId}/start`}
           className="w-full glass-card p-4 flex items-center justify-center gap-2 text-body font-semibold text-primary hover:border-primary/20 transition-all block text-center"
         >
           <Sparkles className="h-4 w-4" />
