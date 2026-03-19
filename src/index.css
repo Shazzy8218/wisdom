@@ -162,12 +162,14 @@
     mix-blend-mode: overlay;
   }
 
-  /* Desktop layout adjustments - remove bottom padding when sidebar is present */
+  /* Desktop layout adjustments */
   @media (min-width: 768px) {
-    .min-h-screen.pb-24 {
+    .min-h-screen.pb-24,
+    .min-h-\[100dvh\].pb-28 {
       padding-bottom: 2rem;
     }
-    .min-h-screen .pt-14 {
+    .min-h-screen .pt-14,
+    .min-h-\[100dvh\] .pt-12 {
       padding-top: 1.5rem;
     }
   }
