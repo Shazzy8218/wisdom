@@ -125,6 +125,30 @@
     scrollbar-width: none;
   }
 
+  /* Safe area utilities for mobile notches/home indicators */
+  .pt-safe-top {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+  .pb-safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  /* Touch feedback for mobile */
+  @media (hover: none) and (pointer: coarse) {
+    .active\:scale-\[0\.97\]:active {
+      transform: scale(0.97);
+    }
+    * {
+      -webkit-tap-highlight-color: transparent;
+    }
+  }
+
+  /* Smooth momentum scrolling */
+  .overscroll-contain {
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
   .film-grain {
     position: relative;
   }
