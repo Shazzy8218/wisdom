@@ -313,6 +313,16 @@ export default function Settings() {
         </div>
         <p className="text-caption text-muted-foreground mb-4">These shape how Owl responds to you.</p>
         <div className="space-y-3">
+          <Link
+            to="/calibration"
+            state={{ returnTo: "/settings" }}
+            className="glass-card block p-4 transition-all hover:border-primary/20"
+          >
+            <p className="text-body font-medium text-foreground">Calibration / Preferences</p>
+            <p className="mt-1 text-micro text-muted-foreground">
+              Open the full calibration page, save once, and return here automatically.
+            </p>
+          </Link>
           <div className="glass-card p-4">
             <p className="text-body font-medium text-foreground mb-2">Goal Mode</p>
             <div className="flex gap-2">
