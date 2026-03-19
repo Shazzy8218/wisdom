@@ -13,6 +13,9 @@ export interface CoreTrackMeta {
   moneyAngle: string;
   color: string;
   modules: string[];
+  valueProp: string;
+  outcomes: string[];
+  advancedExamples: string[];
 }
 
 export const CORE_TRACKS: CoreTrackMeta[] = [
