@@ -173,6 +173,34 @@ export default function Courses() {
       ),
     });
 
+    // Mastery Tier
+    sections.push({
+      id: "mastery",
+      icon: "👑",
+      label: "Mastery Tier",
+      sublabel: `${MASTERY_TRACKS.length} advanced tracks · certification-level`,
+      accent: "border-l-accent-gold",
+      content: (
+        <div className="space-y-1">
+          {MASTERY_TRACKS.map(track => (
+            <Link
+              key={track.id}
+              to={`/mastery/${track.id}`}
+              className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg hover:bg-surface-hover transition-colors"
+            >
+              <span className="text-sm">{track.icon}</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-foreground truncate">{track.name}</p>
+                <p className="text-[10px] text-muted-foreground truncate">{track.tagline}</p>
+              </div>
+              <Crown className="h-3 w-3 text-accent-gold" />
+              <ChevronRight className="h-3 w-3 text-muted-foreground/50" />
+            </Link>
+          ))}
+        </div>
+      ),
+    });
+
     // Categories
     sections.push({
       id: "categories",
