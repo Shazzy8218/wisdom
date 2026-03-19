@@ -28,19 +28,20 @@ export default function Profile() {
   const handleSignOut = async () => {
     setSigningOut(true);
     try {
-      await supabase.auth.signOut();
-      // Clear all app caches so no stale session remains
-      const keysToKeep: string[] = [];
+      // Clear all app caches first
       const allKeys = Object.keys(localStorage);
-      allKeys.forEach((key) => {
-        if (!keysToKeep.includes(key)) localStorage.removeItem(key);
-      });
-      // Hard redirect ensures no in-memory state persists
-      window.location.href = "/auth";
+      allKeys.forEach((key) => localStorage.removeItem(key));
+      // Fire signOut but don't let it block the redirect
+      supabase.auth.signOut().catch(() => {});
+      // Small delay to let signOut initiate, then hard redirect
+      setTimeout(() => {
+        window.location.href = "/auth";
+      }, 300);
     } catch (e) {
       console.error("[SignOut] error:", e);
-      setSigningOut(false);
-      toast({ title: "Sign out failed. Please try again.", variant: "destructive" });
+      // Even on error, force redirect
+      localStorage.clear();
+      window.location.href = "/auth";
     }
   };
 

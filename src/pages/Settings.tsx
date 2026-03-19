@@ -170,15 +170,19 @@ export default function Settings() {
   const handleSignOut = async () => {
     setSigningOut(true);
     try {
-      await signOut();
-      // Clear all app caches so no stale session remains
+      // Clear all app caches first
       const allKeys = Object.keys(localStorage);
       allKeys.forEach((key) => localStorage.removeItem(key));
-      // Hard redirect ensures no in-memory state persists
-      window.location.href = "/auth";
+      // Fire signOut but don't let it block the redirect
+      signOut().catch(() => {});
+      // Small delay to let signOut initiate, then hard redirect
+      setTimeout(() => {
+        window.location.href = "/auth";
+      }, 300);
     } catch {
-      setSigningOut(false);
-      toast({ title: "Sign out failed. Please try again.", variant: "destructive" });
+      // Even on error, force redirect
+      localStorage.clear();
+      window.location.href = "/auth";
     }
   };
 
