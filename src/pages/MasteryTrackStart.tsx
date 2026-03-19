@@ -346,24 +346,23 @@ Format with markdown. Use bold headers. Be ruthlessly practical.`
                 <p className="text-micro text-muted-foreground mt-2">Pillar 1 initiated · {track.pillars.length} pillars total</p>
               </div>
 
-              {/* Pillars roadmap */}
+              {/* Pillars roadmap — all accessible, no "Upcoming" */}
               <div className="space-y-3">
                 {track.pillars.map((pillar, i) => {
-                  const isActive = i === 0;
-                  const isLocked = i > 0;
+                  const isFirst = i === 0;
                   return (
                     <motion.div
                       key={i}
                       initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: i * 0.08 }}
-                      className={`glass-card p-4 ${isActive ? "border-accent-gold/30" : "opacity-60"}`}
+                      className={`glass-card p-4 ${isFirst ? "border-accent-gold/30" : ""}`}
                     >
                       <div className="flex items-start gap-3">
                         <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
-                          isActive ? "bg-accent-gold/20" : "bg-surface-2"
+                          isFirst ? "bg-accent-gold/20" : "bg-surface-2"
                         }`}>
-                          {isActive ? (
+                          {isFirst ? (
                             <CheckCircle2 className="h-4 w-4 text-accent-gold" />
                           ) : (
                             <span className="text-micro font-bold text-muted-foreground">{i + 1}</span>
@@ -371,17 +370,17 @@ Format with markdown. Use bold headers. Be ruthlessly practical.`
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
-                            <p className={`text-caption font-semibold ${isActive ? "text-foreground" : "text-muted-foreground"}`}>
+                            <p className={`text-caption font-semibold text-foreground`}>
                               {pillar.title}
                             </p>
-                            {isActive && (
+                            {isFirst && (
                               <span className="text-[9px] font-bold uppercase tracking-wider bg-accent-gold/15 text-accent-gold px-1.5 py-0.5 rounded">
                                 Active
                               </span>
                             )}
-                            {isLocked && (
-                              <span className="text-[9px] font-bold uppercase tracking-wider bg-surface-2 text-muted-foreground px-1.5 py-0.5 rounded">
-                                Upcoming
+                            {!isFirst && (
+                              <span className="text-[9px] font-bold uppercase tracking-wider bg-primary/10 text-primary px-1.5 py-0.5 rounded">
+                                5 Lessons
                               </span>
                             )}
                           </div>
@@ -396,17 +395,40 @@ Format with markdown. Use bold headers. Be ruthlessly practical.`
               {/* CTAs */}
               <div className="space-y-2">
                 <button
-                  onClick={() => navigate("/")}
+                  onClick={() => navigate(`/mastery/${trackId}/roadmap`)}
+                  className="w-full glass-card p-4 flex items-center justify-center gap-2 text-body font-semibold text-accent-gold hover:border-accent-gold/20 transition-all"
+                >
+                  <Sparkles className="h-4 w-4" />
+                  View Your Full Roadmap
+                </button>
+                <button
+                  onClick={() => navigate(`/mastery/${trackId}/lesson?pillar=0&lesson=0`)}
                   className="w-full glass-card p-4 flex items-center justify-center gap-2 text-body font-semibold text-primary hover:border-primary/20 transition-all"
                 >
                   <Sparkles className="h-4 w-4" />
-                  Continue in Chat with Wisdom Owl
+                  Start First Lesson
                 </button>
                 <button
-                  onClick={() => navigate(`/mastery/${trackId}`)}
+                  onClick={() => {
+                    const contextParts = [
+                      `📚 MASTERY TRACK: "${track.name}"`,
+                      `🎯 VALUE: ${track.valueProp}`,
+                      `📋 Pillar 1: "${track.pillars[0].title}"`,
+                      "",
+                      "ONBOARDING ANSWERS:",
+                      ...answers.map(a => `Q: ${a.question}\nA: ${a.answer}`),
+                      "",
+                      "ASSESSMENT ANSWER: " + assessmentAnswer,
+                      "",
+                      "---",
+                      "I just started this mastery track and received my first blueprint. Help me dive deeper into Pillar 1 and build on what I've learned. What should I focus on first?",
+                    ];
+                    const encoded = encodeURIComponent(contextParts.join("\n"));
+                    navigate(`/?context=${encoded}&autoSend=true`);
+                  }}
                   className="w-full text-center text-micro text-muted-foreground hover:text-foreground transition-colors py-2"
                 >
-                  Back to Track Overview
+                  Continue in Chat with Owl →
                 </button>
               </div>
             </motion.div>

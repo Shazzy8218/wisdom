@@ -36,6 +36,8 @@ import LessonView from "./pages/LessonView";
 import CoreTrackHub from "./pages/CoreTrackHub";
 import MasteryTrackHub from "./pages/MasteryTrackHub";
 import MasteryTrackStart from "./pages/MasteryTrackStart";
+import MasteryRoadmap from "./pages/MasteryRoadmap";
+import MasteryLessonView from "./pages/MasteryLessonView";
 import Auth from "./pages/Auth";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import Support from "./pages/Support";
@@ -123,6 +125,8 @@ function AppRoutes() {
           <Route path="/track/:trackId" element={<CoreTrackHub />} />
           <Route path="/mastery/:trackId" element={<MasteryTrackHub />} />
           <Route path="/mastery/:trackId/start" element={<MasteryTrackStart />} />
+          <Route path="/mastery/:trackId/roadmap" element={<MasteryRoadmap />} />
+          <Route path="/mastery/:trackId/lesson" element={<MasteryLessonView />} />
           <Route path="/category/:categoryId" element={<CategoryHub />} />
           <Route path="/category/:categoryId/module" element={<ModuleView />} />
           <Route path="/category/:categoryId/lesson" element={<LessonView />} />

@@ -201,14 +201,59 @@ export default function CoreTrackHub() {
           {generating ? "Generating..." : "Generate New Lesson"}
         </button>
 
-        {/* Start Learning CTA */}
-        <Link
-          to={`/category/${trackId}/lesson?level=${selectedLevel}&mod=0&lesson=0`}
-          className="w-full glass-card p-4 flex items-center justify-center gap-2 text-body font-semibold text-primary hover:border-primary/20 transition-all block text-center"
+        {/* Start/Continue Learning CTA — jumps to next incomplete lesson */}
+        {(() => {
+          // Find the first incomplete lesson
+          let nextMod = 0, nextLesson = 0;
+          for (let mi = 0; mi < track.modules.length; mi++) {
+            for (let li = 0; li < 5; li++) {
+              if (!isLessonCompleted(getModuleLessonKey(trackId || "", selectedLevel, mi, li))) {
+                nextMod = mi; nextLesson = li;
+                return (
+                  <Link
+                    to={`/category/${trackId}/lesson?level=${selectedLevel}&mod=${nextMod}&lesson=${nextLesson}`}
+                    className="w-full glass-card p-4 flex items-center justify-center gap-2 text-body font-semibold text-primary hover:border-primary/20 transition-all block text-center"
+                  >
+                    <Sparkles className="h-4 w-4" />
+                    {totalDone > 0 ? `Continue: ${track.modules[nextMod]}` : "Start First Lesson"}
+                  </Link>
+                );
+              }
+            }
+          }
+          return (
+            <div className="glass-card p-4 text-center text-body font-semibold text-accent-green">
+              <CheckCircle2 className="h-4 w-4 inline mr-2" />
+              All lessons complete!
+            </div>
+          );
+        })()}
+
+        {/* Context-aware Chat */}
+        <button
+          onClick={() => {
+            const contextParts = [
+              `📚 CORE TRACK: "${track.name}"`,
+              `🎯 ${track.valueProp}`,
+              `📊 Progress: ${totalDone}/${totalLessons} lessons (${overallPct}%)`,
+              `📋 Level: ${selectedLevel}`,
+              "",
+              "MODULE PROGRESS:",
+              ...track.modules.map((mod, i) => {
+                const { done, total } = completedModules[i];
+                return `  ${i + 1}. ${mod}: ${done}/${total}`;
+              }),
+              "",
+              "---",
+              "Based on my progress above, what should I focus on next in this track? Give me a focused briefing and a practical exercise.",
+            ];
+            const encoded = encodeURIComponent(contextParts.join("\n"));
+            navigate(`/?context=${encoded}&autoSend=true`);
+          }}
+          className="w-full glass-card p-4 flex items-center justify-center gap-2 text-body font-medium text-muted-foreground hover:text-foreground hover:border-primary/10 transition-all"
         >
-          <Sparkles className="h-4 w-4" />
-          {totalDone > 0 ? "Continue Learning" : "Start First Lesson"}
-        </Link>
+          🦉 Continue in Chat with Owl
+        </button>
       </div>
     </div>
   );
