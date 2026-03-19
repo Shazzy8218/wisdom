@@ -46,6 +46,9 @@ export function recordGameResult(gameId: string, score: number, streak?: number)
     ["serpent-ace", () => (stats.bestScores["mind-serpent"] || 0) >= 200],
     ["pilot-pro", () => (stats.bestScores["insight-pilot"] || 0) >= 300],
     ["syntax-king", () => (stats.bestScores["syntax-smash"] || 0) >= 500],
+    ["ascent-legend", () => (stats.bestScores["synthesis-ascent"] || 0) >= 400],
+    ["drift-master", () => (stats.bestScores["chrono-drift"] || 0) >= 500],
+    ["nexus-architect", () => (stats.bestScores["neural-nexus"] || 0) >= 300],
   ];
   for (const [id, check] of checks) {
     if (check() && !stats.achievements.includes(id)) {
@@ -85,6 +88,9 @@ export const ACHIEVEMENTS: Record<string, { icon: string; title: string; desc: s
   "serpent-ace": { icon: "🐍", title: "Serpent Ace", desc: "Scored 200+ in Mind Serpent" },
   "pilot-pro": { icon: "✈️", title: "Pilot Pro", desc: "Scored 300+ in Insight Pilot" },
   "syntax-king": { icon: "🏗️", title: "Syntax King", desc: "Scored 500+ in Syntax Smash" },
+  "ascent-legend": { icon: "🚀", title: "Ascent Legend", desc: "Scored 400+ in Synthesis Ascent" },
+  "drift-master": { icon: "🏎️", title: "Drift Master", desc: "Scored 500+ in Chrono-Drift" },
+  "nexus-architect": { icon: "🏙️", title: "Nexus Architect", desc: "Scored 300+ in Neural Nexus" },
 };
 
 // ---------- Content pools (AI concept data) ----------

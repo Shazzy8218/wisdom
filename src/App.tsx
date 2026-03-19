@@ -36,6 +36,9 @@ import PromptPro from "./pages/PromptPro";
 import MindSerpent from "./pages/MindSerpent";
 import InsightPilot from "./pages/InsightPilot";
 import SyntaxSmash from "./pages/SyntaxSmash";
+import SynthesisAscent from "./pages/SynthesisAscent";
+import ChronoDrift from "./pages/ChronoDrift";
+import NeuralNexus from "./pages/NeuralNexus";
 import CategoryHub from "./pages/CategoryHub";
 import ModuleView from "./pages/ModuleView";
 import LessonView from "./pages/LessonView";
@@ -134,6 +137,9 @@ function AppRoutes() {
           <Route path="/games/mind-serpent" element={<MindSerpent />} />
           <Route path="/games/insight-pilot" element={<InsightPilot />} />
           <Route path="/games/syntax-smash" element={<SyntaxSmash />} />
+          <Route path="/games/synthesis-ascent" element={<SynthesisAscent />} />
+          <Route path="/games/chrono-drift" element={<ChronoDrift />} />
+          <Route path="/games/neural-nexus" element={<NeuralNexus />} />
           <Route path="/track/:trackId" element={<CoreTrackHub />} />
           <Route path="/mastery/:trackId" element={<MasteryTrackHub />} />
           <Route path="/mastery/:trackId/start" element={<MasteryTrackStart />} />
