@@ -165,14 +165,20 @@ export default function Settings() {
     toast({ title: "Memory Reset", description: "All AI personalization has been cleared." });
   };
 
+  const [signingOut, setSigningOut] = useState(false);
+
   const handleSignOut = async () => {
+    setSigningOut(true);
     try {
-      const { resetCloudLoadedFlag } = await import("@/hooks/useProgress");
-      resetCloudLoadedFlag();
       await signOut();
-      navigate("/auth", { replace: true });
+      // Clear all app caches so no stale session remains
+      const allKeys = Object.keys(localStorage);
+      allKeys.forEach((key) => localStorage.removeItem(key));
+      // Hard redirect ensures no in-memory state persists
+      window.location.href = "/auth";
     } catch {
-      toast({ title: "Error signing out", variant: "destructive" });
+      setSigningOut(false);
+      toast({ title: "Sign out failed. Please try again.", variant: "destructive" });
     }
   };
 
@@ -401,10 +407,10 @@ export default function Settings() {
             <p className="text-micro text-muted-foreground">Download all your data as JSON</p>
           </div>
         </button>
-        <button onClick={handleSignOut}
-          className="w-full glass-card p-4 flex items-center gap-3 text-left hover:border-primary/10 transition-all">
+        <button onClick={handleSignOut} disabled={signingOut}
+          className="w-full glass-card p-4 flex items-center gap-3 text-left hover:border-primary/10 transition-all disabled:opacity-50">
           <LogOut className="h-4 w-4 text-muted-foreground" />
-          <p className="text-body font-medium text-foreground">Sign Out</p>
+          <p className="text-body font-medium text-foreground">{signingOut ? "Signing out…" : "Sign Out"}</p>
         </button>
       </div>
 

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
+import { toast } from "@/hooks/use-toast";
 import { User, Wallet, Settings, Crown, ChevronRight, Sparkles, BarChart3, LogOut, Pencil, Target } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useUserProfile } from "@/hooks/useUserProfile";
@@ -22,10 +23,25 @@ export default function Profile() {
     setEditing(false);
   };
 
+  const [signingOut, setSigningOut] = useState(false);
+
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    localStorage.removeItem("wisdom-cloud-progress-loaded");
-    window.location.href = "/";
+    setSigningOut(true);
+    try {
+      await supabase.auth.signOut();
+      // Clear all app caches so no stale session remains
+      const keysToKeep: string[] = [];
+      const allKeys = Object.keys(localStorage);
+      allKeys.forEach((key) => {
+        if (!keysToKeep.includes(key)) localStorage.removeItem(key);
+      });
+      // Hard redirect ensures no in-memory state persists
+      window.location.href = "/auth";
+    } catch (e) {
+      console.error("[SignOut] error:", e);
+      setSigningOut(false);
+      toast({ title: "Sign out failed. Please try again.", variant: "destructive" });
+    }
   };
 
   const goalPercent = primaryGoal && primaryGoal.targetValue > primaryGoal.baselineValue
@@ -161,10 +177,10 @@ export default function Profile() {
 
       {/* Sign Out */}
       <div className="px-5 mt-6">
-        <button onClick={handleSignOut}
-          className="w-full glass-card p-4 flex items-center gap-4 text-left hover:border-destructive/20 transition-all">
+        <button onClick={handleSignOut} disabled={signingOut}
+          className="w-full glass-card p-4 flex items-center gap-4 text-left hover:border-destructive/20 transition-all disabled:opacity-50">
           <LogOut className="h-4.5 w-4.5 text-destructive/70" strokeWidth={1.5} />
-          <p className="text-body font-medium text-destructive/70">Sign Out</p>
+          <p className="text-body font-medium text-destructive/70">{signingOut ? "Signing out…" : "Sign Out"}</p>
         </button>
       </div>
     </div>
