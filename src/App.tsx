@@ -120,6 +120,7 @@ function AppRoutes() {
           <Route path="/games/time-trial" element={<TimeTrial />} />
           <Route path="/games/prompt-surgery" element={<PromptSurgery />} />
           <Route path="/track/:trackId" element={<CoreTrackHub />} />
+          <Route path="/mastery/:trackId" element={<MasteryTrackHub />} />
           <Route path="/category/:categoryId" element={<CategoryHub />} />
           <Route path="/category/:categoryId/module" element={<ModuleView />} />
           <Route path="/category/:categoryId/lesson" element={<LessonView />} />
