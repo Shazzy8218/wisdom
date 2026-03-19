@@ -407,10 +407,10 @@ export default function Settings() {
             <p className="text-micro text-muted-foreground">Download all your data as JSON</p>
           </div>
         </button>
-        <button onClick={handleSignOut}
-          className="w-full glass-card p-4 flex items-center gap-3 text-left hover:border-primary/10 transition-all">
+        <button onClick={handleSignOut} disabled={signingOut}
+          className="w-full glass-card p-4 flex items-center gap-3 text-left hover:border-primary/10 transition-all disabled:opacity-50">
           <LogOut className="h-4 w-4 text-muted-foreground" />
-          <p className="text-body font-medium text-foreground">Sign Out</p>
+          <p className="text-body font-medium text-foreground">{signingOut ? "Signing out…" : "Sign Out"}</p>
         </button>
       </div>
 

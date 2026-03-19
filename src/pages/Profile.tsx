@@ -177,10 +177,10 @@ export default function Profile() {
 
       {/* Sign Out */}
       <div className="px-5 mt-6">
-        <button onClick={handleSignOut}
-          className="w-full glass-card p-4 flex items-center gap-4 text-left hover:border-destructive/20 transition-all">
+        <button onClick={handleSignOut} disabled={signingOut}
+          className="w-full glass-card p-4 flex items-center gap-4 text-left hover:border-destructive/20 transition-all disabled:opacity-50">
           <LogOut className="h-4.5 w-4.5 text-destructive/70" strokeWidth={1.5} />
-          <p className="text-body font-medium text-destructive/70">Sign Out</p>
+          <p className="text-body font-medium text-destructive/70">{signingOut ? "Signing out…" : "Sign Out"}</p>
         </button>
       </div>
     </div>
