@@ -121,9 +121,9 @@ export default function LearnFeed() {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-background">
+    <div className="flex flex-col bg-background min-h-0" style={{ height: "calc(100vh - 7rem)" }}>
       {/* Sticky header */}
-      <div className="flex-shrink-0 px-5 pt-12 pb-3 bg-background/90 backdrop-blur-xl z-10 border-b border-border/50">
+      <div className="flex-shrink-0 px-5 pt-4 pb-3 bg-background/90 backdrop-blur-xl z-10 border-b border-border/50">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-[9px] font-black uppercase tracking-[0.3em] text-primary">Nerd Doomscroll</p>
@@ -161,7 +161,7 @@ export default function LearnFeed() {
       </div>
 
       {/* Scroll container */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto snap-y snap-mandatory hide-scrollbar pb-24">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto snap-y snap-mandatory hide-scrollbar pb-4">
         {/* Initial loading skeleton */}
         {initialLoading && cards.length === 0 && (
           <div className="min-h-[calc(100vh-8rem)] snap-start flex flex-col justify-center px-4 py-6">
