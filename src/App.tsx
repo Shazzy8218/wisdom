@@ -52,7 +52,7 @@ import MasteryLessonView from "./pages/MasteryLessonView";
 import Auth from "./pages/Auth";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import Support from "./pages/Support";
-import LiveFireDrills from "./pages/LiveFireDrills";
+import MasteryArena from "./pages/MasteryArena";
 import ResetPassword from "./pages/ResetPassword";
 
 const queryClient = new QueryClient();
@@ -163,7 +163,7 @@ function AppRoutes() {
           <Route path="/settings" element={<Settings />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/support" element={<Support />} />
-          <Route path="/drills" element={<LiveFireDrills />} />
+          <Route path="/drills" element={<MasteryArena />} />
           <Route path="/auth" element={<Navigate to="/" replace />} />
           <Route path="/chat" element={<Navigate to="/" replace />} />
           <Route path="*" element={<NotFound />} />

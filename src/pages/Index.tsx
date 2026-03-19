@@ -187,7 +187,7 @@ export default function Index() {
         </motion.div>
       </div>
 
-      {/* Section 6: Live Fire Drills */}
+      {/* Section 6: Mastery Arena */}
       <div className="px-5 mb-4">
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.43 }}>
           <Link
@@ -196,7 +196,7 @@ export default function Index() {
           >
             <Flame className="h-4 w-4 text-primary" />
             <span className="text-[13px] text-foreground font-medium group-hover:text-primary transition-colors">
-              Live Fire Drills — Sandbox Mode
+              Mastery Arena — Neural Syntax Engine
             </span>
             <ChevronRight className="h-3.5 w-3.5 text-muted-foreground ml-auto" />
           </Link>
