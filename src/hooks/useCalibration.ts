@@ -34,6 +34,10 @@ const DEFAULT: CalibrationData = {
 const CALIBRATION_CACHE_KEY = "wisdom-calibration-cache";
 const CALIBRATION_SAVE_TIMEOUT_MS = 25000;
 
+type CalibrationUpsertResponse = {
+  error: { message?: string } | null;
+};
+
 function getCachedCalibration(): CalibrationData {
   const cached = localStorage.getItem(CALIBRATION_CACHE_KEY);
   if (!cached) return DEFAULT;
@@ -62,7 +66,7 @@ function buildCalibrationFromRow(row: any): CalibrationData {
   };
 }
 
-async function withSaveTimeout<T>(promise: Promise<T>) {
+async function withSaveTimeout<T>(promiseLike: PromiseLike<T>): Promise<T> {
   let timeoutId: number | undefined;
 
   const timeoutPromise = new Promise<never>((_, reject) => {
@@ -72,7 +76,7 @@ async function withSaveTimeout<T>(promise: Promise<T>) {
   });
 
   try {
-    return await Promise.race([promise, timeoutPromise]);
+    return await Promise.race([Promise.resolve(promiseLike), timeoutPromise]);
   } finally {
     if (timeoutId) window.clearTimeout(timeoutId);
   }
@@ -94,12 +98,16 @@ export function useCalibration() {
 
     setLoading(true);
 
-    supabase
-      .from("profiles")
-      .select("goal_mode, output_mode, calibration_done, primary_desire, answer_tone, learning_style, intensity")
-      .eq("id", user.id)
-      .single()
-      .then(({ data: row, error }) => {
+    void (async () => {
+      try {
+        const { data: row, error } = await Promise.resolve(
+          supabase
+            .from("profiles")
+            .select("goal_mode, output_mode, calibration_done, primary_desire, answer_tone, learning_style, intensity")
+            .eq("id", user.id)
+            .single()
+        );
+
         if (cancelled) return;
 
         if (row && !error) {
@@ -109,14 +117,16 @@ export function useCalibration() {
         } else {
           setData(getCachedCalibration());
         }
-
-        setLoading(false);
-      })
-      .catch(() => {
-        if (cancelled) return;
-        setData(getCachedCalibration());
-        setLoading(false);
-      });
+      } catch {
+        if (!cancelled) {
+          setData(getCachedCalibration());
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    })();
 
     return () => {
       cancelled = true;
@@ -140,26 +150,28 @@ export function useCalibration() {
       setData(draftData);
       localStorage.setItem(CALIBRATION_CACHE_KEY, JSON.stringify(draftData));
 
-      const { error } = await withSaveTimeout(
-        supabase.from("profiles").upsert(
-          {
-            id: user.id,
-            email: user.email ?? null,
-            display_name:
-              user.user_metadata?.display_name || user.email?.split("@")[0] || "Learner",
-            goal_mode: answers.goalMode,
-            output_mode: answers.outputMode,
-            primary_desire: answers.primaryDesire,
-            answer_tone: answers.answerTone,
-            learning_style: answers.learningStyle,
-            intensity: answers.intensity,
-            calibration_done: true,
-          } as any,
-          { onConflict: "id" }
+      const { error } = (await withSaveTimeout(
+        Promise.resolve(
+          supabase.from("profiles").upsert(
+            {
+              id: user.id,
+              email: user.email ?? null,
+              display_name:
+                user.user_metadata?.display_name || user.email?.split("@")[0] || "Learner",
+              goal_mode: answers.goalMode,
+              output_mode: answers.outputMode,
+              primary_desire: answers.primaryDesire,
+              answer_tone: answers.answerTone,
+              learning_style: answers.learningStyle,
+              intensity: answers.intensity,
+              calibration_done: true,
+            } as any,
+            { onConflict: "id" }
+          )
         )
-      );
+      )) as CalibrationUpsertResponse;
 
-      if (error) throw error;
+      if (error) throw new Error(error.message || "Failed to save calibration");
 
       const savedData: CalibrationData = {
         ...draftData,
@@ -198,19 +210,21 @@ export function useCalibration() {
 
       if (!Object.keys(dbUpdates).length) return;
 
-      const { error } = await withSaveTimeout(
-        supabase.from("profiles").upsert(
-          {
-            id: user.id,
-            email: user.email ?? null,
-            display_name:
-              user.user_metadata?.display_name || user.email?.split("@")[0] || "Learner",
-            calibration_done: nextData.calibrationDone,
-            ...dbUpdates,
-          } as any,
-          { onConflict: "id" }
+      const { error } = (await withSaveTimeout(
+        Promise.resolve(
+          supabase.from("profiles").upsert(
+            {
+              id: user.id,
+              email: user.email ?? null,
+              display_name:
+                user.user_metadata?.display_name || user.email?.split("@")[0] || "Learner",
+              calibration_done: nextData.calibrationDone,
+              ...dbUpdates,
+            } as any,
+            { onConflict: "id" }
+          )
         )
-      );
+      )) as CalibrationUpsertResponse;
 
       if (error) {
         console.error("Calibration update failed:", error);
