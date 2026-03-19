@@ -122,6 +122,7 @@ function AppRoutes() {
           <Route path="/games/prompt-surgery" element={<PromptSurgery />} />
           <Route path="/track/:trackId" element={<CoreTrackHub />} />
           <Route path="/mastery/:trackId" element={<MasteryTrackHub />} />
+          <Route path="/mastery/:trackId/start" element={<MasteryTrackStart />} />
           <Route path="/category/:categoryId" element={<CategoryHub />} />
           <Route path="/category/:categoryId/module" element={<ModuleView />} />
           <Route path="/category/:categoryId/lesson" element={<LessonView />} />
