@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import AppLayout from "@/components/AppLayout";
 import SplashQuote from "@/components/SplashQuote";
 import ScrollToTop from "@/components/ScrollToTop";
@@ -45,19 +45,29 @@ const queryClient = new QueryClient();
 function AppRoutes() {
   const { user, loading } = useAuth();
   const { calibration, loading: calLoading, completeCalibration } = useCalibration();
+  const location = useLocation();
+  const navigate = useNavigate();
   useCloudSync();
   const [splashDismissed, setSplashDismissed] = useState(false);
-  const [calibrationSkipped, setCalibrationSkipped] = useState(() => {
-    return localStorage.getItem("wisdom-calibration-skipped") === "true";
-  });
 
-  const handleSkip = () => {
-    localStorage.setItem("wisdom-calibration-skipped", "true");
-    setCalibrationSkipped(true);
+  const routeState =
+    location.state && typeof location.state === "object"
+      ? (location.state as { returnTo?: string })
+      : undefined;
+  const returnTo = routeState?.returnTo;
+  const isEditingCalibration = calibration.calibrationDone || Boolean(returnTo);
+
+  const handleCalibrationComplete = async (answers: Parameters<typeof completeCalibration>[0]) => {
+    await completeCalibration(answers);
+    navigate(returnTo || "/", { replace: true });
   };
 
-  const handleBack = () => {
-    // Go back to auth screen by signing out
+  const handleCalibrationBack = () => {
+    if (isEditingCalibration) {
+      navigate(returnTo || "/", { replace: true });
+      return;
+    }
+
     import("@/integrations/supabase/client").then(({ supabase }) => supabase.auth.signOut());
   };
 
@@ -85,12 +95,6 @@ function AppRoutes() {
     );
   }
 
-  // Show calibration only for new users who haven't completed or skipped it
-  if (!calLoading && user && !calibration.calibrationDone && !calibrationSkipped) {
-    return <CalibrationModal onComplete={completeCalibration} onSkip={handleSkip} onBack={handleBack} />;
-  }
-
-  // Still loading calibration — show spinner to avoid flash
   if (calLoading && user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -99,16 +103,43 @@ function AppRoutes() {
     );
   }
 
+  if (!calibration.calibrationDone && location.pathname !== "/calibration") {
+    return <Navigate to="/calibration" replace />;
+  }
+
+  if (location.pathname === "/calibration") {
+    return (
+      <CalibrationModal
+        onComplete={handleCalibrationComplete}
+        onBack={handleCalibrationBack}
+        showSkip={false}
+        submitLabel={isEditingCalibration ? "Save preferences" : "Let's go"}
+        title={isEditingCalibration ? "Update how Wisdom Owl responds to you." : "Let's tune Wisdom Owl to you."}
+        description={
+          isEditingCalibration
+            ? "Update your preferences, save them once, and jump right back in."
+            : "Answer a few quick questions so I actually think like you do."
+        }
+        initialAnswers={{
+          goalMode: calibration.goalMode,
+          outputMode: calibration.outputMode,
+          primaryDesire: calibration.primaryDesire,
+          answerTone: calibration.answerTone,
+          learningStyle: calibration.learningStyle,
+          intensity: calibration.intensity,
+        }}
+      />
+    );
+  }
+
   return (
     <>
       <ScrollToTop />
       <AppLayout>
         <Routes>
-          {/* Chat is now the default home */}
           <Route path="/" element={<Chat />} />
           <Route path="/courses" element={<Courses />} />
           <Route path="/feed" element={<LearnFeed />} />
-          {/* Redirects for old routes */}
           <Route path="/learn" element={<Navigate to="/courses" replace />} />
           <Route path="/paths" element={<Navigate to="/courses" replace />} />
           <Route path="/mastery" element={<Navigate to="/courses" replace />} />
