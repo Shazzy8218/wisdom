@@ -39,6 +39,8 @@ import SyntaxSmash from "./pages/SyntaxSmash";
 import SynthesisAscent from "./pages/SynthesisAscent";
 import ChronoDrift from "./pages/ChronoDrift";
 import NeuralNexus from "./pages/NeuralNexus";
+import EchoesOfZero from "./pages/EchoesOfZero";
+import QuantumPulse from "./pages/QuantumPulse";
 import CategoryHub from "./pages/CategoryHub";
 import ModuleView from "./pages/ModuleView";
 import LessonView from "./pages/LessonView";
