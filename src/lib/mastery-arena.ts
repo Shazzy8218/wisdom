@@ -1,4 +1,4 @@
-// Mastery Arena: Neural Syntax Engine - Core Types & Data
+// Mastery Arena: Neural Syntax Engine v2.0 - Core Types & Data
 
 export interface ArenaScenario {
   id: string;
@@ -6,11 +6,13 @@ export interface ArenaScenario {
   domain: string;
   goal: string;
   complexity: "beginner" | "intermediate" | "advanced" | "grandmaster";
-  timeLimit: number; // seconds
+  timeLimit: number;
   description: string;
   variables: string[];
   tags: string[];
   icon: string;
+  aiIntervention?: "neutral" | "antagonist" | "active" | "environmental";
+  desiredOutcome?: string;
 }
 
 export interface DrillDecision {
@@ -19,17 +21,32 @@ export interface DrillDecision {
   timeElapsed: number;
   action: string;
   consequence: string;
-  score: number; // -10 to 10
+  score: number;
   biasDetected?: string;
+  criticalNode?: boolean;
+  alternativePath?: string;
 }
 
 export interface SituationUpdate {
   id: string;
   timestamp: number;
-  type: "metric" | "comms" | "event" | "warning" | "intel";
+  type: "metric" | "comms" | "event" | "warning" | "intel" | "stakeholder";
   title: string;
   content: string;
   severity: "info" | "caution" | "critical";
+  from?: string;
+}
+
+export interface CommMessage {
+  id: string;
+  timestamp: number;
+  from: string;
+  role: string;
+  channel: "email" | "chat" | "call" | "alert";
+  subject?: string;
+  content: string;
+  urgent: boolean;
+  requiresResponse: boolean;
 }
 
 export interface DrillResult {
@@ -38,27 +55,39 @@ export interface DrillResult {
   maxScore: number;
   decisions: DrillDecision[];
   situationLog: SituationUpdate[];
+  commsLog: CommMessage[];
   metrics: {
     decisionSpeed: number;
     strategicForesight: number;
     resourceEfficiency: number;
     adaptability: number;
     composure: number;
+    communicationClarity: number;
     overallGrade: string;
   };
   biases: string[];
   feedback: string;
   playbook: string[];
+  cognitiveArchetype: string;
+  archetypeDescription: string;
+  counterfactuals: { turn: number; alternative: string; projectedOutcome: string; successRate: number }[];
   passed: boolean;
   timeUsed: number;
 }
 
 export const COMPLEXITY_CONFIG = {
-  beginner: { label: "Cadet", color: "text-accent-green", turns: 4, timeMult: 1.5 },
-  intermediate: { label: "Operator", color: "text-accent-gold", turns: 6, timeMult: 1 },
-  advanced: { label: "Commander", color: "text-primary", turns: 8, timeMult: 0.75 },
-  grandmaster: { label: "Grandmaster", color: "text-primary", turns: 10, timeMult: 0.5 },
+  beginner: { label: "Cadet", color: "text-accent-green", turns: 5, timeMult: 1.5, description: "Guided scenarios with clear paths" },
+  intermediate: { label: "Operator", color: "text-accent-gold", turns: 7, timeMult: 1, description: "Multi-variable challenges" },
+  advanced: { label: "Commander", color: "text-primary", turns: 9, timeMult: 0.75, description: "High-pressure cascading crises" },
+  grandmaster: { label: "Grandmaster", color: "text-primary", turns: 12, timeMult: 0.5, description: "Extreme ambiguity & chaos" },
 };
+
+export const AI_INTERVENTION_LEVELS = [
+  { id: "neutral", label: "Neutral Observer", icon: "👁️", description: "AI provides context but doesn't actively oppose" },
+  { id: "environmental", label: "Chaos Engine", icon: "🌪️", description: "Random disruptive events and market shifts" },
+  { id: "antagonist", label: "Active Antagonist", icon: "⚔️", description: "AI deliberately counters your strategies" },
+  { id: "active", label: "Full Adversary", icon: "🔥", description: "Intelligent opposition adapting to your moves" },
+] as const;
 
 export const DOMAINS = [
   { id: "startup", label: "Startup & Venture", icon: "🚀" },
@@ -69,6 +98,8 @@ export const DOMAINS = [
   { id: "marketing", label: "Marketing & Growth", icon: "📈" },
   { id: "tech", label: "Tech & Engineering", icon: "⚙️" },
   { id: "healthcare", label: "Healthcare & Safety", icon: "🏥" },
+  { id: "geopolitics", label: "Geopolitics & Defense", icon: "🌍" },
+  { id: "cybersecurity", label: "Cybersecurity", icon: "🛡️" },
 ];
 
 export const CURATED_SCENARIOS: ArenaScenario[] = [
@@ -80,8 +111,8 @@ export const CURATED_SCENARIOS: ArenaScenario[] = [
     tags: ["negotiation", "fundraising", "pressure"],
   },
   {
-    id: "sc-2", title: "Cyber Incident Command", domain: "crisis", goal: "Contain data breach and manage fallout",
-    complexity: "grandmaster", timeLimit: 240, icon: "🔥",
+    id: "sc-2", title: "Cyber Incident Command", domain: "cybersecurity", goal: "Contain data breach and manage fallout",
+    complexity: "grandmaster", timeLimit: 240, icon: "🛡️",
     description: "Customer database potentially compromised. Media is calling. Regulators are watching. Your CISO just quit last week.",
     variables: ["500K user records at risk", "GDPR 72-hour disclosure window", "Stock price dropping 8%"],
     tags: ["crisis", "cybersecurity", "communications"],
@@ -128,14 +159,39 @@ export const CURATED_SCENARIOS: ArenaScenario[] = [
     variables: ["Varying injury severity", "Blood supply at 40%", "Nearest backup hospital 45min away"],
     tags: ["healthcare", "triage", "resource allocation"],
   },
+  {
+    id: "sc-9", title: "Geopolitical Sanctions Navigation", domain: "geopolitics", goal: "Restructure operations to comply with new sanctions within 72 hours",
+    complexity: "grandmaster", timeLimit: 360, icon: "🌍",
+    description: "New sanctions just hit your top 3 export markets. $50M in contracts are at risk. Board is demanding a response by market open.",
+    variables: ["Multi-jurisdiction compliance", "Key partner in sanctioned region", "Competitor poised to absorb your clients"],
+    tags: ["geopolitics", "sanctions", "restructuring"],
+  },
+  {
+    id: "sc-10", title: "AI Ethics Board Hearing", domain: "tech", goal: "Defend your AI product's deployment before an ethics review panel",
+    complexity: "advanced", timeLimit: 300, icon: "🤖",
+    description: "Your facial recognition product is under fire. A bias audit found 23% error rate on minority groups. The panel includes hostile regulators.",
+    variables: ["Media coverage intensifying", "Key enterprise clients watching", "Engineering team divided on fix timeline"],
+    tags: ["AI ethics", "regulation", "product defense"],
+  },
 ];
 
-export function getArenaStats(): { totalDrills: number; avgScore: number; bestGrade: string; streak: number } {
+export const COGNITIVE_ARCHETYPES = [
+  { id: "strategic-architect", name: "Strategic Architect", description: "Methodical planner who builds systems and sees long-term consequences clearly" },
+  { id: "rapid-executor", name: "Rapid Executor", description: "Fast decision-maker who thrives under time pressure but may miss nuances" },
+  { id: "risk-navigator", name: "Risk Navigator", description: "Balanced approach to uncertainty, weighing probabilities carefully" },
+  { id: "aggressive-opportunist", name: "Aggressive Opportunist", description: "Exploits openings rapidly but may overextend resources" },
+  { id: "defensive-guardian", name: "Defensive Guardian", description: "Prioritizes preservation and risk mitigation over aggressive gains" },
+  { id: "diplomatic-negotiator", name: "Diplomatic Negotiator", description: "Seeks consensus and alliance-based solutions under pressure" },
+  { id: "detail-fixated", name: "Detail Analyst", description: "Thorough information processor who may lose time in analysis paralysis" },
+  { id: "chaos-rider", name: "Chaos Rider", description: "Thrives in high-ambiguity situations, adapts fluidly but may lack structure" },
+];
+
+export function getArenaStats(): { totalDrills: number; avgScore: number; bestGrade: string; streak: number; archetypeHistory: string[] } {
   try {
     const raw = localStorage.getItem("wisdom-arena-stats");
     if (raw) return JSON.parse(raw);
   } catch {}
-  return { totalDrills: 0, avgScore: 0, bestGrade: "—", streak: 0 };
+  return { totalDrills: 0, avgScore: 0, bestGrade: "—", streak: 0, archetypeHistory: [] };
 }
 
 export function saveArenaResult(result: DrillResult) {
@@ -146,5 +202,20 @@ export function saveArenaResult(result: DrillResult) {
   const bestGrade = gradeOrder.indexOf(result.metrics.overallGrade) > gradeOrder.indexOf(stats.bestGrade)
     ? result.metrics.overallGrade : stats.bestGrade;
   const streak = result.passed ? stats.streak + 1 : 0;
-  localStorage.setItem("wisdom-arena-stats", JSON.stringify({ totalDrills: newTotal, avgScore: newAvg, bestGrade, streak }));
+  const archetypeHistory = [...(stats.archetypeHistory || []), result.cognitiveArchetype].slice(-20);
+  localStorage.setItem("wisdom-arena-stats", JSON.stringify({ totalDrills: newTotal, avgScore: newAvg, bestGrade, streak, archetypeHistory }));
+}
+
+export function getDrillHistory(): DrillResult[] {
+  try {
+    const raw = localStorage.getItem("wisdom-arena-history");
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  return [];
+}
+
+export function saveDrillToHistory(result: DrillResult) {
+  const history = getDrillHistory();
+  history.unshift(result);
+  localStorage.setItem("wisdom-arena-history", JSON.stringify(history.slice(0, 50)));
 }

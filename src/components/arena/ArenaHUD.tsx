@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Timer, AlertTriangle, Radio, Activity, Send, ChevronDown, ChevronUp, Shield } from "lucide-react";
-import type { ArenaScenario, SituationUpdate, COMPLEXITY_CONFIG } from "@/lib/mastery-arena";
+import { Timer, Radio, Activity, Send, ChevronDown, ChevronUp, Shield, Mail, MessageSquare, Phone, Bell, AlertTriangle } from "lucide-react";
+import type { ArenaScenario, SituationUpdate, CommMessage, COMPLEXITY_CONFIG } from "@/lib/mastery-arena";
 import ReactMarkdown from "react-markdown";
 
 interface ArenaHUDProps {
@@ -11,28 +11,34 @@ interface ArenaHUDProps {
   maxTurns: number;
   situationBrief: string;
   situationLog: SituationUpdate[];
+  commsLog: CommMessage[];
   metrics: { pressure: number; resources: number; reputation: number; morale: number };
   isProcessing: boolean;
   onSubmitAction: (action: string) => void;
   complexityConfig: typeof COMPLEXITY_CONFIG[keyof typeof COMPLEXITY_CONFIG];
 }
 
+const CHANNEL_ICONS = { email: Mail, chat: MessageSquare, call: Phone, alert: Bell };
+
 export default function ArenaHUD({
-  scenario, timeLeft, turnNumber, maxTurns, situationBrief, situationLog,
+  scenario, timeLeft, turnNumber, maxTurns, situationBrief, situationLog, commsLog,
   metrics, isProcessing, onSubmitAction, complexityConfig,
 }: ArenaHUDProps) {
   const [actionText, setActionText] = useState("");
-  const [showLog, setShowLog] = useState(false);
+  const [activePanel, setActivePanel] = useState<"brief" | "intel" | "comms">("brief");
   const logRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const formatTime = (s: number) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, "0")}`;
   const timePercent = (timeLeft / (scenario.timeLimit * (complexityConfig.timeMult))) * 100;
   const isUrgent = timePercent < 25;
+  const isCritical = timePercent < 10;
+
+  const unreadComms = commsLog.filter(c => c.urgent).length;
 
   useEffect(() => {
     if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight;
-  }, [situationLog]);
+  }, [situationLog, commsLog, situationBrief]);
 
   const handleSubmit = () => {
     if (!actionText.trim() || isProcessing) return;
@@ -41,7 +47,7 @@ export default function ArenaHUD({
   };
 
   const severityColors = { info: "border-muted", caution: "border-accent-gold/40", critical: "border-primary/60" };
-  const typeIcons = { metric: "📊", comms: "📨", event: "⚡", warning: "⚠️", intel: "🔍" };
+  const typeIcons: Record<string, string> = { metric: "📊", comms: "📨", event: "⚡", warning: "⚠️", intel: "🔍", stakeholder: "👤" };
 
   return (
     <div className="flex flex-col h-full">
@@ -50,77 +56,119 @@ export default function ArenaHUD({
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
             <Shield className="h-4 w-4 text-primary" />
-            <span className="text-micro font-bold text-primary uppercase tracking-wider">
-              {complexityConfig.label}
-            </span>
+            <span className="text-micro font-bold text-primary uppercase tracking-wider">{complexityConfig.label}</span>
             <span className="text-micro text-muted-foreground">Turn {turnNumber}/{maxTurns}</span>
           </div>
-          <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg font-mono text-caption font-bold ${isUrgent ? "bg-primary/15 text-primary animate-pulse" : "bg-surface-2 text-foreground"}`}>
+          <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg font-mono text-caption font-bold transition-all ${isCritical ? "bg-primary/25 text-primary animate-pulse" : isUrgent ? "bg-primary/15 text-primary" : "bg-surface-2 text-foreground"}`}>
             <Timer className="h-3.5 w-3.5" />
             {formatTime(timeLeft)}
           </div>
         </div>
+
         {/* Metric bars */}
-        <div className="grid grid-cols-4 gap-2">
+        <div className="grid grid-cols-4 gap-2 mb-2">
           {([
-            { key: "pressure", label: "PRESSURE", color: "bg-primary" },
+            { key: "pressure", label: "PRESSURE", color: "bg-primary", warn: true },
             { key: "resources", label: "RESOURCES", color: "bg-accent-green" },
             { key: "reputation", label: "REPUTATION", color: "bg-accent-gold" },
             { key: "morale", label: "MORALE", color: "bg-blue-400" },
-          ] as const).map(m => (
-            <div key={m.key} className="space-y-0.5">
-              <p className="text-[9px] text-muted-foreground font-medium tracking-wider">{m.label}</p>
-              <div className="h-1.5 bg-surface-2 rounded-full overflow-hidden">
-                <motion.div
-                  className={`h-full rounded-full ${m.color}`}
-                  animate={{ width: `${metrics[m.key]}%` }}
-                  transition={{ duration: 0.5 }}
-                />
+          ] as const).map(m => {
+            const val = metrics[m.key];
+            const isDanger = m.warn ? val > 80 : val < 25;
+            return (
+              <div key={m.key} className="space-y-0.5">
+                <div className="flex items-center justify-between">
+                  <p className="text-[9px] text-muted-foreground font-medium tracking-wider">{m.label}</p>
+                  {isDanger && <AlertTriangle className="h-2.5 w-2.5 text-primary" />}
+                </div>
+                <div className="h-1.5 bg-surface-2 rounded-full overflow-hidden">
+                  <motion.div className={`h-full rounded-full ${isDanger ? "bg-primary" : m.color}`}
+                    animate={{ width: `${val}%` }} transition={{ duration: 0.5 }} />
+                </div>
+                <p className="text-[8px] text-muted-foreground text-right font-mono">{val}%</p>
               </div>
-            </div>
+            );
+          })}
+        </div>
+
+        {/* Panel Tabs */}
+        <div className="flex gap-1">
+          {([
+            { key: "brief" as const, label: "Situation", icon: Radio },
+            { key: "intel" as const, label: `Intel (${situationLog.length})`, icon: Activity },
+            { key: "comms" as const, label: `Comms${unreadComms > 0 ? ` (${unreadComms})` : ""}`, icon: Mail },
+          ]).map(tab => (
+            <button key={tab.key} onClick={() => setActivePanel(tab.key)}
+              className={`flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg text-[10px] font-semibold transition-all ${activePanel === tab.key ? "bg-primary/15 text-primary" : "text-muted-foreground hover:text-foreground"}`}>
+              <tab.icon className="h-3 w-3" />
+              {tab.label}
+            </button>
           ))}
         </div>
       </div>
 
-      {/* Situation Brief */}
-      <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
-        <div className="glass-card p-4 border-l-2 border-primary/40">
-          <div className="flex items-center gap-2 mb-2">
-            <Radio className="h-3.5 w-3.5 text-primary" />
-            <span className="text-micro font-bold text-primary uppercase tracking-wider">Situation Brief</span>
+      {/* Main Panel */}
+      <div ref={logRef} className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
+        {activePanel === "brief" && (
+          <div className="glass-card p-4 border-l-2 border-primary/40">
+            <div className="flex items-center gap-2 mb-2">
+              <Radio className="h-3.5 w-3.5 text-primary" />
+              <span className="text-micro font-bold text-primary uppercase tracking-wider">Situation Brief</span>
+            </div>
+            <div className="prose prose-invert prose-sm max-w-none text-caption text-muted-foreground">
+              <ReactMarkdown>{situationBrief}</ReactMarkdown>
+            </div>
           </div>
-          <div className="prose prose-invert prose-sm max-w-none text-caption text-muted-foreground">
-            <ReactMarkdown>{situationBrief}</ReactMarkdown>
-          </div>
-        </div>
-
-        {/* Situation Log Toggle */}
-        {situationLog.length > 0 && (
-          <button onClick={() => setShowLog(!showLog)}
-            className="flex items-center gap-2 w-full text-left px-3 py-2 rounded-xl bg-surface-2 hover:bg-surface-hover transition-colors">
-            <Activity className="h-3.5 w-3.5 text-accent-gold" />
-            <span className="text-micro font-semibold text-foreground">Intel Feed</span>
-            <span className="text-micro text-muted-foreground ml-1">({situationLog.length})</span>
-            {showLog ? <ChevronUp className="h-3 w-3 ml-auto text-muted-foreground" /> : <ChevronDown className="h-3 w-3 ml-auto text-muted-foreground" />}
-          </button>
         )}
 
-        <AnimatePresence>
-          {showLog && (
-            <motion.div ref={logRef} initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }}
-              className="space-y-2 overflow-hidden max-h-48 overflow-y-auto">
-              {situationLog.map((update) => (
-                <div key={update.id} className={`px-3 py-2 rounded-xl bg-surface-2 border-l-2 ${severityColors[update.severity]}`}>
+        {activePanel === "intel" && (
+          <div className="space-y-2">
+            {situationLog.length === 0 ? (
+              <p className="text-caption text-muted-foreground text-center py-8">No intel yet. Make your first decision.</p>
+            ) : (
+              situationLog.map((update) => (
+                <motion.div key={update.id} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }}
+                  className={`px-3 py-2.5 rounded-xl bg-surface-2 border-l-2 ${severityColors[update.severity]}`}>
                   <div className="flex items-center gap-1.5 mb-0.5">
-                    <span className="text-micro">{typeIcons[update.type]}</span>
+                    <span className="text-micro">{typeIcons[update.type] || "📋"}</span>
                     <span className="text-micro font-semibold text-foreground">{update.title}</span>
+                    {update.severity === "critical" && <AlertTriangle className="h-3 w-3 text-primary ml-auto" />}
                   </div>
                   <p className="text-[11px] text-muted-foreground">{update.content}</p>
-                </div>
-              ))}
-            </motion.div>
-          )}
-        </AnimatePresence>
+                  {update.from && <p className="text-[9px] text-muted-foreground mt-1">— {update.from}</p>}
+                </motion.div>
+              ))
+            )}
+          </div>
+        )}
+
+        {activePanel === "comms" && (
+          <div className="space-y-2">
+            {commsLog.length === 0 ? (
+              <p className="text-caption text-muted-foreground text-center py-8">No communications yet.</p>
+            ) : (
+              commsLog.map((msg) => {
+                const ChannelIcon = CHANNEL_ICONS[msg.channel] || Mail;
+                return (
+                  <motion.div key={msg.id} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}
+                    className={`px-3 py-2.5 rounded-xl bg-surface-2 ${msg.urgent ? "border border-primary/30" : "border border-transparent"}`}>
+                    <div className="flex items-center gap-2 mb-1">
+                      <ChannelIcon className={`h-3 w-3 ${msg.urgent ? "text-primary" : "text-muted-foreground"}`} />
+                      <span className="text-micro font-bold text-foreground">{msg.from}</span>
+                      <span className="text-[9px] text-muted-foreground">{msg.role}</span>
+                      {msg.urgent && <span className="text-[8px] bg-primary/15 text-primary px-1.5 py-0.5 rounded font-bold ml-auto">URGENT</span>}
+                    </div>
+                    {msg.subject && <p className="text-[11px] font-semibold text-foreground mb-0.5">{msg.subject}</p>}
+                    <p className="text-[11px] text-muted-foreground">{msg.content}</p>
+                    {msg.requiresResponse && (
+                      <p className="text-[9px] text-accent-gold mt-1 font-medium">⚡ Requires your response</p>
+                    )}
+                  </motion.div>
+                );
+              })
+            )}
+          </div>
+        )}
 
         {isProcessing && (
           <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-primary/5 border border-primary/20">
@@ -132,6 +180,9 @@ export default function ArenaHUD({
 
       {/* Action Input */}
       <div className="px-4 pb-4 pt-2 border-t border-border bg-background/90 backdrop-blur-sm">
+        <p className="text-[9px] text-muted-foreground mb-1 px-1">
+          Write your decision, directive, communication, or strategic action in natural language.
+        </p>
         <div className="relative">
           <textarea
             ref={textareaRef}
