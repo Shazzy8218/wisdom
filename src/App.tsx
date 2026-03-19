@@ -36,6 +36,8 @@ import LessonView from "./pages/LessonView";
 import CoreTrackHub from "./pages/CoreTrackHub";
 import MasteryTrackHub from "./pages/MasteryTrackHub";
 import MasteryTrackStart from "./pages/MasteryTrackStart";
+import MasteryRoadmap from "./pages/MasteryRoadmap";
+import MasteryLessonView from "./pages/MasteryLessonView";
 import Auth from "./pages/Auth";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import Support from "./pages/Support";
