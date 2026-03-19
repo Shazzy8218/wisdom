@@ -138,16 +138,84 @@ export const TRACKS = [
   { id: "survival", name: "AI Survival Basics", icon: "🔥", lessons: 8, completed: 0, color: "from-orange-500/20 to-orange-600/5" },
 ];
 
-export const GAMES = [
-  { id: "prompt-puzzle", name: "Prompt Puzzle", description: "Drag prompt blocks into the correct order", icon: "🧩", level: 1, bestScore: 0 },
-  { id: "hallucination-hunter", name: "Hallucination Hunter", description: "Spot the AI-generated false claims", icon: "🔍", level: 1, bestScore: 0 },
-  { id: "output-duel", name: "Output Duel", description: "Compare outputs and pick the winner", icon: "⚔️", level: 1, bestScore: 0 },
-  { id: "workflow-builder", name: "Workflow Builder", description: "Connect the workflow steps correctly", icon: "🔗", level: 1, bestScore: 0 },
-  { id: "time-trial", name: "Time Trial", description: "Pick the best prompt in 60 seconds", icon: "⏱️", level: 1, bestScore: 0 },
-  { id: "prompt-surgery", name: "Prompt Surgery", description: "Remove the fluff, keep the intent", icon: "✂️", level: 1, bestScore: 0 },
-  { id: "context-builder", name: "Context Builder", description: "Choose which context matters most", icon: "🎯", level: 1, bestScore: 0 },
-  { id: "risk-check", name: "Risk & Privacy Check", description: "Find and fix privacy issues in prompts", icon: "🛡️", level: 1, bestScore: 0 },
+export interface Game {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  level: number;
+  bestScore: number;
+  categoryId: string;
+  difficulty: "beginner" | "intermediate" | "advanced";
+  xpReward: number;
+  tokenReward: number;
+  linkedCourses?: string[];
+}
+
+export interface GameCategory {
+  id: string;
+  title: string;
+  strategicObjective: string;
+  icon: string;
+  accentColor: string;
+  wisdomEdge: string;
+  games: Game[];
+}
+
+export const GAME_ACHIEVEMENTS = [
+  { id: "first-blood", name: "First Blood", description: "Complete your first game", icon: "🩸", threshold: 1 },
+  { id: "prompt-prodigy", name: "Prompt Prodigy", description: "Score 100% in 5 Prompt Lab games", icon: "🧬", threshold: 5 },
+  { id: "truth-seeker", name: "Truth Seeker", description: "Find 20 hallucinations in AI Detection", icon: "🔬", threshold: 20 },
+  { id: "speed-demon", name: "Speed Demon", description: "Complete 10 Time Trial rounds", icon: "⚡", threshold: 10 },
+  { id: "analyst-ace", name: "Analyst Ace", description: "Win 15 Output Duel rounds", icon: "🎯", threshold: 15 },
+  { id: "surgeon-general", name: "Surgeon General", description: "Score 90%+ in Prompt Surgery 3 times", icon: "🏅", threshold: 3 },
+  { id: "streak-master", name: "Streak Master", description: "Maintain a 5-game win streak", icon: "🔥", threshold: 5 },
+  { id: "automation-king", name: "Automation King", description: "Complete all Strategic Ops games", icon: "👑", threshold: 3 },
 ];
+
+export const GAME_CATEGORIES: GameCategory[] = [
+  {
+    id: "prompt-lab",
+    title: "Prompt Engineering Lab",
+    strategicObjective: "Master the art of crafting precise, high-impact prompts that consistently produce superior AI outputs.",
+    icon: "🧪",
+    accentColor: "from-blue-500/20 to-indigo-500/20",
+    wisdomEdge: "These aren't vocabulary exercises — they simulate real client briefs and production workflows. Every round trains the muscle memory of precision communication that separates $50k operators from $200k architects.",
+    games: [
+      { id: "prompt-puzzle", name: "Prompt Architect", description: "Assemble prompt components in the optimal structure to maximize output quality", icon: "🧩", level: 1, bestScore: 0, categoryId: "prompt-lab", difficulty: "beginner", xpReward: 50, tokenReward: 10, linkedCourses: ["ai-basics"] },
+      { id: "prompt-surgery", name: "Prompt Surgery", description: "Strip bloated prompts to their surgical core — every word must earn its place", icon: "✂️", level: 2, bestScore: 0, categoryId: "prompt-lab", difficulty: "intermediate", xpReward: 75, tokenReward: 15, linkedCourses: ["prompt-mastery"] },
+      { id: "time-trial", name: "Rapid Fire Selection", description: "Identify the strongest prompt under extreme time pressure — 60 seconds, no second chances", icon: "⏱️", level: 2, bestScore: 0, categoryId: "prompt-lab", difficulty: "intermediate", xpReward: 60, tokenReward: 12 },
+    ],
+  },
+  {
+    id: "ai-detection",
+    title: "AI Detection & Critical Analysis",
+    strategicObjective: "Develop razor-sharp judgment to evaluate, verify, and challenge AI-generated content before it costs you credibility.",
+    icon: "🔬",
+    accentColor: "from-red-500/20 to-orange-500/20",
+    wisdomEdge: "In a world where AI-generated content is everywhere, the ability to spot errors, bias, and fabrications is a career-defining skill. These games train you to be the person in the room who catches what everyone else missed.",
+    games: [
+      { id: "hallucination-hunter", name: "Hallucination Hunter", description: "AI lies with confidence — dissect passages to expose fabricated facts before they spread", icon: "🔍", level: 1, bestScore: 0, categoryId: "ai-detection", difficulty: "beginner", xpReward: 60, tokenReward: 12, linkedCourses: ["ai-basics"] },
+      { id: "output-duel", name: "Output Duel", description: "Two AI outputs, one brief — judge which delivers and why the other fails", icon: "⚔️", level: 2, bestScore: 0, categoryId: "ai-detection", difficulty: "intermediate", xpReward: 65, tokenReward: 12, linkedCourses: ["content-mastery"] },
+    ],
+  },
+  {
+    id: "strategic-ops",
+    title: "Strategic Operations Arena",
+    strategicObjective: "Apply AI thinking to high-stakes business scenarios where speed, accuracy, and strategic framing determine outcomes.",
+    icon: "🎖️",
+    accentColor: "from-amber-500/20 to-yellow-500/20",
+    wisdomEdge: "These aren't simulations — they're compressed versions of real decisions that executives, founders, and operators face daily. Your score here correlates directly to your ability to leverage AI for competitive advantage in live environments.",
+    games: [
+      { id: "live-fire-drills", name: "Live Fire Drills", description: "High-pressure scenarios with a ticking clock — draft responses that would survive board-level scrutiny", icon: "🔥", level: 3, bestScore: 0, categoryId: "strategic-ops", difficulty: "advanced", xpReward: 100, tokenReward: 25, linkedCourses: ["business-ai"] },
+      { id: "context-builder", name: "Context Architect", description: "Given a complex scenario, identify which context factors matter most for AI-assisted decision-making", icon: "🏗️", level: 2, bestScore: 0, categoryId: "strategic-ops", difficulty: "intermediate", xpReward: 80, tokenReward: 18 },
+      { id: "risk-check", name: "Risk & Compliance Audit", description: "Scan AI workflows for privacy violations, bias risks, and compliance gaps before deployment", icon: "🛡️", level: 3, bestScore: 0, categoryId: "strategic-ops", difficulty: "advanced", xpReward: 90, tokenReward: 20, linkedCourses: ["ai-ethics"] },
+    ],
+  },
+];
+
+// Flat array for backward compatibility
+export const GAMES: Game[] = GAME_CATEGORIES.flatMap(c => c.games);
 
 export const CATEGORY_BUNDLES = [
   { id: "business-power", name: "Business Power", categories: ["management", "business-finance", "sales", "office-admin"], tokens: 200 },
