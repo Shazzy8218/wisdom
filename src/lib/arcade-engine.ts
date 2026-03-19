@@ -93,6 +93,8 @@ export const ACHIEVEMENTS: Record<string, { icon: string; title: string; desc: s
   "ascent-legend": { icon: "🚀", title: "Ascent Legend", desc: "Scored 400+ in Synthesis Ascent" },
   "drift-master": { icon: "🏎️", title: "Drift Master", desc: "Scored 500+ in Chrono-Drift" },
   "nexus-architect": { icon: "🏙️", title: "Nexus Architect", desc: "Scored 300+ in Neural Nexus" },
+  "void-survivor": { icon: "👁", title: "Void Survivor", desc: "Scored 150+ in Echoes of Zero" },
+  "pulse-dancer": { icon: "💠", title: "Pulse Dancer", desc: "Scored 500+ in Quantum Pulse" },
 };
 
 // ---------- Content pools (AI concept data) ----------

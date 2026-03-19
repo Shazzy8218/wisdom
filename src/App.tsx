@@ -142,6 +142,8 @@ function AppRoutes() {
           <Route path="/games/synthesis-ascent" element={<SynthesisAscent />} />
           <Route path="/games/chrono-drift" element={<ChronoDrift />} />
           <Route path="/games/neural-nexus" element={<NeuralNexus />} />
+          <Route path="/games/echoes-of-zero" element={<EchoesOfZero />} />
+          <Route path="/games/quantum-pulse" element={<QuantumPulse />} />
           <Route path="/track/:trackId" element={<CoreTrackHub />} />
           <Route path="/mastery/:trackId" element={<MasteryTrackHub />} />
           <Route path="/mastery/:trackId/start" element={<MasteryTrackStart />} />
