@@ -165,14 +165,20 @@ export default function Settings() {
     toast({ title: "Memory Reset", description: "All AI personalization has been cleared." });
   };
 
+  const [signingOut, setSigningOut] = useState(false);
+
   const handleSignOut = async () => {
+    setSigningOut(true);
     try {
-      const { resetCloudLoadedFlag } = await import("@/hooks/useProgress");
-      resetCloudLoadedFlag();
       await signOut();
-      navigate("/auth", { replace: true });
+      // Clear all app caches so no stale session remains
+      const allKeys = Object.keys(localStorage);
+      allKeys.forEach((key) => localStorage.removeItem(key));
+      // Hard redirect ensures no in-memory state persists
+      window.location.href = "/auth";
     } catch {
-      toast({ title: "Error signing out", variant: "destructive" });
+      setSigningOut(false);
+      toast({ title: "Sign out failed. Please try again.", variant: "destructive" });
     }
   };
 

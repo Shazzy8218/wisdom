@@ -22,10 +22,25 @@ export default function Profile() {
     setEditing(false);
   };
 
+  const [signingOut, setSigningOut] = useState(false);
+
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    localStorage.removeItem("wisdom-cloud-progress-loaded");
-    window.location.href = "/";
+    setSigningOut(true);
+    try {
+      await supabase.auth.signOut();
+      // Clear all app caches so no stale session remains
+      const keysToKeep: string[] = [];
+      const allKeys = Object.keys(localStorage);
+      allKeys.forEach((key) => {
+        if (!keysToKeep.includes(key)) localStorage.removeItem(key);
+      });
+      // Hard redirect ensures no in-memory state persists
+      window.location.href = "/auth";
+    } catch (e) {
+      console.error("[SignOut] error:", e);
+      setSigningOut(false);
+      toast({ title: "Sign out failed. Please try again.", variant: "destructive" });
+    }
   };
 
   const goalPercent = primaryGoal && primaryGoal.targetValue > primaryGoal.baselineValue
