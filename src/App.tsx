@@ -52,7 +52,7 @@ import MasteryLessonView from "./pages/MasteryLessonView";
 import Auth from "./pages/Auth";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import Support from "./pages/Support";
-import LiveFireDrills from "./pages/LiveFireDrills";
+import MasteryArena from "./pages/MasteryArena";
 import ResetPassword from "./pages/ResetPassword";
 
 const queryClient = new QueryClient();
