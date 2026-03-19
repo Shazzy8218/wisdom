@@ -131,6 +131,9 @@ function AppRoutes() {
           <Route path="/games/ai-navigator" element={<AINavigator />} />
           <Route path="/games/logic-link" element={<LogicLink />} />
           <Route path="/games/prompt-pro" element={<PromptPro />} />
+          <Route path="/games/mind-serpent" element={<MindSerpent />} />
+          <Route path="/games/insight-pilot" element={<InsightPilot />} />
+          <Route path="/games/syntax-smash" element={<SyntaxSmash />} />
           <Route path="/track/:trackId" element={<CoreTrackHub />} />
           <Route path="/mastery/:trackId" element={<MasteryTrackHub />} />
           <Route path="/mastery/:trackId/start" element={<MasteryTrackStart />} />
