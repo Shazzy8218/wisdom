@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, BookOpen, Zap, MessageSquare, Gamepad2, Sparkles, ChevronRight, Loader2 } from "lucide-react";
+import { ArrowLeft, BookOpen, Zap, MessageSquare, Gamepad2, Sparkles, ChevronRight, Loader2, CheckCircle2 } from "lucide-react";
 import { getCategoryTrack } from "@/lib/categories";
+import { getCategoryElevated } from "@/lib/category-elevated";
 import { MASTERY_CATEGORIES, getLevelLabel } from "@/lib/data";
 import { generateLesson } from "@/lib/ai-stream";
 import { useProgress } from "@/hooks/useProgress";
