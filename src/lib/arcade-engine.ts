@@ -46,6 +46,9 @@ export function recordGameResult(gameId: string, score: number, streak?: number)
     ["serpent-ace", () => (stats.bestScores["mind-serpent"] || 0) >= 200],
     ["pilot-pro", () => (stats.bestScores["insight-pilot"] || 0) >= 300],
     ["syntax-king", () => (stats.bestScores["syntax-smash"] || 0) >= 500],
+    ["ascent-legend", () => (stats.bestScores["synthesis-ascent"] || 0) >= 400],
+    ["drift-master", () => (stats.bestScores["chrono-drift"] || 0) >= 500],
+    ["nexus-architect", () => (stats.bestScores["neural-nexus"] || 0) >= 300],
   ];
   for (const [id, check] of checks) {
     if (check() && !stats.achievements.includes(id)) {
