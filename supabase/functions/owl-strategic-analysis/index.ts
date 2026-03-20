@@ -95,7 +95,7 @@ async function firecrawlSearch(query: string, apiKey: string): Promise<{ url: st
 // AI synthesis — turns raw research into strategic output
 async function synthesize(prompt: string, lovableKey: string): Promise<string> {
   try {
-    const resp = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: { Authorization: `Bearer ${lovableKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -201,8 +201,8 @@ serve(async (req) => {
       });
     }
 
-    const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
-    if (!OPENROUTER_API_KEY) throw new Error("OPENROUTER_API_KEY not configured");
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
     const PERPLEXITY_API_KEY = Deno.env.get("PERPLEXITY_API_KEY");
     const FIRECRAWL_API_KEY = Deno.env.get("FIRECRAWL_API_KEY");
@@ -273,7 +273,7 @@ serve(async (req) => {
 
     // Synthesize with Owl persona
     const synthesisPrompt = buildSynthesisPrompt(type, query, perplexityData, firecrawlData, context);
-    const analysis = await synthesize(synthesisPrompt, OPENROUTER_API_KEY);
+    const analysis = await synthesize(synthesisPrompt, LOVABLE_API_KEY);
 
     // Determine confidence
     let confidence: "high" | "medium" | "low" = "low";
