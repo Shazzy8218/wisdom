@@ -59,8 +59,8 @@ serve(async (req) => {
 
   try {
     const { prompt, format = "pdf", context } = await req.json();
-    const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
-    if (!OPENROUTER_API_KEY) throw new Error("OPENROUTER_API_KEY is not configured");
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
     if (!prompt) {
       return new Response(JSON.stringify({ error: "Prompt is required" }), {
