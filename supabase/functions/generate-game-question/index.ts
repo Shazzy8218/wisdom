@@ -10,8 +10,8 @@ serve(async (req) => {
 
   try {
     const { gameType, difficulty } = await req.json();
-    const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
-    if (!OPENROUTER_API_KEY) throw new Error("OPENROUTER_API_KEY is not configured");
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
     const gamePrompts: Record<string, string> = {
       "hallucination-hunter": "Generate a short AI-generated paragraph (3-4 sentences) about a real topic. Include exactly 2 subtle hallucinations (false facts that sound plausible). Also provide: the list of hallucinated claims, explanations of why they're false, and what the correct facts are.",
