@@ -1,6 +1,27 @@
-// Feed card types and starter content for the Nerd Doomscroll
+// Feed card types and starter content for the Cognitive Augmentation Feed
 
-export type FeedCardType = "quick-fact" | "micro-lesson" | "news" | "challenge" | "myth-vs-truth" | "video";
+export type FeedCardType =
+  | "quick-fact" | "micro-lesson" | "news" | "challenge" | "myth-vs-truth" | "video"
+  | "key-insight" | "reality-check" | "source-comparison" | "deep-pattern";
+
+export type AnalyticalFlag =
+  | "source-comparison" | "logical-chain" | "correlation-observation"
+  | "narrative-framing" | "data-verification" | "bias-detected";
+
+export const ANALYTICAL_FLAGS: Record<AnalyticalFlag, { label: string; icon: string; color: string }> = {
+  "source-comparison": { label: "Source Comparison", icon: "🔍", color: "text-blue-400" },
+  "logical-chain": { label: "Logical Chain", icon: "🔗", color: "text-purple-400" },
+  "correlation-observation": { label: "Correlation", icon: "📊", color: "text-amber-400" },
+  "narrative-framing": { label: "Narrative Framing", icon: "🪞", color: "text-cyan-400" },
+  "data-verification": { label: "Data Verification", icon: "✓", color: "text-emerald-400" },
+  "bias-detected": { label: "Bias Detected", icon: "⚠️", color: "text-rose-400" },
+};
+
+export interface DecisionProtocol {
+  action: string;
+  linkedCourse?: string;
+  linkedCourseId?: string;
+}
 
 export interface FeedCard {
   id: string;
@@ -8,8 +29,15 @@ export interface FeedCard {
   title: string;
   hook: string;
   content: string;
-  visual: "diagram" | "infographic" | "compare" | "steps" | "chart" | "icon";
-  visualData?: { labels?: string[]; steps?: string[]; before?: string; after?: string };
+  visual: "diagram" | "infographic" | "compare" | "steps" | "chart" | "icon" | "trend-map" | "influence-web";
+  visualData?: {
+    labels?: string[];
+    steps?: string[];
+    before?: string;
+    after?: string;
+    trendData?: { label: string; value: number }[];
+    connections?: { from: string; to: string; strength: number }[];
+  };
   category: string;
   difficulty: "beginner" | "intermediate" | "advanced";
   xp: number;
@@ -20,9 +48,37 @@ export interface FeedCard {
   tryPrompt?: string;
   shareSnippet: string;
   source?: string;
-  confidence?: number; // 0-100 for news
+  confidence?: number;
   mythStatement?: string;
   truthStatement?: string;
+  // New cognitive augmentation fields
+  analyticalFlags?: AnalyticalFlag[];
+  impactAnalysis?: string;
+  sourceStreams?: { name: string; perspective: string }[];
+  decisionProtocols?: DecisionProtocol[];
+  contrastingViews?: { viewA: string; viewB: string };
+}
+
+// Analytical flags user storage
+const FLAGS_KEY = "wisdom-feed-flags";
+
+export function getUserFlags(cardId: string): AnalyticalFlag[] {
+  try {
+    const all = JSON.parse(localStorage.getItem(FLAGS_KEY) || "{}");
+    return all[cardId] || [];
+  } catch { return []; }
+}
+
+export function toggleUserFlag(cardId: string, flag: AnalyticalFlag): AnalyticalFlag[] {
+  try {
+    const all = JSON.parse(localStorage.getItem(FLAGS_KEY) || "{}");
+    const flags: AnalyticalFlag[] = all[cardId] || [];
+    const idx = flags.indexOf(flag);
+    if (idx >= 0) flags.splice(idx, 1); else flags.push(flag);
+    all[cardId] = flags;
+    localStorage.setItem(FLAGS_KEY, JSON.stringify(all));
+    return flags;
+  } catch { return []; }
 }
 
 // 30+ starter cards covering all types
