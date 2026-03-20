@@ -25,7 +25,7 @@ export default function VoiceChat({ onTranscript, lastAssistantMessage, isStream
 
   const scribe = useScribe({
     modelId: "scribe_v2_realtime",
-    commitStrategy: "vad",
+    commitStrategy: CommitStrategy.VAD,
     onPartialTranscript: (data) => {
       setPartialText(data.text);
     },
