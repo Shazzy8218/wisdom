@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Send, Square, RotateCcw, Plus, History, Pencil, Trash2, Bookmark, X, Wand2, Download, Loader2, Globe, FileDown, Search, Shield, Paperclip, ChevronDown, FileText, AlertCircle } from "lucide-react";
+import VoiceChat from "@/components/VoiceChat";
 import ReactMarkdown from "react-markdown";
 import { streamChat, type Msg } from "@/lib/ai-stream";
 import { parseAndSaveWisdomPack } from "@/lib/wisdom-packs";
@@ -1672,7 +1673,7 @@ export default function Chat() {
       )}
 
       {/* Input */}
-      <div className="border-t border-border/50 px-5 py-3 pb-24 md:pb-4 bg-background">
+      <div className="border-t border-border/50 px-5 py-3 pb-24 md:pb-4 bg-background relative">
         <div className="flex items-center gap-2 rounded-2xl border border-border bg-card px-3 py-2.5">
           <input type="file" ref={fileInputRef} accept="image/*,.pdf,.doc,.docx,.txt,.csv,.md,.json,.xml" multiple className="hidden" onChange={handleFileSelect} />
           <button onClick={() => fileInputRef.current?.click()}
@@ -1689,6 +1690,13 @@ export default function Chat() {
             onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSend()}
             placeholder={showStylePicker ? "Describe the image…" : "Ask Owl anything…"}
             className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground/50 outline-none" />
+          <VoiceChat
+            onTranscript={(text) => {
+              setInput(prev => prev ? `${prev} ${text}` : text);
+            }}
+            lastAssistantMessage={messages.filter(m => m.role === "assistant").pop()?.content}
+            isStreaming={isStreaming}
+          />
           <button onClick={handleSend} disabled={(!input.trim() && pendingAttachments.length === 0) || isBusy}
             className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground disabled:opacity-20 transition-opacity">
             <Send className="h-4 w-4" />
