@@ -95,7 +95,7 @@ async function firecrawlSearch(query: string, apiKey: string): Promise<{ url: st
 // AI synthesis — turns raw research into strategic output
 async function synthesize(prompt: string, lovableKey: string): Promise<string> {
   try {
-    const resp = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: { Authorization: `Bearer ${lovableKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
