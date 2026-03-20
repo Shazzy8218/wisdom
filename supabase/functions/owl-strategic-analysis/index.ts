@@ -273,7 +273,7 @@ serve(async (req) => {
 
     // Synthesize with Owl persona
     const synthesisPrompt = buildSynthesisPrompt(type, query, perplexityData, firecrawlData, context);
-    const analysis = await synthesize(synthesisPrompt, OPENROUTER_API_KEY);
+    const analysis = await synthesize(synthesisPrompt, LOVABLE_API_KEY);
 
     // Determine confidence
     let confidence: "high" | "medium" | "low" = "low";

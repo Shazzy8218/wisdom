@@ -151,16 +151,14 @@ serve(async (req) => {
     }
 
     // Fall back to Lovable AI for best-effort answer
-    const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
-    if (OPENROUTER_API_KEY) {
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (LOVABLE_API_KEY) {
       console.log("Using Lovable AI fallback for:", query);
-      const resp = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${OPENROUTER_API_KEY}`,
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
           "Content-Type": "application/json",
-          "HTTP-Referer": "https://wisdom-owl.app",
-          "X-Title": "Wisdom Owl",
         },
         body: JSON.stringify({
           model: "google/gemini-2.5-flash",
