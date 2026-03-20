@@ -10,8 +10,8 @@ serve(async (req) => {
 
   try {
     const { mode, learningStyle, excludeIds } = await req.json();
-    const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
-    if (!OPENROUTER_API_KEY) throw new Error("OPENROUTER_API_KEY is not configured");
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
     const types = [
       "quick-fact", "micro-lesson", "challenge", "myth-vs-truth", "news",
@@ -75,13 +75,11 @@ ${cardType === "myth-vs-truth" ? "Include a mythStatement (the common misconcept
 ${cardType === "news" ? "Generate an EVERGREEN tech/AI concept explainer. Label source as 'General Update — Evergreen Concept'. Set confidence 85-95. Do NOT pretend it's current news." : ""}
 ${cardType === "challenge" ? "Create a multiple-choice challenge where only one option is correct. Make wrong answers plausible but clearly wrong to someone who knows the material." : ""}`;
 
-    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${OPENROUTER_API_KEY}`,
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
         "Content-Type": "application/json",
-        "HTTP-Referer": "https://wisdom-owl.app",
-        "X-Title": "Wisdom Owl",
       },
       body: JSON.stringify({
         model: "google/gemini-3-flash-preview",
@@ -119,7 +117,6 @@ ${cardType === "challenge" ? "Create a multiple-choice challenge where only one 
                 truthStatement: { type: "string", description: "For myth-vs-truth type" },
                 source: { type: "string", description: "For news type" },
                 confidence: { type: "number", description: "For news type, 0-100" },
-                // New cognitive augmentation fields
                 impactAnalysis: { type: "string", description: "How this affects the user's decision-making, health, finances, or autonomy" },
                 analyticalFlags: { type: "array", items: { type: "string", enum: ["source-comparison", "logical-chain", "correlation-observation", "narrative-framing", "data-verification", "bias-detected"] }, description: "Suggested analytical flags for this card" },
                 sourceStreams: { type: "array", items: { type: "object", properties: { name: { type: "string" }, perspective: { type: "string" } }, required: ["name", "perspective"] }, description: "Different source perspectives for source-comparison cards" },
@@ -137,8 +134,10 @@ ${cardType === "challenge" ? "Create a multiple-choice challenge where only one 
     });
 
     if (!response.ok) {
-      if (response.status === 429) return new Response(JSON.stringify({ error: "Rate limited" }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-      if (response.status === 402) return new Response(JSON.stringify({ error: "Credits required" }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      if (response.status === 429) return new Response(JSON.stringify({ error: "Rate limited, please try again later" }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      if (response.status === 402) return new Response(JSON.stringify({ error: "AI credits exhausted. Add funds in Settings > Workspace > Usage." }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      const errText = await response.text();
+      console.error("AI gateway error:", response.status, errText);
       throw new Error("AI generation failed");
     }
 
@@ -175,7 +174,6 @@ ${cardType === "challenge" ? "Create a multiple-choice challenge where only one 
       truthStatement: raw.truthStatement,
       source: raw.source,
       confidence: raw.confidence,
-      // New cognitive augmentation fields
       impactAnalysis: raw.impactAnalysis,
       analyticalFlags: raw.analyticalFlags,
       sourceStreams: raw.sourceStreams,
