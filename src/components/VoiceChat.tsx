@@ -124,14 +124,7 @@ export default function VoiceChat({ onTranscript, lastAssistantMessage, isStream
     clearConnectTimeout();
 
     try {
-      const micStream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-        },
-      });
-      micStream.getTracks().forEach((track) => track.stop());
+      scribe.disconnect();
 
       const { data, error } = await supabase.functions.invoke("elevenlabs-scribe-token");
       if (error) throw new Error(error.message || "Could not start voice transcription");
@@ -146,7 +139,7 @@ export default function VoiceChat({ onTranscript, lastAssistantMessage, isStream
 
         toast({
           title: "Voice input timeout",
-          description: "The microphone session took too long to start. Please try again.",
+          description: "The microphone session took too long to start. If you're testing inside the embedded preview, open the standalone app and try again.",
           variant: "destructive",
         });
       }, SCRIBE_CONNECT_TIMEOUT_MS);
@@ -173,9 +166,11 @@ export default function VoiceChat({ onTranscript, lastAssistantMessage, isStream
 
       const description = err?.name === "NotAllowedError"
         ? "Please allow microphone access to use voice input."
-        : err?.message === "Failed to fetch"
-          ? "Voice services are not reachable right now. Please try again in a few seconds."
-          : err?.message || "Please allow microphone access and try again.";
+        : err?.name === "NotFoundError"
+          ? "No microphone was found on this device."
+          : err?.message === "Failed to fetch"
+            ? "Voice services are not reachable right now. Please try again in a few seconds."
+            : err?.message || "Please allow microphone access and try again.";
 
       toast({
         title: err?.name === "NotAllowedError" ? "Microphone access required" : "Voice input unavailable",
