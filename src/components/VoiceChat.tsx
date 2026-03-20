@@ -6,6 +6,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
 const TTS_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/elevenlabs-tts`;
+const SCRIBE_CONNECT_TIMEOUT_MS = 12000;
+const MAX_TTS_CHARS = 2000;
 
 interface VoiceChatProps {
   onTranscript: (text: string) => void;
@@ -13,8 +15,18 @@ interface VoiceChatProps {
   isStreaming?: boolean;
 }
 
+function sanitizeTextForSpeech(text: string) {
+  return text
+    .replace(/```[\s\S]*?```/g, "code block omitted")
+    .replace(/\*\*(.*?)\*\*/g, "$1")
+    .replace(/\*(.*?)\*/g, "$1")
+    .replace(/#{1,6}\s/g, "")
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+    .replace(/[`~>|]/g, "")
+    .trim();
+}
+
 export default function VoiceChat({ onTranscript, lastAssistantMessage, isStreaming }: VoiceChatProps) {
-  const [isListening, setIsListening] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [ttsEnabled, setTtsEnabled] = useState(true);
@@ -22,6 +34,8 @@ export default function VoiceChat({ onTranscript, lastAssistantMessage, isStream
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const lastSpokenRef = useRef("");
   const lastHandledAssistantMessageRef = useRef("");
+  const connectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const connectTimedOutRef = useRef(false);
 
   const releaseCurrentAudio = useCallback(() => {
     if (!audioRef.current) return;
@@ -37,6 +51,12 @@ export default function VoiceChat({ onTranscript, lastAssistantMessage, isStream
     }
   }, []);
 
+  const clearConnectTimeout = useCallback(() => {
+    if (!connectTimeoutRef.current) return;
+    clearTimeout(connectTimeoutRef.current);
+    connectTimeoutRef.current = null;
+  }, []);
+
   const stopSpeaking = useCallback(() => {
     releaseCurrentAudio();
     setIsSpeaking(false);
@@ -45,29 +65,63 @@ export default function VoiceChat({ onTranscript, lastAssistantMessage, isStream
   const scribe = useScribe({
     modelId: "scribe_v2_realtime",
     commitStrategy: CommitStrategy.VAD,
+    onConnect: () => {
+      clearConnectTimeout();
+      connectTimedOutRef.current = false;
+      setIsConnecting(false);
+    },
+    onDisconnect: () => {
+      clearConnectTimeout();
+      setIsConnecting(false);
+      setPartialText("");
+    },
     onPartialTranscript: (data) => {
       setPartialText(data.text);
     },
     onCommittedTranscript: (data) => {
       if (data.text.trim()) {
         onTranscript(data.text.trim());
-        setPartialText("");
       }
+      setPartialText("");
+    },
+    onError: (error) => {
+      console.error("Voice session error:", error);
+      clearConnectTimeout();
+      setIsConnecting(false);
+      setPartialText("");
+
+      if (connectTimedOutRef.current) return;
+
+      toast({
+        title: "Voice input unavailable",
+        description: error instanceof Error ? error.message : "Voice transcription ran into a problem.",
+        variant: "destructive",
+      });
     },
   });
 
+  const scribeRef = useRef(scribe);
+  scribeRef.current = scribe;
+
+  const isListening = scribe.isConnected || scribe.isTranscribing;
+  const isMicBusy = isConnecting || scribe.status === "connecting";
+
   useEffect(() => {
     return () => {
-      scribe.disconnect();
+      clearConnectTimeout();
+      scribeRef.current.disconnect();
       releaseCurrentAudio();
     };
-  }, [releaseCurrentAudio, scribe]);
+  }, [clearConnectTimeout, releaseCurrentAudio]);
 
   const startListening = useCallback(async () => {
-    if (isConnecting) return;
+    if (isMicBusy || isListening) return;
 
+    connectTimedOutRef.current = false;
     setIsConnecting(true);
+    setPartialText("");
     stopSpeaking();
+    clearConnectTimeout();
 
     try {
       const micStream = await navigator.mediaDevices.getUserMedia({
@@ -83,6 +137,20 @@ export default function VoiceChat({ onTranscript, lastAssistantMessage, isStream
       if (error) throw new Error(error.message || "Could not start voice transcription");
       if (!data?.token) throw new Error("No token received");
 
+      connectTimeoutRef.current = setTimeout(() => {
+        if (scribeRef.current.isConnected || scribeRef.current.isTranscribing) return;
+
+        connectTimedOutRef.current = true;
+        setIsConnecting(false);
+        scribeRef.current.disconnect();
+
+        toast({
+          title: "Voice input timeout",
+          description: "The microphone session took too long to start. Please try again.",
+          variant: "destructive",
+        });
+      }, SCRIBE_CONNECT_TIMEOUT_MS);
+
       await scribe.connect({
         token: data.token,
         microphone: {
@@ -91,8 +159,16 @@ export default function VoiceChat({ onTranscript, lastAssistantMessage, isStream
           autoGainControl: true,
         },
       });
-      setIsListening(true);
+
+      clearConnectTimeout();
+      setIsConnecting(false);
     } catch (err: any) {
+      clearConnectTimeout();
+      setIsConnecting(false);
+      setPartialText("");
+
+      if (connectTimedOutRef.current) return;
+
       console.error("Voice start failed:", err);
 
       const description = err?.name === "NotAllowedError"
@@ -106,30 +182,22 @@ export default function VoiceChat({ onTranscript, lastAssistantMessage, isStream
         description,
         variant: "destructive",
       });
-    } finally {
-      setIsConnecting(false);
     }
-  }, [isConnecting, scribe, stopSpeaking]);
+  }, [clearConnectTimeout, isListening, isMicBusy, scribe, stopSpeaking]);
 
   const stopListening = useCallback(() => {
+    clearConnectTimeout();
+    connectTimedOutRef.current = false;
     scribe.disconnect();
-    setIsListening(false);
+    setIsConnecting(false);
     setPartialText("");
-  }, [scribe]);
+  }, [clearConnectTimeout, scribe]);
 
   const speakText = useCallback(async (text: string) => {
     if (!text || !ttsEnabled || text === lastSpokenRef.current) return;
 
-    const cleanText = text
-      .replace(/```[\s\S]*?```/g, "code block omitted")
-      .replace(/\*\*(.*?)\*\*/g, "$1")
-      .replace(/\*(.*?)\*/g, "$1")
-      .replace(/#{1,6}\s/g, "")
-      .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
-      .replace(/[`~>|]/g, "")
-      .trim();
-
-    if (!cleanText || cleanText.length > 2000) return;
+    const cleanText = sanitizeTextForSpeech(text);
+    if (!cleanText || cleanText.length > MAX_TTS_CHARS) return;
 
     lastSpokenRef.current = text;
     setIsSpeaking(true);
@@ -155,6 +223,7 @@ export default function VoiceChat({ onTranscript, lastAssistantMessage, isStream
       releaseCurrentAudio();
 
       const audio = new Audio(audioUrl);
+      audio.preload = "auto";
       audioRef.current = audio;
 
       audio.onended = () => {
@@ -180,7 +249,7 @@ export default function VoiceChat({ onTranscript, lastAssistantMessage, isStream
       setIsSpeaking(false);
       toast({
         title: "Owl voice unavailable",
-        description: "I couldn't play Owl's voice just now. Try sending the message again.",
+        description: "I couldn't play Owl's full voice response just now. Try sending the message again.",
         variant: "destructive",
       });
     }
@@ -214,17 +283,17 @@ export default function VoiceChat({ onTranscript, lastAssistantMessage, isStream
 
         <button
           onClick={isListening ? stopListening : startListening}
-          disabled={isConnecting || isStreaming}
+          disabled={isMicBusy || isStreaming}
           className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl transition-all ${
             isListening
               ? "animate-pulse bg-destructive/10 text-destructive"
-              : isConnecting
+              : isMicBusy
                 ? "bg-muted/50 text-muted-foreground"
                 : "text-muted-foreground hover:bg-muted/50"
           }`}
           title={isListening ? "Stop listening" : "Start voice input"}
         >
-          {isConnecting ? (
+          {isMicBusy ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : isListening ? (
             <MicOff className="h-4 w-4" />
