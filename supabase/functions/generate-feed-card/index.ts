@@ -13,7 +13,10 @@ serve(async (req) => {
     const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
     if (!OPENROUTER_API_KEY) throw new Error("OPENROUTER_API_KEY is not configured");
 
-    const types = ["quick-fact", "micro-lesson", "challenge", "myth-vs-truth", "news"];
+    const types = [
+      "quick-fact", "micro-lesson", "challenge", "myth-vs-truth", "news",
+      "key-insight", "reality-check", "source-comparison", "deep-pattern",
+    ];
     const cardType = types[Math.floor(Math.random() * types.length)];
 
     let modeInstruction = "";
@@ -25,17 +28,49 @@ serve(async (req) => {
     if (learningStyle === "reader") styleInstruction = "Use structured bullets, cheat-sheet format, dense but clear text.";
     if (learningStyle === "hands-on") styleInstruction = "Focus on practical drills, 'try it now' prompts, and real scenarios.";
 
-    const systemPrompt = `You generate feed cards for Wisdom AI, a premium learning app. Each card is a 15-60 second learning drop.
+    const cognitiveInstructions: Record<string, string> = {
+      "key-insight": `Generate a KEY INSIGHT card. This should expose a critical data pattern, relationship, or non-obvious truth that affects decision-making. Include:
+- A concise factual summary as the hook
+- Evidence-based contextual analysis as content
+- An 'impactAnalysis' explaining how this affects the user's decisions
+- 1-2 'decisionProtocols' with actionable steps
+- Suggest relevant analyticalFlags from: source-comparison, logical-chain, correlation-observation, narrative-framing, data-verification, bias-detected`,
+
+      "reality-check": `Generate a REALITY CHECK card. Present contrasting perspectives on a topic to help users evaluate independently. Include:
+- Two contrasting views as 'contrastingViewA' and 'contrastingViewB'
+- An 'impactAnalysis' explaining what this means for the user
+- 1-2 'decisionProtocols' with concrete actions
+- Set visual to 'compare'`,
+
+      "source-comparison": `Generate a SOURCE COMPARISON card. Show how different information sources present the same topic differently. Include:
+- 2-3 'sourceStreams' each with a 'name' (source type) and 'perspective' (how they frame it)
+- An 'impactAnalysis' about information literacy
+- Suggest analyticalFlags like 'source-comparison' and 'narrative-framing'`,
+
+      "deep-pattern": `Generate a DEEP PATTERN card. Identify a systemic trend or influence pattern across multiple domains. Include:
+- 'trendData' with 3-5 data points (label + value pairs) for visualization
+- OR 'connections' with 3-5 influence connections (from, to, strength 1-100)
+- Set visual to 'trend-map' or 'influence-web' accordingly
+- An 'impactAnalysis'
+- 2-3 'decisionProtocols' with actionable intelligence
+- Suggest analyticalFlags`,
+    };
+
+    const typeSpecific = cognitiveInstructions[cardType] || "";
+
+    const systemPrompt = `You generate feed cards for Wisdom AI, a premium cognitive augmentation app. Each card is a 15-60 second learning drop that enhances information literacy and critical thinking.
 
 Rules:
 - NEVER use filler or vague motivation. Every sentence must contain a specific insight.
-- Content must be practical, actionable, and memorable.
+- Content must be practical, actionable, and intellectually rigorous.
 - Write at a "street-smart textbook" level — not academic, not dumbed down.
+- For cognitive augmentation cards (key-insight, reality-check, source-comparison, deep-pattern): focus on enhancing the user's ability to analyze, discern, and make autonomous decisions.
 ${modeInstruction}
 ${styleInstruction}
 
 Card type to generate: ${cardType}
 
+${typeSpecific}
 ${cardType === "myth-vs-truth" ? "Include a mythStatement (the common misconception) and truthStatement (the reality with evidence)." : ""}
 ${cardType === "news" ? "Generate an EVERGREEN tech/AI concept explainer. Label source as 'General Update — Evergreen Concept'. Set confidence 85-95. Do NOT pretend it's current news." : ""}
 ${cardType === "challenge" ? "Create a multiple-choice challenge where only one option is correct. Make wrong answers plausible but clearly wrong to someone who knows the material." : ""}`;
@@ -58,17 +93,19 @@ ${cardType === "challenge" ? "Create a multiple-choice challenge where only one 
           type: "function",
           function: {
             name: "create_feed_card",
-            description: "Create a structured feed card",
+            description: "Create a structured feed card for cognitive augmentation",
             parameters: {
               type: "object",
               properties: {
                 title: { type: "string", description: "Catchy title, max 8 words" },
                 hook: { type: "string", description: "1-sentence hook" },
                 content: { type: "string", description: "Main content, 2-5 sentences, specific and actionable" },
-                visual: { type: "string", enum: ["diagram", "infographic", "compare", "steps", "chart", "icon"] },
+                visual: { type: "string", enum: ["diagram", "infographic", "compare", "steps", "chart", "icon", "trend-map", "influence-web"] },
                 visualLabels: { type: "array", items: { type: "string" }, description: "Labels for visual elements (3-5 items)" },
                 visualBefore: { type: "string", description: "Before text for compare visual" },
                 visualAfter: { type: "string", description: "After text for compare visual" },
+                trendData: { type: "array", items: { type: "object", properties: { label: { type: "string" }, value: { type: "number" } }, required: ["label", "value"] }, description: "For trend-map visual" },
+                connections: { type: "array", items: { type: "object", properties: { from: { type: "string" }, to: { type: "string" }, strength: { type: "number" } }, required: ["from", "to", "strength"] }, description: "For influence-web visual" },
                 category: { type: "string" },
                 difficulty: { type: "string", enum: ["beginner", "intermediate", "advanced"] },
                 interaction: { type: "string", enum: ["choice", "tap-reveal"] },
@@ -82,6 +119,13 @@ ${cardType === "challenge" ? "Create a multiple-choice challenge where only one 
                 truthStatement: { type: "string", description: "For myth-vs-truth type" },
                 source: { type: "string", description: "For news type" },
                 confidence: { type: "number", description: "For news type, 0-100" },
+                // New cognitive augmentation fields
+                impactAnalysis: { type: "string", description: "How this affects the user's decision-making, health, finances, or autonomy" },
+                analyticalFlags: { type: "array", items: { type: "string", enum: ["source-comparison", "logical-chain", "correlation-observation", "narrative-framing", "data-verification", "bias-detected"] }, description: "Suggested analytical flags for this card" },
+                sourceStreams: { type: "array", items: { type: "object", properties: { name: { type: "string" }, perspective: { type: "string" } }, required: ["name", "perspective"] }, description: "Different source perspectives for source-comparison cards" },
+                decisionProtocols: { type: "array", items: { type: "object", properties: { action: { type: "string" }, linkedCourse: { type: "string" }, linkedCourseId: { type: "string" } }, required: ["action"] }, description: "Actionable steps for decision support" },
+                contrastingViewA: { type: "string", description: "First contrasting perspective for reality-check" },
+                contrastingViewB: { type: "string", description: "Second contrasting perspective for reality-check" },
               },
               required: ["title", "hook", "content", "visual", "category", "difficulty", "shareSnippet", "xp", "tokens"],
               additionalProperties: false,
@@ -115,6 +159,8 @@ ${cardType === "challenge" ? "Create a multiple-choice challenge where only one 
         before: raw.visualBefore,
         after: raw.visualAfter,
         steps: raw.visual === "steps" ? raw.visualLabels : undefined,
+        trendData: raw.trendData,
+        connections: raw.connections,
       },
       category: raw.category || "Computer & math",
       difficulty: raw.difficulty || "beginner",
@@ -129,6 +175,14 @@ ${cardType === "challenge" ? "Create a multiple-choice challenge where only one 
       truthStatement: raw.truthStatement,
       source: raw.source,
       confidence: raw.confidence,
+      // New cognitive augmentation fields
+      impactAnalysis: raw.impactAnalysis,
+      analyticalFlags: raw.analyticalFlags,
+      sourceStreams: raw.sourceStreams,
+      decisionProtocols: raw.decisionProtocols,
+      contrastingViews: raw.contrastingViewA && raw.contrastingViewB
+        ? { viewA: raw.contrastingViewA, viewB: raw.contrastingViewB }
+        : undefined,
     };
 
     return new Response(JSON.stringify(card), {
@@ -141,4 +195,3 @@ ${cardType === "challenge" ? "Create a multiple-choice challenge where only one 
     });
   }
 });
-
