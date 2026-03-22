@@ -14,10 +14,10 @@ serve(async (req) => {
     if (!ELEVENLABS_API_KEY) throw new Error("ELEVENLABS_API_KEY is not configured");
     if (!text) throw new Error("Text is required");
 
-    const voice = voiceId || "JBFqnCBsd6RMkjVDRZzb"; // George - deep, authoritative
+    const voice = voiceId || "VsQmyFHffusQDewmHB5v";
 
     const response = await fetch(
-      `https://api.elevenlabs.io/v1/text-to-speech/${voice}/stream?output_format=mp3_44100_128`,
+      `https://api.elevenlabs.io/v1/text-to-speech/${voice}?output_format=mp3_44100_128`,
       {
         method: "POST",
         headers: {
@@ -41,14 +41,15 @@ serve(async (req) => {
     if (!response.ok) {
       const err = await response.text();
       console.error("ElevenLabs TTS error:", response.status, err);
-      throw new Error(`TTS failed: ${response.status}`);
+      throw new Error(`TTS failed: ${response.status} ${err}`);
     }
 
-    return new Response(response.body, {
+    const audioBuffer = await response.arrayBuffer();
+
+    return new Response(audioBuffer, {
       headers: {
         ...corsHeaders,
         "Content-Type": "audio/mpeg",
-        "Transfer-Encoding": "chunked",
       },
     });
   } catch (e) {
