@@ -42,6 +42,7 @@ function mapSpeechRecognitionError(error: string) {
 
 export default function VoiceChat({ onTranscript, lastAssistantMessage, lastAssistantMessageId, isStreaming }: VoiceChatProps) {
   const [isConnecting, setIsConnecting] = useState(false);
+  const [isBrowserListening, setIsBrowserListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [ttsEnabled, setTtsEnabled] = useState(true);
   const [partialText, setPartialText] = useState("");
@@ -53,7 +54,6 @@ export default function VoiceChat({ onTranscript, lastAssistantMessage, lastAssi
   const lastHandledAssistantMessageRef = useRef("");
   const connectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const connectTimedOutRef = useRef(false);
-  const isBrowserListeningRef = useRef(false);
   const manualBrowserStopRef = useRef(false);
   const browserTtsFallbackRef = useRef(false);
   const browserTtsNoticeShownRef = useRef(false);
@@ -92,6 +92,7 @@ export default function VoiceChat({ onTranscript, lastAssistantMessage, lastAssi
     if (!recognition) return;
 
     manualBrowserStopRef.current = true;
+    setIsBrowserListening(false);
     recognition.stop();
   }, []);
 
@@ -138,7 +139,7 @@ export default function VoiceChat({ onTranscript, lastAssistantMessage, lastAssi
 
       recognition.onstart = () => {
         started = true;
-        isBrowserListeningRef.current = true;
+        setIsBrowserListening(true);
         setIsConnecting(false);
         settleResolve(true);
       };
@@ -166,7 +167,7 @@ export default function VoiceChat({ onTranscript, lastAssistantMessage, lastAssi
         const message = mapSpeechRecognitionError(event.error);
         const shouldIgnore = manualBrowserStopRef.current || event.error === "aborted";
 
-        isBrowserListeningRef.current = false;
+        setIsBrowserListening(false);
         setIsConnecting(false);
         setPartialText("");
         cleanup();
@@ -192,7 +193,7 @@ export default function VoiceChat({ onTranscript, lastAssistantMessage, lastAssi
       recognition.onend = () => {
         const finalTranscript = browserTranscriptRef.current.trim();
 
-        isBrowserListeningRef.current = false;
+        setIsBrowserListening(false);
         setIsConnecting(false);
         setPartialText("");
         cleanup();
@@ -289,32 +290,18 @@ export default function VoiceChat({ onTranscript, lastAssistantMessage, lastAssi
   const scribeRef = useRef(scribe);
   scribeRef.current = scribe;
 
-  const isListening = scribe.isConnected || scribe.isTranscribing;
-  const isMicBusy = isConnecting || scribe.status === "connecting";
-
   useEffect(() => {
     return () => {
       clearConnectTimeout();
       stopBrowserRecognition();
       scribeRef.current.disconnect();
       releaseCurrentAudio();
+      setIsBrowserListening(false);
       if (typeof window !== "undefined" && "speechSynthesis" in window) {
         window.speechSynthesis.cancel();
       }
     };
   }, [clearConnectTimeout, releaseCurrentAudio, stopBrowserRecognition]);
-
-  useEffect(() => {
-    const handler = (event: Event) => {
-      const detail = (event as CustomEvent<OwlReplayDetail>).detail;
-      if (!detail?.text) return;
-
-      void speakText(detail.text, { force: detail.force });
-    };
-
-    window.addEventListener(OWL_PLAY_EVENT, handler as EventListener);
-    return () => window.removeEventListener(OWL_PLAY_EVENT, handler as EventListener);
-  }, [speakText]);
 
   const startScribeListening = useCallback(async () => {
     scribe.disconnect();
@@ -410,6 +397,7 @@ export default function VoiceChat({ onTranscript, lastAssistantMessage, lastAssi
     stopBrowserRecognition();
     scribe.disconnect();
     setIsConnecting(false);
+    setIsBrowserListening(false);
     setPartialText("");
   }, [clearConnectTimeout, scribe, stopBrowserRecognition]);
 
@@ -513,7 +501,19 @@ export default function VoiceChat({ onTranscript, lastAssistantMessage, lastAssi
     void speakText(lastAssistantMessage);
   }, [isStreaming, lastAssistantMessage, lastAssistantMessageId, speakText]);
 
-  const isListening = isBrowserListeningRef.current || scribe.isConnected || scribe.isTranscribing;
+  useEffect(() => {
+    const handler = (event: Event) => {
+      const detail = (event as CustomEvent<OwlReplayDetail>).detail;
+      if (!detail?.text) return;
+
+      void speakText(detail.text, { force: detail.force });
+    };
+
+    window.addEventListener(OWL_PLAY_EVENT, handler as EventListener);
+    return () => window.removeEventListener(OWL_PLAY_EVENT, handler as EventListener);
+  }, [speakText]);
+
+  const isListening = isBrowserListening || scribe.isConnected || scribe.isTranscribing;
   const isMicBusy = isConnecting || scribe.status === "connecting";
 
   const toggleTts = useCallback(() => {
