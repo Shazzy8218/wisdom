@@ -337,6 +337,9 @@ export default function VoiceChat({ onTranscript, lastAssistantMessage, lastAssi
     setIsConnecting(false);
   }, [clearConnectTimeout, scribe]);
 
+  const isListening = isBrowserListening || scribe.isConnected || scribe.isTranscribing;
+  const isMicBusy = isConnecting || scribe.status === "connecting";
+
   const startListening = useCallback(async () => {
     if (isMicBusy || isListening) return;
 
@@ -512,9 +515,6 @@ export default function VoiceChat({ onTranscript, lastAssistantMessage, lastAssi
     window.addEventListener(OWL_PLAY_EVENT, handler as EventListener);
     return () => window.removeEventListener(OWL_PLAY_EVENT, handler as EventListener);
   }, [speakText]);
-
-  const isListening = isBrowserListening || scribe.isConnected || scribe.isTranscribing;
-  const isMicBusy = isConnecting || scribe.status === "connecting";
 
   const toggleTts = useCallback(() => {
     if (ttsEnabled && isSpeaking) stopSpeaking();
