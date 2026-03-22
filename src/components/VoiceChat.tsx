@@ -4,38 +4,59 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Mic, MicOff, Volume2, VolumeX, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import {
+  DEFAULT_OWL_VOICE_ID,
+  MAX_TTS_CHARS,
+  OWL_PLAY_EVENT,
+  type OwlReplayDetail,
+  getSpeechRecognitionCtor,
+  pickBrowserSpeechVoice,
+  sanitizeTextForSpeech,
+} from "@/lib/owl-voice";
 
 const TTS_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/elevenlabs-tts`;
 const SCRIBE_CONNECT_TIMEOUT_MS = 12000;
-const MAX_TTS_CHARS = 2000;
 
 interface VoiceChatProps {
   onTranscript: (text: string) => void;
   lastAssistantMessage?: string;
+  lastAssistantMessageId?: string;
   isStreaming?: boolean;
 }
 
-function sanitizeTextForSpeech(text: string) {
-  return text
-    .replace(/```[\s\S]*?```/g, "code block omitted")
-    .replace(/\*\*(.*?)\*\*/g, "$1")
-    .replace(/\*(.*?)\*/g, "$1")
-    .replace(/#{1,6}\s/g, "")
-    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
-    .replace(/[`~>|]/g, "")
-    .trim();
+function mapSpeechRecognitionError(error: string) {
+  switch (error) {
+    case "not-allowed":
+    case "service-not-allowed":
+      return "Please allow microphone access to use voice input.";
+    case "audio-capture":
+      return "No microphone was found on this device.";
+    case "network":
+      return "Your browser's speech service is unreachable right now. Please try again.";
+    case "no-speech":
+      return "I didn't hear anything. Try again and speak right away.";
+    default:
+      return "Voice transcription ran into a problem.";
+  }
 }
 
-export default function VoiceChat({ onTranscript, lastAssistantMessage, isStreaming }: VoiceChatProps) {
+export default function VoiceChat({ onTranscript, lastAssistantMessage, lastAssistantMessageId, isStreaming }: VoiceChatProps) {
   const [isConnecting, setIsConnecting] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [ttsEnabled, setTtsEnabled] = useState(true);
   const [partialText, setPartialText] = useState("");
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const browserRecognitionRef = useRef<SpeechRecognition | null>(null);
+  const browserUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const browserTranscriptRef = useRef("");
   const lastSpokenRef = useRef("");
   const lastHandledAssistantMessageRef = useRef("");
   const connectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const connectTimedOutRef = useRef(false);
+  const isBrowserListeningRef = useRef(false);
+  const manualBrowserStopRef = useRef(false);
+  const browserTtsFallbackRef = useRef(false);
+  const browserTtsNoticeShownRef = useRef(false);
 
   const releaseCurrentAudio = useCallback(() => {
     if (!audioRef.current) return;
@@ -59,7 +80,172 @@ export default function VoiceChat({ onTranscript, lastAssistantMessage, isStream
 
   const stopSpeaking = useCallback(() => {
     releaseCurrentAudio();
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+    }
+    browserUtteranceRef.current = null;
     setIsSpeaking(false);
+  }, [releaseCurrentAudio]);
+
+  const stopBrowserRecognition = useCallback(() => {
+    const recognition = browserRecognitionRef.current;
+    if (!recognition) return;
+
+    manualBrowserStopRef.current = true;
+    recognition.stop();
+  }, []);
+
+  const startBrowserRecognition = useCallback(async () => {
+    const RecognitionCtor = getSpeechRecognitionCtor();
+    if (!RecognitionCtor) {
+      throw new Error("Browser speech recognition is unavailable.");
+    }
+
+    return await new Promise<boolean>((resolve, reject) => {
+      let started = false;
+      let settled = false;
+      const recognition = new RecognitionCtor();
+      browserRecognitionRef.current = recognition;
+      browserTranscriptRef.current = "";
+      manualBrowserStopRef.current = false;
+
+      const settleResolve = (value: boolean) => {
+        if (settled) return;
+        settled = true;
+        resolve(value);
+      };
+
+      const settleReject = (error: Error) => {
+        if (settled) return;
+        settled = true;
+        reject(error);
+      };
+
+      const cleanup = () => {
+        recognition.onstart = null;
+        recognition.onresult = null;
+        recognition.onerror = null;
+        recognition.onend = null;
+        if (browserRecognitionRef.current === recognition) {
+          browserRecognitionRef.current = null;
+        }
+      };
+
+      recognition.continuous = false;
+      recognition.interimResults = true;
+      recognition.maxAlternatives = 1;
+      recognition.lang = typeof navigator !== "undefined" ? navigator.language || "en-US" : "en-US";
+
+      recognition.onstart = () => {
+        started = true;
+        isBrowserListeningRef.current = true;
+        setIsConnecting(false);
+        settleResolve(true);
+      };
+
+      recognition.onresult = (event) => {
+        let finalTranscript = browserTranscriptRef.current;
+        let interimTranscript = "";
+
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const transcript = event.results[i][0]?.transcript?.trim();
+          if (!transcript) continue;
+
+          if (event.results[i].isFinal) {
+            finalTranscript = `${finalTranscript} ${transcript}`.trim();
+          } else {
+            interimTranscript = transcript;
+          }
+        }
+
+        browserTranscriptRef.current = finalTranscript;
+        setPartialText(finalTranscript || interimTranscript);
+      };
+
+      recognition.onerror = (event) => {
+        const message = mapSpeechRecognitionError(event.error);
+        const shouldIgnore = manualBrowserStopRef.current || event.error === "aborted";
+
+        isBrowserListeningRef.current = false;
+        setIsConnecting(false);
+        setPartialText("");
+        cleanup();
+
+        if (!started) {
+          if (shouldIgnore) {
+            settleResolve(false);
+          } else {
+            settleReject(new Error(message));
+          }
+          return;
+        }
+
+        if (!shouldIgnore && event.error !== "no-speech") {
+          toast({
+            title: "Voice input unavailable",
+            description: message,
+            variant: "destructive",
+          });
+        }
+      };
+
+      recognition.onend = () => {
+        const finalTranscript = browserTranscriptRef.current.trim();
+
+        isBrowserListeningRef.current = false;
+        setIsConnecting(false);
+        setPartialText("");
+        cleanup();
+
+        if (finalTranscript) {
+          onTranscript(finalTranscript);
+        }
+
+        if (!started) {
+          settleReject(new Error("Voice input could not start."));
+        }
+      };
+
+      recognition.start();
+    });
+  }, [onTranscript]);
+
+  const speakWithBrowserVoice = useCallback(async (text: string) => {
+    if (typeof window === "undefined" || !("speechSynthesis" in window) || typeof SpeechSynthesisUtterance === "undefined") {
+      throw new Error("Browser speech is unavailable");
+    }
+
+    releaseCurrentAudio();
+    window.speechSynthesis.cancel();
+
+    await new Promise<void>((resolve, reject) => {
+      const utterance = new SpeechSynthesisUtterance(text);
+      const selectedVoice = pickBrowserSpeechVoice();
+
+      if (selectedVoice) {
+        utterance.voice = selectedVoice;
+      }
+
+      utterance.rate = 1.02;
+      utterance.pitch = 0.92;
+      utterance.volume = 1;
+      browserUtteranceRef.current = utterance;
+
+      utterance.onend = () => {
+        browserUtteranceRef.current = null;
+        setIsSpeaking(false);
+        resolve();
+      };
+
+      utterance.onerror = () => {
+        browserUtteranceRef.current = null;
+        setIsSpeaking(false);
+        reject(new Error("Browser speech failed"));
+      };
+
+      setIsSpeaking(true);
+      window.speechSynthesis.speak(utterance);
+    });
   }, [releaseCurrentAudio]);
 
   const scribe = useScribe({
@@ -109,10 +295,60 @@ export default function VoiceChat({ onTranscript, lastAssistantMessage, isStream
   useEffect(() => {
     return () => {
       clearConnectTimeout();
+      stopBrowserRecognition();
       scribeRef.current.disconnect();
       releaseCurrentAudio();
+      if (typeof window !== "undefined" && "speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+      }
     };
-  }, [clearConnectTimeout, releaseCurrentAudio]);
+  }, [clearConnectTimeout, releaseCurrentAudio, stopBrowserRecognition]);
+
+  useEffect(() => {
+    const handler = (event: Event) => {
+      const detail = (event as CustomEvent<OwlReplayDetail>).detail;
+      if (!detail?.text) return;
+
+      void speakText(detail.text, { force: detail.force });
+    };
+
+    window.addEventListener(OWL_PLAY_EVENT, handler as EventListener);
+    return () => window.removeEventListener(OWL_PLAY_EVENT, handler as EventListener);
+  }, [speakText]);
+
+  const startScribeListening = useCallback(async () => {
+    scribe.disconnect();
+
+    const { data, error } = await supabase.functions.invoke("elevenlabs-scribe-token");
+    if (error) throw new Error(error.message || "Could not start voice transcription");
+    if (!data?.token) throw new Error("No token received");
+
+    connectTimeoutRef.current = setTimeout(() => {
+      if (scribeRef.current.isConnected || scribeRef.current.isTranscribing) return;
+
+      connectTimedOutRef.current = true;
+      setIsConnecting(false);
+      scribeRef.current.disconnect();
+
+      toast({
+        title: "Voice input timeout",
+        description: "The microphone session took too long to start. If you're testing inside the embedded preview, open the standalone app and try again.",
+        variant: "destructive",
+      });
+    }, SCRIBE_CONNECT_TIMEOUT_MS);
+
+    await scribe.connect({
+      token: data.token,
+      microphone: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
+      },
+    });
+
+    clearConnectTimeout();
+    setIsConnecting(false);
+  }, [clearConnectTimeout, scribe]);
 
   const startListening = useCallback(async () => {
     if (isMicBusy || isListening) return;
@@ -124,37 +360,25 @@ export default function VoiceChat({ onTranscript, lastAssistantMessage, isStream
     clearConnectTimeout();
 
     try {
-      scribe.disconnect();
+      const nativeRecognition = getSpeechRecognitionCtor();
 
-      const { data, error } = await supabase.functions.invoke("elevenlabs-scribe-token");
-      if (error) throw new Error(error.message || "Could not start voice transcription");
-      if (!data?.token) throw new Error("No token received");
+      if (nativeRecognition) {
+        try {
+          const started = await startBrowserRecognition();
+          if (started) return;
+        } catch (nativeErr: any) {
+          const nativeErrorMessage = nativeErr?.message || "Voice input unavailable";
+          const shouldAvoidScribeFallback = /allow microphone|No microphone/i.test(nativeErrorMessage);
 
-      connectTimeoutRef.current = setTimeout(() => {
-        if (scribeRef.current.isConnected || scribeRef.current.isTranscribing) return;
+          if (shouldAvoidScribeFallback) {
+            throw nativeErr;
+          }
 
-        connectTimedOutRef.current = true;
-        setIsConnecting(false);
-        scribeRef.current.disconnect();
+          console.warn("Browser speech fallback failed, falling back to ElevenLabs Scribe:", nativeErr);
+        }
+      }
 
-        toast({
-          title: "Voice input timeout",
-          description: "The microphone session took too long to start. If you're testing inside the embedded preview, open the standalone app and try again.",
-          variant: "destructive",
-        });
-      }, SCRIBE_CONNECT_TIMEOUT_MS);
-
-      await scribe.connect({
-        token: data.token,
-        microphone: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-        },
-      });
-
-      clearConnectTimeout();
-      setIsConnecting(false);
+      await startScribeListening();
     } catch (err: any) {
       clearConnectTimeout();
       setIsConnecting(false);
@@ -178,26 +402,35 @@ export default function VoiceChat({ onTranscript, lastAssistantMessage, isStream
         variant: "destructive",
       });
     }
-  }, [clearConnectTimeout, isListening, isMicBusy, scribe, stopSpeaking]);
+  }, [clearConnectTimeout, isListening, isMicBusy, startBrowserRecognition, startScribeListening, stopSpeaking]);
 
   const stopListening = useCallback(() => {
     clearConnectTimeout();
     connectTimedOutRef.current = false;
+    stopBrowserRecognition();
     scribe.disconnect();
     setIsConnecting(false);
     setPartialText("");
-  }, [clearConnectTimeout, scribe]);
+  }, [clearConnectTimeout, scribe, stopBrowserRecognition]);
 
-  const speakText = useCallback(async (text: string) => {
-    if (!text || !ttsEnabled || text === lastSpokenRef.current) return;
+  const speakText = useCallback(async (text: string, options?: { force?: boolean }) => {
+    if (!text || (!ttsEnabled && !options?.force)) return;
+    if (!options?.force && text === lastSpokenRef.current) return;
 
     const cleanText = sanitizeTextForSpeech(text);
     if (!cleanText || cleanText.length > MAX_TTS_CHARS) return;
 
-    lastSpokenRef.current = text;
-    setIsSpeaking(true);
+    if (!options?.force) {
+      lastSpokenRef.current = text;
+    }
 
     try {
+      if (browserTtsFallbackRef.current) {
+        await speakWithBrowserVoice(cleanText);
+        return;
+      }
+
+      setIsSpeaking(true);
       const resp = await fetch(TTS_URL, {
         method: "POST",
         headers: {
@@ -205,7 +438,7 @@ export default function VoiceChat({ onTranscript, lastAssistantMessage, isStream
           apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
         },
-        body: JSON.stringify({ text: cleanText }),
+        body: JSON.stringify({ text: cleanText, voiceId: DEFAULT_OWL_VOICE_ID }),
       });
 
       if (!resp.ok) {
@@ -238,25 +471,50 @@ export default function VoiceChat({ onTranscript, lastAssistantMessage, isStream
       };
 
       await audio.play();
-    } catch (err) {
+    } catch (err: any) {
       console.error("TTS error:", err);
-      lastSpokenRef.current = "";
       setIsSpeaking(false);
-      toast({
-        title: "Owl voice unavailable",
-        description: "I couldn't play Owl's full voice response just now. Try sending the message again.",
-        variant: "destructive",
-      });
+
+      const errorMessage = typeof err?.message === "string" ? err.message : "";
+      if (/401|detected_unusual_activity/i.test(errorMessage)) {
+        browserTtsFallbackRef.current = true;
+      }
+
+      try {
+        await speakWithBrowserVoice(cleanText);
+
+        if (!browserTtsNoticeShownRef.current) {
+          browserTtsNoticeShownRef.current = true;
+          toast({
+            title: "Using device voice",
+            description: "Your custom Owl voice is temporarily unavailable, so I switched to your device's built-in voice for reliable playback.",
+          });
+        }
+        return;
+      } catch (fallbackError) {
+        console.error("Browser TTS fallback error:", fallbackError);
+        lastSpokenRef.current = "";
+        setIsSpeaking(false);
+        toast({
+          title: "Owl voice unavailable",
+          description: "I couldn't play Owl's voice just now. Try again once audio output is enabled on your device.",
+          variant: "destructive",
+        });
+      }
     }
-  }, [releaseCurrentAudio, ttsEnabled]);
+  }, [releaseCurrentAudio, speakWithBrowserVoice, ttsEnabled]);
 
   useEffect(() => {
     if (isStreaming || !lastAssistantMessage) return;
-    if (lastAssistantMessage === lastHandledAssistantMessageRef.current) return;
+    const handledKey = lastAssistantMessageId || lastAssistantMessage;
+    if (handledKey === lastHandledAssistantMessageRef.current) return;
 
-    lastHandledAssistantMessageRef.current = lastAssistantMessage;
+    lastHandledAssistantMessageRef.current = handledKey;
     void speakText(lastAssistantMessage);
-  }, [isStreaming, lastAssistantMessage, speakText]);
+  }, [isStreaming, lastAssistantMessage, lastAssistantMessageId, speakText]);
+
+  const isListening = isBrowserListeningRef.current || scribe.isConnected || scribe.isTranscribing;
+  const isMicBusy = isConnecting || scribe.status === "connecting";
 
   const toggleTts = useCallback(() => {
     if (ttsEnabled && isSpeaking) stopSpeaking();

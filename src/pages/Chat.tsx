@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, Square, RotateCcw, Plus, History, Pencil, Trash2, Bookmark, X, Wand2, Download, Loader2, Globe, FileDown, Search, Shield, Paperclip, ChevronDown, FileText, AlertCircle } from "lucide-react";
+import { Send, Square, RotateCcw, Plus, History, Pencil, Trash2, Bookmark, X, Wand2, Download, Loader2, Globe, FileDown, Search, Shield, Paperclip, ChevronDown, FileText, AlertCircle, Play } from "lucide-react";
 import VoiceChat from "@/components/VoiceChat";
 import ReactMarkdown from "react-markdown";
 import { streamChat, type Msg } from "@/lib/ai-stream";
@@ -23,6 +23,7 @@ import ChartRenderer, { type ChartData } from "@/components/ChartRenderer";
 import { saveChart } from "@/lib/chart-storage";
 import { saveGeneratedImage } from "@/lib/image-storage";
 import { supabase } from "@/integrations/supabase/client";
+import { requestOwlReplay } from "@/lib/owl-voice";
 
 // ===== CONSTANTS =====
 
@@ -1338,18 +1339,30 @@ export default function Chat() {
 
         {/* Text content */}
         {text && !isLoading && (
-          <div className="prose prose-invert prose-sm max-w-none
-            [&_p]:my-2 [&_p]:leading-relaxed
-            [&_ul]:my-2 [&_ol]:my-2 [&_li]:my-0.5
-            [&_h1]:text-base [&_h1]:font-semibold [&_h1]:mt-4 [&_h1]:mb-2
-            [&_h2]:text-sm [&_h2]:font-semibold [&_h2]:mt-3 [&_h2]:mb-1.5
-            [&_h3]:text-sm [&_h3]:font-medium [&_h3]:mt-2 [&_h3]:mb-1
-            [&_code]:bg-muted [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-xs
-            [&_pre]:bg-muted [&_pre]:p-4 [&_pre]:rounded-xl [&_pre]:my-3
-            [&_strong]:text-foreground
-            [&_blockquote]:border-l-2 [&_blockquote]:border-primary/30 [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:text-muted-foreground">
-            <ReactMarkdown>{text}</ReactMarkdown>
-          </div>
+          <>
+            <div className="prose prose-invert prose-sm max-w-none
+              [&_p]:my-2 [&_p]:leading-relaxed
+              [&_ul]:my-2 [&_ol]:my-2 [&_li]:my-0.5
+              [&_h1]:text-base [&_h1]:font-semibold [&_h1]:mt-4 [&_h1]:mb-2
+              [&_h2]:text-sm [&_h2]:font-semibold [&_h2]:mt-3 [&_h2]:mb-1.5
+              [&_h3]:text-sm [&_h3]:font-medium [&_h3]:mt-2 [&_h3]:mb-1
+              [&_code]:bg-muted [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-xs
+              [&_pre]:bg-muted [&_pre]:p-4 [&_pre]:rounded-xl [&_pre]:my-3
+              [&_strong]:text-foreground
+              [&_blockquote]:border-l-2 [&_blockquote]:border-primary/30 [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:text-muted-foreground">
+              <ReactMarkdown>{text}</ReactMarkdown>
+            </div>
+
+            <div className="mt-3 flex items-center gap-2">
+              <button
+                onClick={() => requestOwlReplay(text)}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-primary/10 px-3 py-1.5 text-[11px] font-medium text-primary transition-colors hover:bg-primary/20"
+                type="button"
+              >
+                <Play className="h-3 w-3" /> Play reply
+              </button>
+            </div>
+          </>
         )}
 
         {charts.map((chart, i) => (
@@ -1695,6 +1708,7 @@ export default function Chat() {
               setInput(prev => prev ? `${prev} ${text}` : text);
             }}
             lastAssistantMessage={messages.filter(m => m.role === "assistant").pop()?.content}
+            lastAssistantMessageId={messages.filter(m => m.role === "assistant").pop()?.id}
             isStreaming={isStreaming}
           />
           <button onClick={handleSend} disabled={(!input.trim() && pendingAttachments.length === 0) || isBusy}
