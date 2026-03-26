@@ -208,22 +208,22 @@ export default function OwlWidget() {
                     </div>
                     {/* Feedback buttons for assistant messages */}
                     {msg.role === "assistant" && !msg.id.startsWith("w-err-") && !isStreaming && (
-                      <div className="flex items-center gap-1 ml-1">
+                      <div className="flex items-center gap-1.5 ml-1 mt-0.5">
                         <button
                           onClick={() => handleFeedback(msg.id, "up")}
-                          className={`h-5 w-5 rounded flex items-center justify-center transition-colors ${
-                            msg.feedback === "up" ? "text-primary bg-primary/10" : "text-muted-foreground/40 hover:text-muted-foreground"
+                          className={`h-6 w-6 rounded-md flex items-center justify-center transition-all ${
+                            msg.feedback === "up" ? "text-primary bg-primary/15 scale-110" : "text-muted-foreground/60 hover:text-primary hover:bg-primary/10"
                           }`}
                           title="Good response">
-                          <ThumbsUp className="h-2.5 w-2.5" />
+                          <ThumbsUp className="h-3 w-3" />
                         </button>
                         <button
                           onClick={() => handleFeedback(msg.id, "down")}
-                          className={`h-5 w-5 rounded flex items-center justify-center transition-colors ${
-                            msg.feedback === "down" ? "text-destructive bg-destructive/10" : "text-muted-foreground/40 hover:text-muted-foreground"
+                          className={`h-6 w-6 rounded-md flex items-center justify-center transition-all ${
+                            msg.feedback === "down" ? "text-destructive bg-destructive/15 scale-110" : "text-muted-foreground/60 hover:text-destructive hover:bg-destructive/10"
                           }`}
                           title="Poor response">
-                          <ThumbsDown className="h-2.5 w-2.5" />
+                          <ThumbsDown className="h-3 w-3" />
                         </button>
                       </div>
                     )}
