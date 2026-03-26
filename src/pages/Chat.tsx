@@ -1353,15 +1353,6 @@ export default function Chat() {
               <ReactMarkdown>{text}</ReactMarkdown>
             </div>
 
-            <div className="mt-3 flex items-center gap-2">
-              <button
-                onClick={() => requestOwlReplay(text)}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-primary/10 px-3 py-1.5 text-[11px] font-medium text-primary transition-colors hover:bg-primary/20"
-                type="button"
-              >
-                <Play className="h-3 w-3" /> Play reply
-              </button>
-            </div>
           </>
         )}
 
