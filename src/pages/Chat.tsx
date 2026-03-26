@@ -19,6 +19,7 @@ import { useUserProfile } from "@/hooks/useUserProfile";
 import { useProgress } from "@/hooks/useProgress";
 import { QUOTES } from "@/lib/data";
 import OwlIcon from "@/components/OwlIcon";
+import ImageViewer from "@/components/ImageViewer";
 import ChartRenderer, { type ChartData } from "@/components/ChartRenderer";
 import { saveChart } from "@/lib/chart-storage";
 import { saveGeneratedImage } from "@/lib/image-storage";
