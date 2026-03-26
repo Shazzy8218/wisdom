@@ -1710,10 +1710,12 @@ export default function Chat() {
             title="Generate image">
             <Wand2 className="h-4 w-4" />
           </button>
-          <input ref={inputRef} value={input} onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSend()}
+          <textarea ref={inputRef as React.RefObject<HTMLTextAreaElement>} value={input}
+            onChange={(e) => { setInput(e.target.value); e.target.style.height = 'auto'; e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px'; }}
+            onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
             placeholder={showStylePicker ? "Describe the image…" : "Ask Owl anything…"}
-            className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground/50 outline-none" />
+            rows={1}
+            className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground/50 outline-none resize-none max-h-[120px] leading-relaxed" />
           <VoiceChat
             onTranscript={(text) => {
               setInput(prev => prev ? `${prev} ${text}` : text);
