@@ -826,6 +826,9 @@ export default function Chat() {
         generatedStyle: style || selectedStyle || undefined, toolsUsed: ["imagegen"],
       };
       setMessages(prev => prev.filter(m => m.id !== loadingId).concat(assistantMsg));
+      // Auto-persist generated image to permanent cloud storage
+      persistGeneratedImage({ imageData: result.imageData!, prompt, style: style || selectedStyle || undefined })
+        .catch(e => console.warn("[Assets] auto-persist image failed:", e));
       if (tid) { addMessageToThread(tid, "assistant", `[Generated image: ${prompt}]`); setThreads(loadChatThreads()); }
     } else {
       setMessages(prev => prev.map(m => m.id === loadingId
