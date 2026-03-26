@@ -920,6 +920,9 @@ export default function Chat() {
             return;
           }
 
+          // Auto-persist to permanent asset storage
+          persistChatUpload(att.file, result.url).catch(e => console.warn("[Assets] auto-persist failed:", e));
+
           if (att.type === "image") {
             imageUrl = result.url;
             imagePreview = att.preview;
