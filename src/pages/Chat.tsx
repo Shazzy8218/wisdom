@@ -105,6 +105,42 @@ interface ChatMessage extends Msg {
 
 // ===== HELPERS =====
 
+// Image marker for persisting generated images in chat history
+const OWL_IMAGE_MARKER = "<!--owl-image:";
+const OWL_IMAGE_END = "-->";
+
+function encodeImageMarker(url: string, prompt: string, style?: string): string {
+  const payload = JSON.stringify({ url, prompt, style: style || "" });
+  return `${OWL_IMAGE_MARKER}${btoa(payload)}${OWL_IMAGE_END}`;
+}
+
+function decodeImageMarker(content: string): { url: string; prompt: string; style?: string; text: string } | null {
+  const startIdx = content.indexOf(OWL_IMAGE_MARKER);
+  if (startIdx === -1) return null;
+  const endIdx = content.indexOf(OWL_IMAGE_END, startIdx + OWL_IMAGE_MARKER.length);
+  if (endIdx === -1) return null;
+  try {
+    const b64 = content.slice(startIdx + OWL_IMAGE_MARKER.length, endIdx);
+    const parsed = JSON.parse(atob(b64));
+    const text = (content.slice(0, startIdx) + content.slice(endIdx + OWL_IMAGE_END.length)).trim();
+    return { url: parsed.url, prompt: parsed.prompt, style: parsed.style || undefined, text: text || "Here's your generated image:" };
+  } catch {
+    return null;
+  }
+}
+
+function parseThreadMessage(msg: { id: string; role: "user" | "assistant"; content: string }): ChatMessage {
+  const decoded = msg.role === "assistant" ? decodeImageMarker(msg.content) : null;
+  if (decoded) {
+    return {
+      id: msg.id, role: msg.role, content: decoded.text,
+      generatedImageUrl: decoded.url, generatedPrompt: decoded.prompt,
+      generatedStyle: decoded.style, toolsUsed: ["imagegen"],
+    };
+  }
+  return { id: msg.id, role: msg.role, content: msg.content };
+}
+
 function isImageGenRequest(text: string): boolean {
   if (/^(what|how|why|can you|do you|are you)\b/i.test(text) && !/\b(generate|create|make|draw|design)\b/i.test(text)) return false;
   return IMAGE_GEN_PATTERNS.some(p => p.test(text));
