@@ -1,10 +1,12 @@
 // Rich context builder for Wisdom Owl — gathers all user data for AI personalization
+// ALPHA-ACCURACY: Enhanced with deeper signals for contextual mastery
 
 import { loadCachedProgress } from "@/lib/progress";
 import { loadChatThreads } from "@/lib/chat-history";
 import { CATEGORY_TRACKS } from "@/lib/categories";
 
 const SETTINGS_KEY = "wisdom-settings";
+const FEEDBACK_KEY = "wisdom-owl-feedback";
 
 function loadSettings(): Record<string, boolean> {
   try { return JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}"); } catch { return {}; }
@@ -24,41 +26,110 @@ function loadCalibration() {
   } catch { return {}; }
 }
 
+function loadFeedbackHistory(): { positive: number; negative: number; themes: string[] } {
+  try {
+    const raw = localStorage.getItem(FEEDBACK_KEY);
+    if (!raw) return { positive: 0, negative: 0, themes: [] };
+    const items: FeedbackEntry[] = JSON.parse(raw);
+    const positive = items.filter(f => f.rating === "up").length;
+    const negative = items.filter(f => f.rating === "down").length;
+    // Extract recent negative feedback themes
+    const themes = items
+      .filter(f => f.rating === "down" && f.comment)
+      .slice(-5)
+      .map(f => f.comment!);
+    return { positive, negative, themes };
+  } catch { return { positive: 0, negative: 0, themes: [] }; }
+}
+
+function loadArenaHistory(): string {
+  try {
+    const raw = localStorage.getItem("wisdom-arena-results");
+    if (!raw) return "";
+    const results = JSON.parse(raw);
+    if (!Array.isArray(results) || results.length === 0) return "";
+    const recent = results.slice(-5);
+    return recent.map((r: any) =>
+      `${r.scenario || "drill"}: ${r.outcome || "completed"} (${r.score || "N/A"})`
+    ).join("; ");
+  } catch { return ""; }
+}
+
+function loadGameScores(): string {
+  try {
+    const progress = loadCachedProgress();
+    const scores = progress.quizScores || {};
+    const entries = Object.entries(scores);
+    if (entries.length === 0) return "";
+    return entries.slice(0, 5).map(([game, score]) => `${game}: ${score}`).join(", ");
+  } catch { return ""; }
+}
+
+function loadActiveCourse(): string {
+  try {
+    const raw = localStorage.getItem("wisdom-active-track");
+    return raw || "";
+  } catch { return ""; }
+}
+
+function loadCourseProgress(): string {
+  try {
+    const progress = loadCachedProgress();
+    const modules = progress.completedModules || [];
+    const lessons = progress.completedLessons || [];
+    if (lessons.length === 0) return "";
+    return `${lessons.length} lessons, ${modules.length} modules completed`;
+  } catch { return ""; }
+}
+
+export interface FeedbackEntry {
+  messageId: string;
+  rating: "up" | "down";
+  comment?: string;
+  timestamp: number;
+}
+
+export function saveFeedback(entry: FeedbackEntry) {
+  try {
+    const raw = localStorage.getItem(FEEDBACK_KEY);
+    const items: FeedbackEntry[] = raw ? JSON.parse(raw) : [];
+    items.push(entry);
+    // Keep last 100
+    const trimmed = items.slice(-100);
+    localStorage.setItem(FEEDBACK_KEY, JSON.stringify(trimmed));
+  } catch {}
+}
+
 export interface OwlContext {
-  // Profile
   user_name: string;
   user_plan: string;
   learning_style: string;
   goal_mode: string;
   output_mode: string;
-  // Stats
   streak: string;
   mastery: string;
   tokens: string;
   xp: string;
   lessons_completed: string;
   lessons_today: string;
-  // Goals
   learning_goal: string;
-  // Mastery breakdown
   mastery_breakdown: string;
-  // Favorites & activity
   favorites_count: string;
-  // Chat summary
   recent_topics: string;
-  // Behavioral hints
   behavioral_hints: string;
-  // Tools used
   tools_used: string;
-  // Screen context
   screen?: string;
   lessonTitle?: string;
   selectedText?: string;
   cardId?: string;
-  // Image
   has_image?: string;
-  // Analytics
   recommendation_context?: string;
+  // ALPHA-ACCURACY additions
+  arena_history?: string;
+  game_scores?: string;
+  active_course?: string;
+  course_progress?: string;
+  feedback_summary?: string;
 }
 
 export function buildOwlContext(extras?: Record<string, string>): Record<string, string> {
@@ -87,7 +158,7 @@ export function buildOwlContext(extras?: Record<string, string>): Record<string,
   ctx.local_date = now.toLocaleDateString(undefined, { weekday: "long", year: "numeric", month: "long", day: "numeric" });
   ctx.timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-  // Time-of-day signal for persona modulation
+  // Time-of-day signal
   const hour = now.getHours();
   ctx.time_of_day = hour < 6 ? "late-night" : hour < 9 ? "early-morning" : hour < 12 ? "morning" : hour < 14 ? "midday" : hour < 17 ? "afternoon" : hour < 21 ? "evening" : "night";
 
@@ -102,7 +173,7 @@ export function buildOwlContext(extras?: Record<string, string>): Record<string,
   const vals = Object.values(scores) as number[];
   ctx.mastery = vals.length ? String(Math.round(vals.reduce((a, b) => a + b, 0) / vals.length)) : "0";
 
-  // Session duration hint
+  // Session duration
   try {
     const sessionStart = sessionStorage.getItem("wisdom-session-start");
     if (sessionStart) {
@@ -113,6 +184,34 @@ export function buildOwlContext(extras?: Record<string, string>): Record<string,
       ctx.session_duration_mins = "0";
     }
   } catch { ctx.session_duration_mins = "0"; }
+
+  // ═══ ALPHA-ACCURACY: Deeper context signals ═══
+
+  // Arena history
+  const arenaHist = loadArenaHistory();
+  if (arenaHist) ctx.arena_history = arenaHist;
+
+  // Game scores
+  const gameScores = loadGameScores();
+  if (gameScores) ctx.game_scores = gameScores;
+
+  // Active course & progress
+  const activeCourse = loadActiveCourse();
+  if (activeCourse) ctx.active_course = activeCourse;
+  const courseProgress = loadCourseProgress();
+  if (courseProgress) ctx.course_progress = courseProgress;
+
+  // Feedback history (Negative Feedback Loop Analyzer)
+  if (settings.useActivity !== false) {
+    const feedback = loadFeedbackHistory();
+    if (feedback.negative > 0 || feedback.positive > 0) {
+      let summary = `${feedback.positive} positive, ${feedback.negative} negative ratings`;
+      if (feedback.themes.length > 0) {
+        summary += `. Recent issues: ${feedback.themes.join("; ")}`;
+      }
+      ctx.feedback_summary = summary;
+    }
+  }
 
   // Consent-based: activity personalization
   if (settings.useActivity !== false) {
@@ -130,11 +229,10 @@ export function buildOwlContext(extras?: Record<string, string>): Record<string,
       ctx.mastery_breakdown = `Strongest: ${top.join(", ")}. Weakest: ${bottom.join(", ")}`;
     }
 
-    // Favorites count
     ctx.favorites_count = String(progress.favorites?.length || 0);
   }
 
-  // Consent-based: chat history context
+  // Chat history context
   if (settings.useChatHistory !== false) {
     const threads = loadChatThreads();
     const recent = threads.slice(0, 5);
@@ -166,17 +264,21 @@ export function buildOwlContext(extras?: Record<string, string>): Record<string,
       if (avg < 20) hints.push("Still early in learning journey");
       else if (avg > 70) hints.push("Advanced learner");
     }
+    // Session depth hint
+    const sessionMins = parseInt(ctx.session_duration_mins || "0", 10);
+    if (sessionMins > 30) hints.push(`Deep session (${sessionMins}min) — user is engaged`);
+    
     if (hints.length > 0) ctx.behavioral_hints = hints.join(". ");
   }
 
-  // Merge extras (screen, lessonTitle, widget_mode, persona_hint, etc.)
+  // Merge extras
   if (extras) Object.assign(ctx, extras);
 
   return ctx;
 }
 
 // For detecting which tools Owl used
-export type ToolUsed = "memory" | "profile" | "chart" | "vision" | "goals" | "mastery";
+export type ToolUsed = "memory" | "profile" | "chart" | "vision" | "goals" | "mastery" | "arena" | "feedback";
 
 export function detectToolsUsed(context: Record<string, string>, hasImage?: boolean): ToolUsed[] {
   const tools: ToolUsed[] = [];
@@ -184,6 +286,8 @@ export function detectToolsUsed(context: Record<string, string>, hasImage?: bool
   if (context.mastery_breakdown) tools.push("mastery");
   if (context.learning_goal) tools.push("goals");
   if (context.recent_topics || context.behavioral_hints) tools.push("memory");
+  if (context.arena_history) tools.push("arena");
+  if (context.feedback_summary) tools.push("feedback");
   if (hasImage) tools.push("vision");
   return tools;
 }

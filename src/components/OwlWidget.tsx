@@ -1,10 +1,10 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { MessageCircle, X, Send, Mic, MicOff, Loader2, Sparkles } from "lucide-react";
+import { MessageCircle, X, Send, Mic, MicOff, Loader2, Sparkles, ThumbsUp, ThumbsDown } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import { streamChat, type Msg } from "@/lib/ai-stream";
-import { buildOwlContext } from "@/lib/owl-context";
+import { buildOwlContext, saveFeedback } from "@/lib/owl-context";
 import { resolvePersona, personaToSystemHint } from "@/lib/owl-persona";
 import { getRecommendationContext } from "@/lib/analytics-engine";
 import { useProactiveOwl } from "@/hooks/useProactiveOwl";
@@ -16,6 +16,7 @@ interface WidgetMessage {
   id: string;
   role: "user" | "assistant";
   content: string;
+  feedback?: "up" | "down";
 }
 
 export default function OwlWidget() {
@@ -33,6 +34,13 @@ export default function OwlWidget() {
 
   const isOnChatPage = location.pathname === "/" || location.pathname === "/chat";
   const { nudge, dismiss } = useProactiveOwl({ enabled: !isOpen && !isOnChatPage });
+
+  const handleFeedback = useCallback((messageId: string, rating: "up" | "down") => {
+    setMessages(prev => prev.map(m =>
+      m.id === messageId ? { ...m, feedback: rating } : m
+    ));
+    saveFeedback({ messageId, rating, timestamp: Date.now() });
+  }, []);
 
   const toggleMic = useCallback(() => {
     if (isListening) {
@@ -73,12 +81,17 @@ export default function OwlWidget() {
     const vals = Object.values(scores) as number[];
     const masteryAvg = vals.length ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : 0;
 
+    // Check for recent negative feedback
+    const hasNegativeFeedback = messages.some(m => m.feedback === "down");
+    const sessionMins = parseInt(sessionStorage.getItem("wisdom-session-start") || "0", 10);
+    const sessionDurationMins = sessionMins ? Math.round((Date.now() - sessionMins) / 60000) : 0;
+
     const owlContext = buildOwlContext({ screen: location.pathname, widget_mode: "true" });
     owlContext.recommendation_context = getRecommendationContext();
     const persona = resolvePersona({
       screen: location.pathname, masteryAvg, streak: progress.streak,
       hasActiveGoal: !!owlContext.learning_goal, lessonsToday: progress.lessonsToday,
-      messageCount: messages.length,
+      messageCount: messages.length, hasNegativeFeedback, sessionDurationMins,
     });
     owlContext.persona_hint = personaToSystemHint(persona);
 
@@ -183,14 +196,37 @@ export default function OwlWidget() {
                       <OwlIcon size={12} />
                     </div>
                   )}
-                  <div className={`max-w-[85%] rounded-xl px-3 py-2 text-xs leading-relaxed ${
-                    msg.role === "user" ? "bg-primary text-primary-foreground" : "bg-card border border-border/50 text-foreground"
-                  }`}>
-                    {msg.role === "assistant" ? (
-                      <div className="prose prose-xs dark:prose-invert max-w-none [&>p]:mb-1 [&>ul]:mb-1 [&>ol]:mb-1">
-                        <ReactMarkdown>{msg.content}</ReactMarkdown>
+                  <div className="flex flex-col gap-1 max-w-[85%]">
+                    <div className={`rounded-xl px-3 py-2 text-xs leading-relaxed ${
+                      msg.role === "user" ? "bg-primary text-primary-foreground" : "bg-card border border-border/50 text-foreground"
+                    }`}>
+                      {msg.role === "assistant" ? (
+                        <div className="prose prose-xs dark:prose-invert max-w-none [&>p]:mb-1 [&>ul]:mb-1 [&>ol]:mb-1">
+                          <ReactMarkdown>{msg.content}</ReactMarkdown>
+                        </div>
+                      ) : <span>{msg.content}</span>}
+                    </div>
+                    {/* Feedback buttons for assistant messages */}
+                    {msg.role === "assistant" && !msg.id.startsWith("w-err-") && !isStreaming && (
+                      <div className="flex items-center gap-1 ml-1">
+                        <button
+                          onClick={() => handleFeedback(msg.id, "up")}
+                          className={`h-5 w-5 rounded flex items-center justify-center transition-colors ${
+                            msg.feedback === "up" ? "text-primary bg-primary/10" : "text-muted-foreground/40 hover:text-muted-foreground"
+                          }`}
+                          title="Good response">
+                          <ThumbsUp className="h-2.5 w-2.5" />
+                        </button>
+                        <button
+                          onClick={() => handleFeedback(msg.id, "down")}
+                          className={`h-5 w-5 rounded flex items-center justify-center transition-colors ${
+                            msg.feedback === "down" ? "text-destructive bg-destructive/10" : "text-muted-foreground/40 hover:text-muted-foreground"
+                          }`}
+                          title="Poor response">
+                          <ThumbsDown className="h-2.5 w-2.5" />
+                        </button>
                       </div>
-                    ) : <span>{msg.content}</span>}
+                    )}
                   </div>
                 </div>
               ))}
