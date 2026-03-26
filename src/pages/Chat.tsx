@@ -1287,7 +1287,7 @@ export default function Chat() {
     saveGeneratedImage({ imageData: imageUrl, prompt, style });
     // Also persist to cloud storage permanently
     persistGeneratedImage({ imageData: imageUrl, prompt, style }).catch(e => console.warn("[Assets] persist failed:", e));
-    toast({ title: "🖼️ Image saved permanently!" });
+    toast({ title: "📂 Image added to your Library!" });
   };
 
   const handleDownloadImage = (imageUrl: string, prompt: string) => {
