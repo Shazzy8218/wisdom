@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, Square, RotateCcw, Plus, History, Pencil, Trash2, Bookmark, X, Wand2, Download, Loader2, Globe, FileDown, Search, Shield, Paperclip, ChevronDown, FileText, AlertCircle } from "lucide-react";
+import { Send, Square, RotateCcw, Plus, History, Pencil, Trash2, Bookmark, X, Wand2, Download, Loader2, Globe, FileDown, Search, Shield, Paperclip, ChevronDown, FileText, AlertCircle, ZoomIn } from "lucide-react";
 import VoiceChat from "@/components/VoiceChat";
 import ReactMarkdown from "react-markdown";
 import { streamChat, type Msg } from "@/lib/ai-stream";
