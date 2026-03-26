@@ -1419,19 +1419,63 @@ export default function Chat() {
 
         {/* Document download */}
         {msg.docDownload && (
-          <div className="mb-3">
+          <div className="mb-3 flex flex-col gap-2">
             <button onClick={() => {
-              const blob = new Blob([msg.docDownload!.content], { type: msg.docDownload!.mimeType });
-              const url = URL.createObjectURL(blob);
-              const a = document.createElement("a");
-              a.href = url; a.download = msg.docDownload!.fileName; a.click();
-              URL.revokeObjectURL(url);
+              const doc = msg.docDownload!;
+              if (doc.format === "csv") {
+                // CSV: direct download
+                const blob = new Blob([doc.content], { type: "text/csv;charset=utf-8;" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url; a.download = doc.fileName.replace(/\.html$/, ".csv"); a.click();
+                URL.revokeObjectURL(url);
+              } else if (doc.format === "docx") {
+                // DOCX: wrap HTML with Word-compatible headers for .doc download
+                const wordHtml = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+<head><meta charset="utf-8"><meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View></w:WordDocument></xml><![endif]-->
+</head><body>${doc.content.includes("<body") ? doc.content.replace(/.*<body[^>]*>/is, "").replace(/<\/body>.*/is, "") : doc.content}</body></html>`;
+                const blob = new Blob([wordHtml], { type: "application/msword" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url; a.download = doc.fileName.replace(/\.html$/, ".doc"); a.click();
+                URL.revokeObjectURL(url);
+              } else if (doc.format === "pdf") {
+                // PDF: open in new window and trigger print dialog for Save as PDF
+                const win = window.open("", "_blank");
+                if (win) {
+                  win.document.write(doc.content + `<script>setTimeout(function(){window.print()},500);<\/script>`);
+                  win.document.close();
+                }
+              } else if (doc.format === "slides") {
+                // Slides: open in fullscreen presentation view
+                const win = window.open("", "_blank");
+                if (win) {
+                  win.document.write(doc.content);
+                  win.document.close();
+                }
+              } else {
+                // Fallback: generic download
+                const blob = new Blob([doc.content], { type: doc.mimeType });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url; a.download = doc.fileName; a.click();
+                URL.revokeObjectURL(url);
+              }
             }}
               className="flex items-center gap-2.5 rounded-xl bg-primary/10 px-4 py-3 text-sm text-primary font-medium hover:bg-primary/20 transition-colors w-full">
               <FileDown className="h-5 w-5" />
               <div className="text-left">
-                <p className="font-semibold">Download {msg.docDownload.format.toUpperCase()}</p>
-                <p className="text-[10px] text-primary/70">{msg.docDownload.fileName}</p>
+                <p className="font-semibold">
+                  {msg.docDownload.format === "pdf" ? "Save as PDF" : 
+                   msg.docDownload.format === "slides" ? "Open Presentation" :
+                   `Download ${msg.docDownload.format.toUpperCase()}`}
+                </p>
+                <p className="text-[10px] text-primary/70">
+                  {msg.docDownload.format === "pdf" ? "Opens print dialog — choose 'Save as PDF'" :
+                   msg.docDownload.format === "slides" ? "Opens in new tab for presentation" :
+                   msg.docDownload.fileName.replace(/\.html$/, msg.docDownload.format === "csv" ? ".csv" : ".doc")}
+                </p>
               </div>
             </button>
           </div>

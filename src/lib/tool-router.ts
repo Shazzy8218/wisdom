@@ -69,8 +69,8 @@ const patterns: { tool: OwlTool; subType?: string; strategicType?: StrategicType
   { tool: "imagegen", regex: /^(generate|create|make|draw|design)\s/i, weight: 0.7 },
 
   // Document generation
-  { tool: "docgen", subType: "csv", regex: /\b(create|generate|make|export|build)\b.*\b(csv|spreadsheet|excel|table data)\b/i, weight: 0.95 },
-  { tool: "docgen", subType: "pdf", regex: /\b(create|generate|make|export|build)\b.*\b(pdf|document|report|paper)\b/i, weight: 0.9 },
+  { tool: "docgen", subType: "csv", regex: /\b(create|generate|make|export|build)\b.*\b(csv|spread\s*sheet|excel|table data)\b/i, weight: 0.95 },
+  { tool: "docgen", subType: "pdf", regex: /\b(create|generate|make|export|build)\b.*\b(pdf|document|report|paper|white\s*paper)\b/i, weight: 0.9 },
   { tool: "docgen", subType: "docx", regex: /\b(create|generate|make|export|build)\b.*\b(docx?|word doc)\b/i, weight: 0.95 },
   { tool: "docgen", subType: "slides", regex: /\b(create|generate|make|build)\b.*\b(slide|deck|presentation|pptx?|powerpoint)\b/i, weight: 0.95 },
 
