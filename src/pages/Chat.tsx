@@ -1709,8 +1709,6 @@ export default function Chat() {
             onTranscript={(text) => {
               setInput(prev => prev ? `${prev} ${text}` : text);
             }}
-            lastAssistantMessage={messages.filter(m => m.role === "assistant").pop()?.content}
-            lastAssistantMessageId={messages.filter(m => m.role === "assistant").pop()?.id}
             isStreaming={isStreaming}
           />
           <button onClick={handleSend} disabled={(!input.trim() && pendingAttachments.length === 0) || isBusy}
