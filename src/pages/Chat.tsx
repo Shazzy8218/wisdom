@@ -1366,10 +1366,18 @@ export default function Chat() {
 
     return (
       <>
-        {/* Generated image */}
+        {/* Generated image — clickable for fullscreen */}
         {msg.generatedImageUrl && (
           <div className="mb-3">
-            <img src={msg.generatedImageUrl} alt={msg.generatedPrompt || "Generated"} className="rounded-xl max-w-full w-full" />
+            <button
+              onClick={() => setViewerImage({ src: msg.generatedImageUrl!, prompt: msg.generatedPrompt, style: msg.generatedStyle })}
+              className="block w-full rounded-xl overflow-hidden hover:ring-2 hover:ring-primary/40 transition-all cursor-zoom-in group relative"
+            >
+              <img src={msg.generatedImageUrl} alt={msg.generatedPrompt || "Generated"} className="max-w-full w-full" loading="lazy" />
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                <ZoomIn className="h-6 w-6 text-white opacity-0 group-hover:opacity-80 transition-opacity drop-shadow-lg" />
+              </div>
+            </button>
             <div className="flex flex-wrap gap-1.5 mt-2">
               <button onClick={() => handleSaveImage(msg.generatedImageUrl!, msg.generatedPrompt || "", msg.generatedStyle)}
                 className="rounded-lg bg-primary/10 px-2.5 py-1 text-[11px] text-primary font-medium hover:bg-primary/20 transition-colors">
