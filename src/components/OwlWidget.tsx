@@ -29,7 +29,7 @@ export default function OwlWidget() {
   const [isListening, setIsListening] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
 
   const isOnChatPage = location.pathname === "/" || location.pathname === "/chat";
@@ -253,7 +253,7 @@ export default function OwlWidget() {
                   }`}>
                   {isListening ? <MicOff className="h-3.5 w-3.5" /> : <Mic className="h-3.5 w-3.5" />}
                 </button>
-                <textarea ref={inputRef as React.RefObject<HTMLTextAreaElement>} value={input}
+                <textarea ref={inputRef} value={input}
                   onChange={(e) => { setInput(e.target.value); e.target.style.height = 'auto'; e.target.style.height = Math.min(e.target.scrollHeight, 80) + 'px'; }}
                   onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(input); } }}
                   placeholder="Ask Owl…"

@@ -731,7 +731,7 @@ export default function Chat() {
   const abortRef = useRef<AbortController | null>(null);
   const autoSentRef = useRef(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   const clock = useLiveClock();
   const { profile } = useUserProfile();
@@ -1710,7 +1710,7 @@ export default function Chat() {
             title="Generate image">
             <Wand2 className="h-4 w-4" />
           </button>
-          <textarea ref={inputRef as React.RefObject<HTMLTextAreaElement>} value={input}
+          <textarea ref={inputRef} value={input}
             onChange={(e) => { setInput(e.target.value); e.target.style.height = 'auto'; e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px'; }}
             onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
             placeholder={showStylePicker ? "Describe the image…" : "Ask Owl anything…"}
