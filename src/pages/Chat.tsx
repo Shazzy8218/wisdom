@@ -1794,6 +1794,16 @@ export default function Chat() {
           </button>
         </div>
       </div>
+
+      {/* Fullscreen Image Viewer */}
+      {viewerImage && (
+        <ImageViewer
+          src={viewerImage.src}
+          prompt={viewerImage.prompt}
+          onClose={() => setViewerImage(null)}
+          onRegenerate={viewerImage.prompt ? () => handleImageGen(viewerImage.prompt!) : undefined}
+        />
+      )}
     </div>
   );
 }
