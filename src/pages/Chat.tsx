@@ -973,8 +973,19 @@ export default function Chat() {
     abortRef.current = controller;
     let assistantContent = "";
 
-    const owlContext = buildOwlContext();
+    const owlContext = buildOwlContext({ screen: "/" });
     owlContext.recommendation_context = getRecommendationContext();
+
+    // Adaptive persona modulation
+    const scores = progress.masteryScores || {};
+    const mVals = Object.values(scores) as number[];
+    const masteryAvg = mVals.length ? Math.round(mVals.reduce((a, b) => a + b, 0) / mVals.length) : 0;
+    const persona = resolvePersona({
+      screen: "/", masteryAvg, streak: progress.streak,
+      hasActiveGoal: !!owlContext.learning_goal, lessonsToday: progress.lessonsToday,
+      messageCount: messages.length,
+    });
+    owlContext.persona_hint = personaToSystemHint(persona);
     const toolsUsed: string[] = detectToolsUsed(owlContext, hasImage);
     if (hasFile && !toolsUsed.includes("vision")) toolsUsed.push("vision");
     if (route.tool === "web") toolsUsed.push("web");
