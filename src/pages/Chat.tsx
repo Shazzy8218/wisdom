@@ -22,6 +22,7 @@ import OwlIcon from "@/components/OwlIcon";
 import ChartRenderer, { type ChartData } from "@/components/ChartRenderer";
 import { saveChart } from "@/lib/chart-storage";
 import { saveGeneratedImage } from "@/lib/image-storage";
+import { persistGeneratedImage, persistChatUpload } from "@/lib/asset-storage";
 import { supabase } from "@/integrations/supabase/client";
 import { resolvePersona, personaToSystemHint } from "@/lib/owl-persona";
 
@@ -1225,7 +1226,9 @@ export default function Chat() {
 
   const handleSaveImage = (imageUrl: string, prompt: string, style?: string) => {
     saveGeneratedImage({ imageData: imageUrl, prompt, style });
-    toast({ title: "🖼️ Image saved to Library!" });
+    // Also persist to cloud storage permanently
+    persistGeneratedImage({ imageData: imageUrl, prompt, style }).catch(e => console.warn("[Assets] persist failed:", e));
+    toast({ title: "🖼️ Image saved permanently!" });
   };
 
   const handleDownloadImage = (imageUrl: string, prompt: string) => {
