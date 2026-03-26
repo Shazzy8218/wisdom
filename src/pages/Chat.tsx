@@ -1292,11 +1292,21 @@ export default function Chat() {
     saveChart(chart); setSavedChartIds(prev => new Set([...prev, msgId])); toast({ title: "📊 Chart saved to Library!" });
   };
 
-  const handleSaveImage = (imageUrl: string, prompt: string, style?: string) => {
-    saveGeneratedImage({ imageData: imageUrl, prompt, style });
-    // Also persist to cloud storage permanently
-    persistGeneratedImage({ imageData: imageUrl, prompt, style }).catch(e => console.warn("[Assets] persist failed:", e));
-    toast({ title: "📂 Image added to your Library!" });
+  const handleSaveImage = async (imageUrl: string, prompt: string, style?: string) => {
+    try {
+      const asset = await persistGeneratedImage({ imageData: imageUrl, prompt, style });
+      if (asset) {
+        toast({ title: "📂 Image added to your Library!" });
+      } else {
+        // Fallback to localStorage for non-authenticated users
+        saveGeneratedImage({ imageData: imageUrl, prompt, style });
+        toast({ title: "📂 Image saved locally!" });
+      }
+    } catch (e) {
+      console.warn("[Assets] save to library failed:", e);
+      saveGeneratedImage({ imageData: imageUrl, prompt, style });
+      toast({ title: "📂 Image saved locally!" });
+    }
   };
 
   const handleDownloadImage = (imageUrl: string, prompt: string) => {
