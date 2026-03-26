@@ -864,30 +864,25 @@ export default function Chat() {
         generatedStyle: style || selectedStyle || undefined, toolsUsed: ["imagegen"],
       };
       setMessages(prev => prev.filter(m => m.id !== loadingId).concat(assistantMsg));
-      // Auto-persist generated image to permanent cloud storage & save URL in thread
+
+      // ATOMIC: Immediately save image marker to thread history (unconditional persistence)
+      if (tid) {
+        const immediateMarker = encodeImageMarker(result.imageData!, prompt, style || selectedStyle || undefined);
+        addMessageToThread(tid, "assistant", `${result.text || "Here's your generated image:"}\n${immediateMarker}`);
+        setThreads(loadChatThreads());
+      }
+
+      // Background: persist to cloud storage & upgrade thread marker with durable URL
       persistGeneratedImage({ imageData: result.imageData!, prompt, style: style || selectedStyle || undefined })
         .then(asset => {
-          const cloudUrl = asset?.public_url || result.imageData!;
-          // Update the message with cloud URL for reliability
-          setMessages(prev => prev.map(m => 
+          if (!asset?.public_url) return;
+          const cloudUrl = asset.public_url;
+          // Upgrade in-memory message to cloud URL
+          setMessages(prev => prev.map(m =>
             m.id === assistantMsg.id ? { ...m, generatedImageUrl: cloudUrl } : m
           ));
-          // Save to thread with image marker so it persists in history
-          if (tid) {
-            const markerContent = encodeImageMarker(cloudUrl, prompt, style || selectedStyle || undefined);
-            addMessageToThread(tid, "assistant", `${result.text || "Here's your generated image:"}\n${markerContent}`);
-            setThreads(loadChatThreads());
-          }
         })
-        .catch(e => {
-          console.warn("[Assets] auto-persist image failed:", e);
-          // Fallback: save with base64 marker
-          if (tid) {
-            const markerContent = encodeImageMarker(result.imageData!, prompt, style || selectedStyle || undefined);
-            addMessageToThread(tid, "assistant", `${result.text || "Here's your generated image:"}\n${markerContent}`);
-            setThreads(loadChatThreads());
-          }
-        });
+        .catch(e => console.warn("[Assets] background persist failed:", e));
     } else {
       setMessages(prev => prev.map(m => m.id === loadingId
         ? { ...m, content: result.text || "Couldn't generate an image from that prompt. Try rephrasing." }
@@ -1292,7 +1287,7 @@ export default function Chat() {
     saveGeneratedImage({ imageData: imageUrl, prompt, style });
     // Also persist to cloud storage permanently
     persistGeneratedImage({ imageData: imageUrl, prompt, style }).catch(e => console.warn("[Assets] persist failed:", e));
-    toast({ title: "🖼️ Image saved permanently!" });
+    toast({ title: "📂 Image added to your Library!" });
   };
 
   const handleDownloadImage = (imageUrl: string, prompt: string) => {
@@ -1381,7 +1376,7 @@ export default function Chat() {
             <div className="flex flex-wrap gap-1.5 mt-2">
               <button onClick={() => handleSaveImage(msg.generatedImageUrl!, msg.generatedPrompt || "", msg.generatedStyle)}
                 className="rounded-lg bg-primary/10 px-2.5 py-1 text-[11px] text-primary font-medium hover:bg-primary/20 transition-colors">
-                💾 Save
+                📂 Add to Library
               </button>
               <button onClick={() => handleDownloadImage(msg.generatedImageUrl!, msg.generatedPrompt || "")}
                 className="rounded-lg bg-primary/10 px-2.5 py-1 text-[11px] text-primary font-medium hover:bg-primary/20 transition-colors">
