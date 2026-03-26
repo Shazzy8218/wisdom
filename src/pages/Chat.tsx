@@ -857,32 +857,41 @@ export default function Chat() {
         ? { ...m, content: `Image generation failed: ${result.error}`, error: true, retryPayload: { text: prompt } }
         : m));
     } else if (result.imageData) {
+      const msgId = `img-${Date.now()}`;
+      const imgStyle = style || selectedStyle || undefined;
       const assistantMsg: ChatMessage = {
-        id: `img-${Date.now()}`, role: "assistant",
+        id: msgId, role: "assistant",
         content: result.text || "Here's your generated image:",
         generatedImageUrl: result.imageData, generatedPrompt: prompt,
-        generatedStyle: style || selectedStyle || undefined, toolsUsed: ["imagegen"],
+        generatedStyle: imgStyle, toolsUsed: ["imagegen"],
       };
       setMessages(prev => prev.filter(m => m.id !== loadingId).concat(assistantMsg));
 
-      // ATOMIC: Immediately save image marker to thread history (unconditional persistence)
-      if (tid) {
-        const immediateMarker = encodeImageMarker(result.imageData!, prompt, style || selectedStyle || undefined);
-        addMessageToThread(tid, "assistant", `${result.text || "Here's your generated image:"}\n${immediateMarker}`);
-        setThreads(loadChatThreads());
-      }
-
-      // Background: persist to cloud storage & upgrade thread marker with durable URL
-      persistGeneratedImage({ imageData: result.imageData!, prompt, style: style || selectedStyle || undefined })
+      // Persist to cloud storage FIRST, then save cloud URL (not base64) to thread history
+      persistGeneratedImage({ imageData: result.imageData!, prompt, style: imgStyle })
         .then(asset => {
-          if (!asset?.public_url) return;
-          const cloudUrl = asset.public_url;
+          const durableUrl = asset?.public_url || result.imageData!;
           // Upgrade in-memory message to cloud URL
-          setMessages(prev => prev.map(m =>
-            m.id === assistantMsg.id ? { ...m, generatedImageUrl: cloudUrl } : m
-          ));
+          if (asset?.public_url) {
+            setMessages(prev => prev.map(m =>
+              m.id === msgId ? { ...m, generatedImageUrl: asset.public_url } : m
+            ));
+          }
+          // Save cloud URL marker to thread (small string, won't blow localStorage)
+          if (tid) {
+            const marker = encodeImageMarker(durableUrl, prompt, imgStyle);
+            addMessageToThread(tid, "assistant", `${result.text || "Here's your generated image:"}\n${marker}`);
+            setThreads(loadChatThreads());
+          }
         })
-        .catch(e => console.warn("[Assets] background persist failed:", e));
+        .catch(e => {
+          console.warn("[Assets] persist failed, saving base64 marker as fallback:", e);
+          // Fallback: save with a truncated reference if cloud fails
+          if (tid) {
+            addMessageToThread(tid, "assistant", result.text || "Here's your generated image: [image could not be persisted]");
+            setThreads(loadChatThreads());
+          }
+        });
     } else {
       setMessages(prev => prev.map(m => m.id === loadingId
         ? { ...m, content: result.text || "Couldn't generate an image from that prompt. Try rephrasing." }
@@ -1283,11 +1292,21 @@ export default function Chat() {
     saveChart(chart); setSavedChartIds(prev => new Set([...prev, msgId])); toast({ title: "📊 Chart saved to Library!" });
   };
 
-  const handleSaveImage = (imageUrl: string, prompt: string, style?: string) => {
-    saveGeneratedImage({ imageData: imageUrl, prompt, style });
-    // Also persist to cloud storage permanently
-    persistGeneratedImage({ imageData: imageUrl, prompt, style }).catch(e => console.warn("[Assets] persist failed:", e));
-    toast({ title: "📂 Image added to your Library!" });
+  const handleSaveImage = async (imageUrl: string, prompt: string, style?: string) => {
+    try {
+      const asset = await persistGeneratedImage({ imageData: imageUrl, prompt, style });
+      if (asset) {
+        toast({ title: "📂 Image added to your Library!" });
+      } else {
+        // Fallback to localStorage for non-authenticated users
+        saveGeneratedImage({ imageData: imageUrl, prompt, style });
+        toast({ title: "📂 Image saved locally!" });
+      }
+    } catch (e) {
+      console.warn("[Assets] save to library failed:", e);
+      saveGeneratedImage({ imageData: imageUrl, prompt, style });
+      toast({ title: "📂 Image saved locally!" });
+    }
   };
 
   const handleDownloadImage = (imageUrl: string, prompt: string) => {
