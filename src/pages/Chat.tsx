@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, Square, RotateCcw, Plus, History, Pencil, Trash2, Bookmark, X, Wand2, Download, Loader2, Globe, FileDown, Search, Shield, Paperclip, ChevronDown, FileText, AlertCircle, Play } from "lucide-react";
+import { Send, Square, RotateCcw, Plus, History, Pencil, Trash2, Bookmark, X, Wand2, Download, Loader2, Globe, FileDown, Search, Shield, Paperclip, ChevronDown, FileText, AlertCircle } from "lucide-react";
 import VoiceChat from "@/components/VoiceChat";
 import ReactMarkdown from "react-markdown";
 import { streamChat, type Msg } from "@/lib/ai-stream";
@@ -23,7 +23,7 @@ import ChartRenderer, { type ChartData } from "@/components/ChartRenderer";
 import { saveChart } from "@/lib/chart-storage";
 import { saveGeneratedImage } from "@/lib/image-storage";
 import { supabase } from "@/integrations/supabase/client";
-import { requestOwlReplay } from "@/lib/owl-voice";
+import { resolvePersona, personaToSystemHint } from "@/lib/owl-persona";
 
 // ===== CONSTANTS =====
 
