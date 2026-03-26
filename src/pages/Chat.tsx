@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, Square, RotateCcw, Plus, History, Pencil, Trash2, Bookmark, X, Wand2, Download, Loader2, Globe, FileDown, Search, Shield, Paperclip, ChevronDown, FileText, AlertCircle } from "lucide-react";
+import { Send, Square, RotateCcw, Plus, History, Pencil, Trash2, Bookmark, X, Wand2, Download, Loader2, Globe, FileDown, Search, Shield, Paperclip, ChevronDown, FileText, AlertCircle, ZoomIn } from "lucide-react";
 import VoiceChat from "@/components/VoiceChat";
 import ReactMarkdown from "react-markdown";
 import { streamChat, type Msg } from "@/lib/ai-stream";
@@ -19,6 +19,7 @@ import { useUserProfile } from "@/hooks/useUserProfile";
 import { useProgress } from "@/hooks/useProgress";
 import { QUOTES } from "@/lib/data";
 import OwlIcon from "@/components/OwlIcon";
+import ImageViewer from "@/components/ImageViewer";
 import ChartRenderer, { type ChartData } from "@/components/ChartRenderer";
 import { saveChart } from "@/lib/chart-storage";
 import { saveGeneratedImage } from "@/lib/image-storage";
@@ -103,6 +104,42 @@ interface ChatMessage extends Msg {
 }
 
 // ===== HELPERS =====
+
+// Image marker for persisting generated images in chat history
+const OWL_IMAGE_MARKER = "<!--owl-image:";
+const OWL_IMAGE_END = "-->";
+
+function encodeImageMarker(url: string, prompt: string, style?: string): string {
+  const payload = JSON.stringify({ url, prompt, style: style || "" });
+  return `${OWL_IMAGE_MARKER}${btoa(payload)}${OWL_IMAGE_END}`;
+}
+
+function decodeImageMarker(content: string): { url: string; prompt: string; style?: string; text: string } | null {
+  const startIdx = content.indexOf(OWL_IMAGE_MARKER);
+  if (startIdx === -1) return null;
+  const endIdx = content.indexOf(OWL_IMAGE_END, startIdx + OWL_IMAGE_MARKER.length);
+  if (endIdx === -1) return null;
+  try {
+    const b64 = content.slice(startIdx + OWL_IMAGE_MARKER.length, endIdx);
+    const parsed = JSON.parse(atob(b64));
+    const text = (content.slice(0, startIdx) + content.slice(endIdx + OWL_IMAGE_END.length)).trim();
+    return { url: parsed.url, prompt: parsed.prompt, style: parsed.style || undefined, text: text || "Here's your generated image:" };
+  } catch {
+    return null;
+  }
+}
+
+function parseThreadMessage(msg: { id: string; role: "user" | "assistant"; content: string }): ChatMessage {
+  const decoded = msg.role === "assistant" ? decodeImageMarker(msg.content) : null;
+  if (decoded) {
+    return {
+      id: msg.id, role: msg.role, content: decoded.text,
+      generatedImageUrl: decoded.url, generatedPrompt: decoded.prompt,
+      generatedStyle: decoded.style, toolsUsed: ["imagegen"],
+    };
+  }
+  return { id: msg.id, role: msg.role, content: msg.content };
+}
 
 function isImageGenRequest(text: string): boolean {
   if (/^(what|how|why|can you|do you|are you)\b/i.test(text) && !/\b(generate|create|make|draw|design)\b/i.test(text)) return false;
@@ -727,6 +764,7 @@ export default function Chat() {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [lastUploadDebug, setLastUploadDebug] = useState<UploadDebugInfo | null>(null);
+  const [viewerImage, setViewerImage] = useState<{ src: string; prompt?: string; style?: string } | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const autoSentRef = useRef(false);
@@ -826,10 +864,30 @@ export default function Chat() {
         generatedStyle: style || selectedStyle || undefined, toolsUsed: ["imagegen"],
       };
       setMessages(prev => prev.filter(m => m.id !== loadingId).concat(assistantMsg));
-      // Auto-persist generated image to permanent cloud storage
+      // Auto-persist generated image to permanent cloud storage & save URL in thread
       persistGeneratedImage({ imageData: result.imageData!, prompt, style: style || selectedStyle || undefined })
-        .catch(e => console.warn("[Assets] auto-persist image failed:", e));
-      if (tid) { addMessageToThread(tid, "assistant", `[Generated image: ${prompt}]`); setThreads(loadChatThreads()); }
+        .then(asset => {
+          const cloudUrl = asset?.public_url || result.imageData!;
+          // Update the message with cloud URL for reliability
+          setMessages(prev => prev.map(m => 
+            m.id === assistantMsg.id ? { ...m, generatedImageUrl: cloudUrl } : m
+          ));
+          // Save to thread with image marker so it persists in history
+          if (tid) {
+            const markerContent = encodeImageMarker(cloudUrl, prompt, style || selectedStyle || undefined);
+            addMessageToThread(tid, "assistant", `${result.text || "Here's your generated image:"}\n${markerContent}`);
+            setThreads(loadChatThreads());
+          }
+        })
+        .catch(e => {
+          console.warn("[Assets] auto-persist image failed:", e);
+          // Fallback: save with base64 marker
+          if (tid) {
+            const markerContent = encodeImageMarker(result.imageData!, prompt, style || selectedStyle || undefined);
+            addMessageToThread(tid, "assistant", `${result.text || "Here's your generated image:"}\n${markerContent}`);
+            setThreads(loadChatThreads());
+          }
+        });
     } else {
       setMessages(prev => prev.map(m => m.id === loadingId
         ? { ...m, content: result.text || "Couldn't generate an image from that prompt. Try rephrasing." }
@@ -1215,7 +1273,7 @@ export default function Chat() {
   const handleNewChat = () => { setMessages([]); setCurrentThreadId(null); setShowHistory(false); setPendingAttachments([]); setShowStylePicker(false); setSelectedStyle(null); autoSentRef.current = false; };
   const handleOpenThread = (thread: ChatThread) => {
     setCurrentThreadId(thread.id);
-    setMessages(thread.messages.map(m => ({ id: m.id, role: m.role, content: m.content })));
+    setMessages(thread.messages.map(m => parseThreadMessage(m)));
     setShowHistory(false);
   };
   const handleRename = (id: string) => { if (renameValue.trim()) { renameThread(id, renameValue.trim()); setThreads(loadChatThreads()); } setRenamingId(null); };
@@ -1308,10 +1366,18 @@ export default function Chat() {
 
     return (
       <>
-        {/* Generated image */}
+        {/* Generated image — clickable for fullscreen */}
         {msg.generatedImageUrl && (
           <div className="mb-3">
-            <img src={msg.generatedImageUrl} alt={msg.generatedPrompt || "Generated"} className="rounded-xl max-w-full w-full" />
+            <button
+              onClick={() => setViewerImage({ src: msg.generatedImageUrl!, prompt: msg.generatedPrompt, style: msg.generatedStyle })}
+              className="block w-full rounded-xl overflow-hidden hover:ring-2 hover:ring-primary/40 transition-all cursor-zoom-in group relative"
+            >
+              <img src={msg.generatedImageUrl} alt={msg.generatedPrompt || "Generated"} className="max-w-full w-full" loading="lazy" />
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                <ZoomIn className="h-6 w-6 text-white opacity-0 group-hover:opacity-80 transition-opacity drop-shadow-lg" />
+              </div>
+            </button>
             <div className="flex flex-wrap gap-1.5 mt-2">
               <button onClick={() => handleSaveImage(msg.generatedImageUrl!, msg.generatedPrompt || "", msg.generatedStyle)}
                 className="rounded-lg bg-primary/10 px-2.5 py-1 text-[11px] text-primary font-medium hover:bg-primary/20 transition-colors">
@@ -1728,6 +1794,16 @@ export default function Chat() {
           </button>
         </div>
       </div>
+
+      {/* Fullscreen Image Viewer */}
+      {viewerImage && (
+        <ImageViewer
+          src={viewerImage.src}
+          prompt={viewerImage.prompt}
+          onClose={() => setViewerImage(null)}
+          onRegenerate={viewerImage.prompt ? () => handleImageGen(viewerImage.prompt!) : undefined}
+        />
+      )}
     </div>
   );
 }
