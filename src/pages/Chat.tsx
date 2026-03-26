@@ -863,10 +863,30 @@ export default function Chat() {
         generatedStyle: style || selectedStyle || undefined, toolsUsed: ["imagegen"],
       };
       setMessages(prev => prev.filter(m => m.id !== loadingId).concat(assistantMsg));
-      // Auto-persist generated image to permanent cloud storage
+      // Auto-persist generated image to permanent cloud storage & save URL in thread
       persistGeneratedImage({ imageData: result.imageData!, prompt, style: style || selectedStyle || undefined })
-        .catch(e => console.warn("[Assets] auto-persist image failed:", e));
-      if (tid) { addMessageToThread(tid, "assistant", `[Generated image: ${prompt}]`); setThreads(loadChatThreads()); }
+        .then(asset => {
+          const cloudUrl = asset?.public_url || result.imageData!;
+          // Update the message with cloud URL for reliability
+          setMessages(prev => prev.map(m => 
+            m.id === assistantMsg.id ? { ...m, generatedImageUrl: cloudUrl } : m
+          ));
+          // Save to thread with image marker so it persists in history
+          if (tid) {
+            const markerContent = encodeImageMarker(cloudUrl, prompt, style || selectedStyle || undefined);
+            addMessageToThread(tid, "assistant", `${result.text || "Here's your generated image:"}\n${markerContent}`);
+            setThreads(loadChatThreads());
+          }
+        })
+        .catch(e => {
+          console.warn("[Assets] auto-persist image failed:", e);
+          // Fallback: save with base64 marker
+          if (tid) {
+            const markerContent = encodeImageMarker(result.imageData!, prompt, style || selectedStyle || undefined);
+            addMessageToThread(tid, "assistant", `${result.text || "Here's your generated image:"}\n${markerContent}`);
+            setThreads(loadChatThreads());
+          }
+        });
     } else {
       setMessages(prev => prev.map(m => m.id === loadingId
         ? { ...m, content: result.text || "Couldn't generate an image from that prompt. Try rephrasing." }
@@ -1252,7 +1272,7 @@ export default function Chat() {
   const handleNewChat = () => { setMessages([]); setCurrentThreadId(null); setShowHistory(false); setPendingAttachments([]); setShowStylePicker(false); setSelectedStyle(null); autoSentRef.current = false; };
   const handleOpenThread = (thread: ChatThread) => {
     setCurrentThreadId(thread.id);
-    setMessages(thread.messages.map(m => ({ id: m.id, role: m.role, content: m.content })));
+    setMessages(thread.messages.map(m => parseThreadMessage(m)));
     setShowHistory(false);
   };
   const handleRename = (id: string) => { if (renameValue.trim()) { renameThread(id, renameValue.trim()); setThreads(loadChatThreads()); } setRenamingId(null); };
