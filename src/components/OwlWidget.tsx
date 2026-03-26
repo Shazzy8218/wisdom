@@ -29,7 +29,7 @@ export default function OwlWidget() {
   const [isListening, setIsListening] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
 
   const isOnChatPage = location.pathname === "/" || location.pathname === "/chat";
@@ -253,10 +253,12 @@ export default function OwlWidget() {
                   }`}>
                   {isListening ? <MicOff className="h-3.5 w-3.5" /> : <Mic className="h-3.5 w-3.5" />}
                 </button>
-                <input ref={inputRef} value={input} onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && sendMessage(input)}
+                <textarea ref={inputRef} value={input}
+                  onChange={(e) => { setInput(e.target.value); e.target.style.height = 'auto'; e.target.style.height = Math.min(e.target.scrollHeight, 80) + 'px'; }}
+                  onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(input); } }}
                   placeholder="Ask Owl…"
-                  className="flex-1 bg-transparent text-xs text-foreground placeholder:text-muted-foreground/50 outline-none" />
+                  rows={1}
+                  className="flex-1 bg-transparent text-xs text-foreground placeholder:text-muted-foreground/50 outline-none resize-none max-h-[80px] leading-relaxed" />
                 <button onClick={() => sendMessage(input)} disabled={!input.trim() || isStreaming}
                   className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary text-primary-foreground disabled:opacity-20 transition-opacity">
                   {isStreaming ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
