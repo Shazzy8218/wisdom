@@ -22,6 +22,7 @@ import OwlIcon from "@/components/OwlIcon";
 import ChartRenderer, { type ChartData } from "@/components/ChartRenderer";
 import { saveChart } from "@/lib/chart-storage";
 import { saveGeneratedImage } from "@/lib/image-storage";
+import { persistGeneratedImage, persistChatUpload } from "@/lib/asset-storage";
 import { supabase } from "@/integrations/supabase/client";
 import { resolvePersona, personaToSystemHint } from "@/lib/owl-persona";
 
@@ -825,6 +826,9 @@ export default function Chat() {
         generatedStyle: style || selectedStyle || undefined, toolsUsed: ["imagegen"],
       };
       setMessages(prev => prev.filter(m => m.id !== loadingId).concat(assistantMsg));
+      // Auto-persist generated image to permanent cloud storage
+      persistGeneratedImage({ imageData: result.imageData!, prompt, style: style || selectedStyle || undefined })
+        .catch(e => console.warn("[Assets] auto-persist image failed:", e));
       if (tid) { addMessageToThread(tid, "assistant", `[Generated image: ${prompt}]`); setThreads(loadChatThreads()); }
     } else {
       setMessages(prev => prev.map(m => m.id === loadingId
@@ -918,6 +922,9 @@ export default function Chat() {
             });
             return;
           }
+
+          // Auto-persist to permanent asset storage
+          persistChatUpload(att.file, result.url).catch(e => console.warn("[Assets] auto-persist failed:", e));
 
           if (att.type === "image") {
             imageUrl = result.url;
@@ -1225,7 +1232,9 @@ export default function Chat() {
 
   const handleSaveImage = (imageUrl: string, prompt: string, style?: string) => {
     saveGeneratedImage({ imageData: imageUrl, prompt, style });
-    toast({ title: "🖼️ Image saved to Library!" });
+    // Also persist to cloud storage permanently
+    persistGeneratedImage({ imageData: imageUrl, prompt, style }).catch(e => console.warn("[Assets] persist failed:", e));
+    toast({ title: "🖼️ Image saved permanently!" });
   };
 
   const handleDownloadImage = (imageUrl: string, prompt: string) => {
