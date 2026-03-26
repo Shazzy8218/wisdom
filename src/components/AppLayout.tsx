@@ -4,6 +4,7 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import BottomNav from "@/components/BottomNav";
 import MobileHeader from "@/components/MobileHeader";
+import OwlWidget from "@/components/OwlWidget";
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   const isMobile = useIsMobile();
@@ -16,6 +17,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           {children}
         </main>
         <BottomNav />
+        <OwlWidget />
       </div>
     );
   }
@@ -33,6 +35,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           </main>
         </div>
       </div>
+      <OwlWidget />
     </SidebarProvider>
   );
 }

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, Square, RotateCcw, Plus, History, Pencil, Trash2, Bookmark, X, Wand2, Download, Loader2, Globe, FileDown, Search, Shield, Paperclip, ChevronDown, FileText, AlertCircle, Play } from "lucide-react";
+import { Send, Square, RotateCcw, Plus, History, Pencil, Trash2, Bookmark, X, Wand2, Download, Loader2, Globe, FileDown, Search, Shield, Paperclip, ChevronDown, FileText, AlertCircle } from "lucide-react";
 import VoiceChat from "@/components/VoiceChat";
 import ReactMarkdown from "react-markdown";
 import { streamChat, type Msg } from "@/lib/ai-stream";
@@ -23,7 +23,7 @@ import ChartRenderer, { type ChartData } from "@/components/ChartRenderer";
 import { saveChart } from "@/lib/chart-storage";
 import { saveGeneratedImage } from "@/lib/image-storage";
 import { supabase } from "@/integrations/supabase/client";
-import { requestOwlReplay } from "@/lib/owl-voice";
+import { resolvePersona, personaToSystemHint } from "@/lib/owl-persona";
 
 // ===== CONSTANTS =====
 
@@ -973,8 +973,19 @@ export default function Chat() {
     abortRef.current = controller;
     let assistantContent = "";
 
-    const owlContext = buildOwlContext();
+    const owlContext = buildOwlContext({ screen: "/" });
     owlContext.recommendation_context = getRecommendationContext();
+
+    // Adaptive persona modulation
+    const scores = progress.masteryScores || {};
+    const mVals = Object.values(scores) as number[];
+    const masteryAvg = mVals.length ? Math.round(mVals.reduce((a, b) => a + b, 0) / mVals.length) : 0;
+    const persona = resolvePersona({
+      screen: "/", masteryAvg, streak: progress.streak,
+      hasActiveGoal: !!owlContext.learning_goal, lessonsToday: progress.lessonsToday,
+      messageCount: messages.length,
+    });
+    owlContext.persona_hint = personaToSystemHint(persona);
     const toolsUsed: string[] = detectToolsUsed(owlContext, hasImage);
     if (hasFile && !toolsUsed.includes("vision")) toolsUsed.push("vision");
     if (route.tool === "web") toolsUsed.push("web");
@@ -1353,15 +1364,6 @@ export default function Chat() {
               <ReactMarkdown>{text}</ReactMarkdown>
             </div>
 
-            <div className="mt-3 flex items-center gap-2">
-              <button
-                onClick={() => requestOwlReplay(text)}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-primary/10 px-3 py-1.5 text-[11px] font-medium text-primary transition-colors hover:bg-primary/20"
-                type="button"
-              >
-                <Play className="h-3 w-3" /> Play reply
-              </button>
-            </div>
           </>
         )}
 
@@ -1707,8 +1709,6 @@ export default function Chat() {
             onTranscript={(text) => {
               setInput(prev => prev ? `${prev} ${text}` : text);
             }}
-            lastAssistantMessage={messages.filter(m => m.role === "assistant").pop()?.content}
-            lastAssistantMessageId={messages.filter(m => m.role === "assistant").pop()?.id}
             isStreaming={isStreaming}
           />
           <button onClick={handleSend} disabled={(!input.trim() && pendingAttachments.length === 0) || isBusy}

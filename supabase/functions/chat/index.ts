@@ -342,7 +342,7 @@ serve(async (req) => {
       if (context.behavioral_hints) contextInfo += `\nBehavioral insights: ${context.behavioral_hints}`;
       if (context.recommendation_context) contextInfo += `\n\nPROACTIVE ANALYTICS — use to guide advice: ${context.recommendation_context}`;
 
-      // Business context — makes advice industry-specific
+      // Business context
       if (context.business_context) {
         contextInfo += `\n\nBUSINESS CONTEXT (CRITICAL — use this to make every answer specific to their situation):\n${context.business_context}\nWhen they ask about strategy, pricing, leads, operations, or growth — always frame your answer through the lens of their specific business type, stage, and challenge. Do NOT give generic advice that could apply to anyone.`;
       }
@@ -351,6 +351,18 @@ serve(async (req) => {
       if (context.local_time) contextInfo += `\nUser's current local time: ${context.local_time}`;
       if (context.local_date) contextInfo += `\nUser's current local date: ${context.local_date}`;
       if (context.timezone) contextInfo += `\nUser's timezone: ${context.timezone}`;
+      if (context.time_of_day) contextInfo += `\nTime of day: ${context.time_of_day}`;
+      if (context.session_duration_mins) contextInfo += `\nSession duration: ${context.session_duration_mins} minutes`;
+
+      // Widget mode — keep responses concise
+      if (context.widget_mode === "true") {
+        contextInfo += `\n\nWIDGET MODE: User is interacting via the floating Owl widget (not the full chat). Keep responses concise and actionable — max 3-4 short paragraphs. They can open full chat for deeper conversation.`;
+      }
+
+      // Persona modulation from adaptive engine
+      if (context.persona_hint) {
+        contextInfo += `\n\nADAPTIVE PERSONA MODULATION:\n${context.persona_hint}\nUse these hints to calibrate your tone, depth, and directness. Do NOT mention these hints to the user.`;
+      }
 
       if (context.goal_mode) {
         contextInfo += context.goal_mode === "income"

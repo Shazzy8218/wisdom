@@ -78,7 +78,6 @@ export function buildOwlContext(extras?: Record<string, string>): Record<string,
   
   // Tone preference
   try {
-    const settings = loadSettings();
     ctx.tone_preference = (localStorage.getItem("wisdom-tone-preference")) || "ruthless";
   } catch { ctx.tone_preference = "ruthless"; }
 
@@ -87,6 +86,10 @@ export function buildOwlContext(extras?: Record<string, string>): Record<string,
   ctx.local_time = now.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit", hour12: true });
   ctx.local_date = now.toLocaleDateString(undefined, { weekday: "long", year: "numeric", month: "long", day: "numeric" });
   ctx.timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+  // Time-of-day signal for persona modulation
+  const hour = now.getHours();
+  ctx.time_of_day = hour < 6 ? "late-night" : hour < 9 ? "early-morning" : hour < 12 ? "morning" : hour < 14 ? "midday" : hour < 17 ? "afternoon" : hour < 21 ? "evening" : "night";
 
   ctx.streak = String(progress.streak || 0);
   ctx.tokens = String(progress.tokens || 0);
@@ -98,6 +101,18 @@ export function buildOwlContext(extras?: Record<string, string>): Record<string,
   const scores = progress.masteryScores || {};
   const vals = Object.values(scores) as number[];
   ctx.mastery = vals.length ? String(Math.round(vals.reduce((a, b) => a + b, 0) / vals.length)) : "0";
+
+  // Session duration hint
+  try {
+    const sessionStart = sessionStorage.getItem("wisdom-session-start");
+    if (sessionStart) {
+      const mins = Math.round((Date.now() - parseInt(sessionStart, 10)) / 60000);
+      ctx.session_duration_mins = String(mins);
+    } else {
+      sessionStorage.setItem("wisdom-session-start", String(Date.now()));
+      ctx.session_duration_mins = "0";
+    }
+  } catch { ctx.session_duration_mins = "0"; }
 
   // Consent-based: activity personalization
   if (settings.useActivity !== false) {
@@ -154,7 +169,7 @@ export function buildOwlContext(extras?: Record<string, string>): Record<string,
     if (hints.length > 0) ctx.behavioral_hints = hints.join(". ");
   }
 
-  // Merge extras (screen, lessonTitle, etc.)
+  // Merge extras (screen, lessonTitle, widget_mode, persona_hint, etc.)
   if (extras) Object.assign(ctx, extras);
 
   return ctx;
