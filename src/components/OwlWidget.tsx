@@ -33,10 +33,108 @@ export default function OwlWidget() {
   const inputRef = useRef<HTMLInputElement>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
 
-  const { nudge, dismiss } = useProactiveOwl({ enabled: !isOpen });
-
   // Hide on Chat page (Chat IS the full Owl experience)
   const isOnChatPage = location.pathname === "/" || location.pathname === "/chat";
+
+  const { nudge, dismiss } = useProactiveOwl({ enabled: !isOpen && !isOnChatPage });
+
+  // Mic handling — browser SpeechRecognition only
+  const toggleMic = useCallback(() => {
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+      return;
+    }
+
+    const Ctor = getSpeechRecognitionCtor();
+    if (!Ctor) return;
+
+    const recognition = new Ctor();
+    recognitionRef.current = recognition;
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.lang = navigator.language || "en-US";
+
+    recognition.onresult = (event) => {
+      const transcript = event.results[0]?.[0]?.transcript?.trim();
+      if (transcript) {
+        setInput(prev => prev ? `${prev} ${transcript}` : transcript);
+      }
+    };
+    recognition.onend = () => setIsListening(false);
+    recognition.onerror = () => setIsListening(false);
+
+    recognition.start();
+    setIsListening(true);
+  }, [isListening]);
+
+  const sendMessage = useCallback(async (text: string) => {
+    if (!text.trim() || isStreaming) return;
+
+    const userMsg: WidgetMessage = { id: `u-${Date.now()}`, role: "user", content: text };
+    setMessages(prev => [...prev, userMsg]);
+    setInput("");
+    setIsStreaming(true);
+
+    const controller = new AbortController();
+    abortRef.current = controller;
+    let assistantContent = "";
+
+    const progress = loadCachedProgress();
+    const scores = progress.masteryScores || {};
+    const vals = Object.values(scores) as number[];
+    const masteryAvg = vals.length ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : 0;
+
+    const owlContext = buildOwlContext({
+      screen: location.pathname,
+      widget_mode: "true",
+    });
+    owlContext.recommendation_context = getRecommendationContext();
+
+    // Persona modulation
+    const persona = resolvePersona({
+      screen: location.pathname,
+      masteryAvg,
+      streak: progress.streak,
+      hasActiveGoal: !!owlContext.learning_goal,
+      lessonsToday: progress.lessonsToday,
+      messageCount: messages.length,
+    });
+    owlContext.persona_hint = personaToSystemHint(persona);
+
+    const chatHistory: Msg[] = messages.slice(-10).map(m => ({ role: m.role, content: m.content }));
+    chatHistory.push({ role: "user", content: text });
+
+    await streamChat({
+      messages: chatHistory,
+      mode: "default",
+      context: owlContext,
+      signal: controller.signal,
+      onDelta: (chunk) => {
+        assistantContent += chunk;
+        setMessages(prev => {
+          const last = prev[prev.length - 1];
+          if (last?.role === "assistant" && last.id.startsWith("w-stream-")) {
+            return prev.map((m, i) => i === prev.length - 1 ? { ...m, content: assistantContent } : m);
+          }
+          return [...prev, { id: `w-stream-${Date.now()}`, role: "assistant", content: assistantContent }];
+        });
+      },
+      onDone: () => {
+        setIsStreaming(false);
+        abortRef.current = null;
+      },
+      onError: (err) => {
+        setMessages(prev => [...prev, { id: `w-err-${Date.now()}`, role: "assistant", content: `Error: ${err}` }]);
+      },
+    });
+  }, [isStreaming, messages, location.pathname]);
+
+  // Scroll to bottom
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+  }, [messages]);
+
   if (isOnChatPage) return null;
 
   const handleOpen = () => {
