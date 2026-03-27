@@ -94,7 +94,7 @@ interface ChatMessage extends Msg {
   fileType?: AttachmentType;
   toolsUsed?: string[];
   citations?: string[];
-  docDownload?: { content: string; fileName: string; mimeType: string; format: string };
+  docDownload?: { content: string; fileName: string; mimeType: string; format: string; structuredData?: { headers: string[]; rows: string[][] } };
   webSource?: string;
   confidence?: string;
   strategicType?: string;
