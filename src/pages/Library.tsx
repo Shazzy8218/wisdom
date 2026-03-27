@@ -1,19 +1,19 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { BookOpen, MessageCircle, Search, Sparkles, Copy, Play, Star, Quote, Brain, Layers, Trash2, Zap, X, ExternalLink, ChevronRight, BarChart3, Image, Download, ShoppingBag } from "lucide-react";
+import { BookOpen, MessageCircle, Search, Sparkles, Copy, Play, Star, Quote, Brain, Layers, Trash2, Zap, X, ExternalLink, ChevronRight, BarChart3, Download, ShoppingBag, FolderOpen, Loader2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { loadChatThreads, type ChatThread } from "@/lib/chat-history";
 import { loadSnapshots, type WisdomSnapshot } from "@/lib/wisdom-snapshots";
 import { loadWisdomPacks, loadSavedDrills, deleteWisdomPack, type WisdomPack } from "@/lib/wisdom-packs";
 import { loadSavedCharts, deleteChart, type SavedChart } from "@/lib/chart-storage";
-import { loadGeneratedImages, deleteGeneratedImage, type GeneratedImage } from "@/lib/image-storage";
+import { loadUserAssets, deleteUserAsset, type UserAsset } from "@/lib/asset-storage";
 import ChartRenderer from "@/components/ChartRenderer";
 import { useProgress } from "@/hooks/useProgress";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import HiddenOwl from "@/components/HiddenOwl";
 
-type Tab = "courses" | "snapshots" | "prompts" | "drills" | "threads" | "quotes" | "charts" | "images";
+type Tab = "courses" | "snapshots" | "prompts" | "drills" | "threads" | "quotes" | "charts" | "assets";
 
 const PROMPT_PACKS = [
   { id: "w1", title: "Email Response Template", category: "Work", prompt: "Write a professional email to [recipient] about [topic]. Keep it concise, polite, and actionable. Include a clear subject line.", tags: ["email", "professional"] },
@@ -33,9 +33,27 @@ const WISDOM_QUOTES = [
   { id: "q5", text: "The beautiful thing about learning is that no one can take it away from you.", author: "B.B. King" },
 ];
 
+function formatAssetSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes}B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)}KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
+}
+
+function getAssetEmoji(type: string) {
+  switch (type) {
+    case "image": return "🖼️";
+    case "pdf": return "📄";
+    case "document": return "📝";
+    case "spreadsheet": return "📊";
+    case "text": return "📃";
+    default: return "📎";
+  }
+}
+
 export default function Library() {
   const { progress } = useProgress();
-  const [tab, setTab] = useState<Tab>("courses");
+  const [searchParams] = useSearchParams();
+  const [tab, setTab] = useState<Tab>(() => searchParams.get("tab") === "assets" ? "assets" : "courses");
   const [editedPrompts, setEditedPrompts] = useState<Record<string, string>>({});
   const [editingPromptId, setEditingPromptId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
@@ -45,6 +63,9 @@ export default function Library() {
   const [expandedItem, setExpandedItem] = useState<string | null>(null);
   const [expandedQuote, setExpandedQuote] = useState<string | null>(null);
   const [expandedThread, setExpandedThread] = useState<string | null>(null);
+  const [assets, setAssets] = useState<UserAsset[]>([]);
+  const [assetsLoading, setAssetsLoading] = useState(false);
+  const [deletingAssetId, setDeletingAssetId] = useState<string | null>(null);
   const navigate = useNavigate();
 
   const chatThreads = useMemo(() => loadChatThreads(), [tab]);
@@ -52,10 +73,15 @@ export default function Library() {
   const wisdomPacks = useMemo(() => loadWisdomPacks(), [tab]);
   const savedDrills = useMemo(() => loadSavedDrills(), [tab]);
   const savedCharts = useMemo(() => loadSavedCharts(), [tab]);
-  const generatedImages = useMemo(() => loadGeneratedImages(), [tab]);
   const savedQuotes: string[] = useMemo(() => {
     try { return JSON.parse(localStorage.getItem("wisdom-saved-quotes") || "[]"); } catch { return []; }
   }, [tab]);
+  const filteredAssets = useMemo(() => assets.filter((asset) => {
+    if (!search) return true;
+    const q = search.toLowerCase();
+    return [asset.file_name, asset.original_prompt || "", asset.source_module, asset.file_type]
+      .some((value) => value.toLowerCase().includes(q));
+  }), [assets, search]);
 
   const toggleFavorite = (id: string) => {
     const updated = favorites.includes(id) ? favorites.filter(f => f !== id) : [...favorites, id];
@@ -75,6 +101,45 @@ export default function Library() {
     setTab("prompts"); setTimeout(() => setTab("snapshots"), 0);
   };
 
+  const fetchAssets = useCallback(async () => {
+    if (tab !== "assets") return;
+    setAssetsLoading(true);
+    try {
+      setAssets(await loadUserAssets());
+    } catch {
+      toast({ title: "Couldn't load assets", variant: "destructive" });
+    } finally {
+      setAssetsLoading(false);
+    }
+  }, [tab]);
+
+  useEffect(() => {
+    fetchAssets();
+  }, [fetchAssets]);
+
+  const handleDownloadAsset = (asset: UserAsset) => {
+    const link = document.createElement("a");
+    link.href = asset.public_url;
+    link.download = asset.file_name;
+    link.target = "_blank";
+    link.rel = "noopener";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleDeleteAsset = async (asset: UserAsset) => {
+    setDeletingAssetId(asset.id);
+    const ok = await deleteUserAsset(asset);
+    if (ok) {
+      setAssets((prev) => prev.filter((item) => item.id !== asset.id));
+      toast({ title: "Asset deleted" });
+    } else {
+      toast({ title: "Failed to delete asset", variant: "destructive" });
+    }
+    setDeletingAssetId(null);
+  };
+
   const filteredPrompts = PROMPT_PACKS.filter(p =>
     !search || p.title.toLowerCase().includes(search.toLowerCase()) || p.category.toLowerCase().includes(search.toLowerCase())
   );
@@ -84,7 +149,7 @@ export default function Library() {
     { id: "snapshots", label: "Wisdom Packs", icon: Brain },
     { id: "prompts", label: "Prompts", icon: Sparkles },
     { id: "charts", label: "Charts", icon: BarChart3 },
-    { id: "images", label: "Images", icon: Image },
+    { id: "assets", label: "Assets", icon: FolderOpen },
     { id: "drills", label: "Drills", icon: Zap },
     { id: "threads", label: "Q&A", icon: MessageCircle },
     { id: "quotes", label: "Quotes", icon: Quote },
@@ -425,33 +490,63 @@ export default function Library() {
           )
         )}
 
-        {/* Generated Images Tab */}
-        {tab === "images" && (
-          generatedImages.length > 0 ? (
+        {/* Assets Tab */}
+        {tab === "assets" && (
+          assetsLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            </div>
+          ) : filteredAssets.length > 0 ? (
             <div className="space-y-3">
-              <p className="text-caption text-muted-foreground">{generatedImages.length} images generated</p>
-              {generatedImages.map((img, i) => (
-                <motion.div key={img.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+              <p className="text-caption text-muted-foreground">{filteredAssets.length} asset{filteredAssets.length !== 1 ? "s" : ""} saved</p>
+              {filteredAssets.map((asset, i) => (
+                <motion.div key={asset.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.04 }}>
                   <div className="glass-card p-4">
-                    <img src={img.imageData} alt={img.prompt} className="rounded-xl w-full mb-3" />
-                    <p className="text-caption text-foreground mb-1 line-clamp-2">{img.prompt}</p>
-                    {img.style && <span className="inline-block rounded-md bg-primary/10 px-2 py-0.5 text-[10px] text-primary font-medium mb-2">{img.style}</span>}
-                    <div className="flex items-center justify-between">
-                      <span className="text-micro text-muted-foreground">{new Date(img.createdAt).toLocaleDateString()}</span>
-                      <div className="flex gap-1.5">
-                        <button onClick={() => { navigator.clipboard.writeText(img.prompt); toast({ title: "Prompt copied!" }); }}
-                          className="p-1.5 rounded-lg hover:bg-surface-hover transition-colors" title="Copy prompt">
-                          <Copy className="h-3 w-3 text-text-tertiary" />
-                        </button>
-                        <button onClick={() => { const a = document.createElement("a"); a.href = img.imageData; a.download = `owl-image-${img.id}.png`; a.click(); }}
-                          className="p-1.5 rounded-lg hover:bg-surface-hover transition-colors" title="Download">
-                          <Download className="h-3 w-3 text-text-tertiary" />
-                        </button>
-                        <button onClick={() => { deleteGeneratedImage(img.id); toast({ title: "Image deleted" }); setTab("snapshots"); setTimeout(() => setTab("images"), 0); }}
-                          className="p-1.5 rounded-lg hover:bg-destructive/10 transition-colors" title="Delete">
-                          <Trash2 className="h-3 w-3 text-text-tertiary" />
-                        </button>
+                    <div className="flex gap-3">
+                      {asset.file_type === "image" ? (
+                        <img src={asset.public_url} alt={asset.file_name} className="h-24 w-24 rounded-xl object-cover shrink-0" loading="lazy" />
+                      ) : (
+                        <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-xl bg-surface-2 text-3xl">
+                          {getAssetEmoji(asset.file_type)}
+                        </div>
+                      )}
+
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="text-body font-medium text-foreground truncate">{asset.file_name}</p>
+                            <p className="text-micro text-muted-foreground">
+                              {formatAssetSize(asset.file_size)} · {asset.source_module} · {new Date(asset.created_at).toLocaleDateString()}
+                            </p>
+                          </div>
+
+                          <div className="flex gap-1.5">
+                            <button onClick={() => handleDownloadAsset(asset)}
+                              className="p-1.5 rounded-lg hover:bg-surface-hover transition-colors" title="Download">
+                              <Download className="h-3 w-3 text-text-tertiary" />
+                            </button>
+                            <button onClick={() => handleDeleteAsset(asset)}
+                              disabled={deletingAssetId === asset.id}
+                              className="p-1.5 rounded-lg hover:bg-destructive/10 transition-colors disabled:opacity-60" title="Delete">
+                              {deletingAssetId === asset.id ? (
+                                <Loader2 className="h-3 w-3 animate-spin text-text-tertiary" />
+                              ) : (
+                                <Trash2 className="h-3 w-3 text-text-tertiary" />
+                              )}
+                            </button>
+                          </div>
+                        </div>
+
+                        {asset.original_prompt && (
+                          <p className="mt-2 line-clamp-2 text-caption text-foreground">{asset.original_prompt}</p>
+                        )}
+
+                        {asset.style && (
+                          <span className="mt-2 inline-block rounded-md bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
+                            {asset.style}
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -460,9 +555,9 @@ export default function Library() {
             </div>
           ) : (
             <div className="text-center py-12">
-              <Image className="h-8 w-8 text-text-tertiary mx-auto mb-3" />
-              <p className="text-body text-muted-foreground">No generated images yet.</p>
-              <p className="text-caption text-text-tertiary mt-1">Ask Owl to "generate a logo" or "create a diagram".</p>
+              <FolderOpen className="h-8 w-8 text-text-tertiary mx-auto mb-3" />
+              <p className="text-body text-muted-foreground">No assets yet.</p>
+              <p className="text-caption text-text-tertiary mt-1">Generated images and uploaded files now live here automatically.</p>
             </div>
           )
         )}

@@ -54,7 +54,6 @@ import PrivacyPolicy from "./pages/PrivacyPolicy";
 import Support from "./pages/Support";
 import MasteryArena from "./pages/MasteryArena";
 import ResetPassword from "./pages/ResetPassword";
-import Assets from "./pages/Assets";
 
 const queryClient = new QueryClient();
 
@@ -160,7 +159,7 @@ function AppRoutes() {
           <Route path="/store" element={<TokenStore />} />
           <Route path="/upgrade" element={<Upgrade />} />
           <Route path="/library" element={<Library />} />
-          <Route path="/assets" element={<Assets />} />
+          <Route path="/assets" element={<Navigate to="/library?tab=assets" replace />} />
           <Route path="/playground" element={<Playground />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />

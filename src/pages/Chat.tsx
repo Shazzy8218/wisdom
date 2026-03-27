@@ -22,7 +22,6 @@ import OwlIcon from "@/components/OwlIcon";
 import ImageViewer from "@/components/ImageViewer";
 import ChartRenderer, { type ChartData } from "@/components/ChartRenderer";
 import { saveChart } from "@/lib/chart-storage";
-import { saveGeneratedImage } from "@/lib/image-storage";
 import { persistGeneratedImage, persistChatUpload } from "@/lib/asset-storage";
 import { supabase } from "@/integrations/supabase/client";
 import { resolvePersona, personaToSystemHint } from "@/lib/owl-persona";
@@ -90,6 +89,8 @@ interface ChatMessage extends Msg {
   generatedImageUrl?: string;
   generatedPrompt?: string;
   generatedStyle?: string;
+  assetSaved?: boolean;
+  assetSaving?: boolean;
   fileName?: string;
   fileType?: AttachmentType;
   toolsUsed?: string[];
@@ -136,6 +137,8 @@ function parseThreadMessage(msg: { id: string; role: "user" | "assistant"; conte
       id: msg.id, role: msg.role, content: decoded.text,
       generatedImageUrl: decoded.url, generatedPrompt: decoded.prompt,
       generatedStyle: decoded.style, toolsUsed: ["imagegen"],
+      assetSaved: /^https?:/i.test(decoded.url),
+      assetSaving: false,
     };
   }
   return { id: msg.id, role: msg.role, content: msg.content };
@@ -864,6 +867,8 @@ export default function Chat() {
         content: result.text || "Here's your generated image:",
         generatedImageUrl: result.imageData, generatedPrompt: prompt,
         generatedStyle: imgStyle, toolsUsed: ["imagegen"],
+        assetSaved: false,
+        assetSaving: true,
       };
       setMessages(prev => prev.filter(m => m.id !== loadingId).concat(assistantMsg));
 
@@ -871,12 +876,16 @@ export default function Chat() {
       persistGeneratedImage({ imageData: result.imageData!, prompt, style: imgStyle })
         .then(asset => {
           const durableUrl = asset?.public_url || result.imageData!;
-          // Upgrade in-memory message to cloud URL
-          if (asset?.public_url) {
-            setMessages(prev => prev.map(m =>
-              m.id === msgId ? { ...m, generatedImageUrl: asset.public_url } : m
-            ));
-          }
+          setMessages(prev => prev.map(m =>
+            m.id === msgId
+              ? {
+                  ...m,
+                  generatedImageUrl: asset?.public_url || m.generatedImageUrl,
+                  assetSaved: Boolean(asset?.public_url),
+                  assetSaving: false,
+                }
+              : m
+          ));
           // Save cloud URL marker to thread (small string, won't blow localStorage)
           if (tid) {
             const marker = encodeImageMarker(durableUrl, prompt, imgStyle);
@@ -886,6 +895,9 @@ export default function Chat() {
         })
         .catch(e => {
           console.warn("[Assets] persist failed, saving base64 marker as fallback:", e);
+          setMessages(prev => prev.map(m =>
+            m.id === msgId ? { ...m, assetSaved: false, assetSaving: false } : m
+          ));
           // Fallback: save with a truncated reference if cloud fails
           if (tid) {
             addMessageToThread(tid, "assistant", result.text || "Here's your generated image: [image could not be persisted]");
@@ -1292,20 +1304,33 @@ export default function Chat() {
     saveChart(chart); setSavedChartIds(prev => new Set([...prev, msgId])); toast({ title: "📊 Chart saved to Library!" });
   };
 
-  const handleSaveImage = async (imageUrl: string, prompt: string, style?: string) => {
+  const handleSaveImage = async (messageId: string, imageUrl: string, prompt: string, style?: string) => {
+    const message = messages.find((msg) => msg.id === messageId);
+    if (message?.assetSaved) {
+      toast({ title: "📂 Already in your Library" });
+      return;
+    }
+
+    setMessages((prev) => prev.map((msg) =>
+      msg.id === messageId ? { ...msg, assetSaving: true } : msg,
+    ));
+
     try {
       const asset = await persistGeneratedImage({ imageData: imageUrl, prompt, style });
-      if (asset) {
-        toast({ title: "📂 Image added to your Library!" });
-      } else {
-        // Fallback to localStorage for non-authenticated users
-        saveGeneratedImage({ imageData: imageUrl, prompt, style });
-        toast({ title: "📂 Image saved locally!" });
-      }
+      if (!asset) throw new Error("Asset save failed");
+
+      setMessages((prev) => prev.map((msg) =>
+        msg.id === messageId
+          ? { ...msg, generatedImageUrl: asset.public_url, assetSaved: true, assetSaving: false }
+          : msg,
+      ));
+      toast({ title: "📂 Saved to your Library" });
     } catch (e) {
       console.warn("[Assets] save to library failed:", e);
-      saveGeneratedImage({ imageData: imageUrl, prompt, style });
-      toast({ title: "📂 Image saved locally!" });
+      setMessages((prev) => prev.map((msg) =>
+        msg.id === messageId ? { ...msg, assetSaving: false } : msg,
+      ));
+      toast({ title: "Couldn't save image", variant: "destructive" });
     }
   };
 
@@ -1393,9 +1418,12 @@ export default function Chat() {
               </div>
             </button>
             <div className="flex flex-wrap gap-1.5 mt-2">
-              <button onClick={() => handleSaveImage(msg.generatedImageUrl!, msg.generatedPrompt || "", msg.generatedStyle)}
-                className="rounded-lg bg-primary/10 px-2.5 py-1 text-[11px] text-primary font-medium hover:bg-primary/20 transition-colors">
-                📂 Add to Library
+              <button
+                onClick={() => handleSaveImage(msg.id, msg.generatedImageUrl!, msg.generatedPrompt || "", msg.generatedStyle)}
+                disabled={msg.assetSaved || msg.assetSaving}
+                className="rounded-lg bg-primary/10 px-2.5 py-1 text-[11px] text-primary font-medium hover:bg-primary/20 transition-colors disabled:cursor-default disabled:opacity-60"
+              >
+                {msg.assetSaved ? "✅ Saved to Library" : msg.assetSaving ? "⏳ Saving…" : "📂 Save to Library"}
               </button>
               <button onClick={() => handleDownloadImage(msg.generatedImageUrl!, msg.generatedPrompt || "")}
                 className="rounded-lg bg-primary/10 px-2.5 py-1 text-[11px] text-primary font-medium hover:bg-primary/20 transition-colors">
