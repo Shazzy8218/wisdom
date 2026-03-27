@@ -1420,42 +1420,79 @@ export default function Chat() {
         {/* Document download */}
         {msg.docDownload && (
           <div className="mb-3 flex flex-col gap-2">
-            <button onClick={() => {
+            <button onClick={async () => {
               const doc = msg.docDownload!;
               if (doc.format === "csv") {
-                // CSV: direct download
-                const blob = new Blob([doc.content], { type: "text/csv;charset=utf-8;" });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement("a");
-                a.href = url; a.download = doc.fileName.replace(/\.html$/, ".csv"); a.click();
-                URL.revokeObjectURL(url);
+                // Generate real .xlsx with formatting
+                try {
+                  const XLSX = await import("xlsx");
+                  if (doc.structuredData?.headers && doc.structuredData?.rows) {
+                    const ws = XLSX.utils.aoa_to_sheet([doc.structuredData.headers, ...doc.structuredData.rows]);
+                    // Auto-size columns
+                    const colWidths = doc.structuredData.headers.map((h: string, i: number) => {
+                      const maxLen = Math.max(h.length, ...doc.structuredData!.rows.map((r: string[]) => (r[i] || "").length));
+                      return { wch: Math.min(Math.max(maxLen + 2, 10), 40) };
+                    });
+                    ws["!cols"] = colWidths;
+                    const wb = XLSX.utils.book_new();
+                    XLSX.utils.book_append_sheet(wb, ws, "Data");
+                    XLSX.writeFile(wb, "owl-spreadsheet.xlsx");
+                  } else {
+                    // Fallback: parse CSV content
+                    const lines = doc.content.split("\n").map((line: string) => {
+                      const result: string[] = [];
+                      let current = "";
+                      let inQuotes = false;
+                      for (const char of line) {
+                        if (char === '"') { inQuotes = !inQuotes; }
+                        else if (char === ',' && !inQuotes) { result.push(current); current = ""; }
+                        else { current += char; }
+                      }
+                      result.push(current);
+                      return result;
+                    });
+                    const ws = XLSX.utils.aoa_to_sheet(lines);
+                    if (lines[0]) {
+                      ws["!cols"] = lines[0].map((_: string, i: number) => {
+                        const maxLen = Math.max(...lines.map((r: string[]) => (r[i] || "").length));
+                        return { wch: Math.min(Math.max(maxLen + 2, 10), 40) };
+                      });
+                    }
+                    const wb = XLSX.utils.book_new();
+                    XLSX.utils.book_append_sheet(wb, ws, "Data");
+                    XLSX.writeFile(wb, "owl-spreadsheet.xlsx");
+                  }
+                } catch {
+                  // Final fallback: raw CSV download
+                  const blob = new Blob([doc.content], { type: "text/csv;charset=utf-8;" });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement("a");
+                  a.href = url; a.download = "owl-spreadsheet.csv"; a.click();
+                  URL.revokeObjectURL(url);
+                }
               } else if (doc.format === "docx") {
-                // DOCX: wrap HTML with Word-compatible headers for .doc download
                 const wordHtml = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
 <head><meta charset="utf-8"><meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View></w:WordDocument></xml><![endif]-->
 </head><body>${doc.content.includes("<body") ? doc.content.replace(/.*<body[^>]*>/is, "").replace(/<\/body>.*/is, "") : doc.content}</body></html>`;
-                const blob = new Blob([wordHtml], { type: "application/msword" });
+                const blob = new Blob(['\ufeff' + wordHtml], { type: "application/msword" });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement("a");
-                a.href = url; a.download = doc.fileName.replace(/\.html$/, ".doc"); a.click();
+                a.href = url; a.download = "owl-document.doc"; a.click();
                 URL.revokeObjectURL(url);
               } else if (doc.format === "pdf") {
-                // PDF: open in new window and trigger print dialog for Save as PDF
                 const win = window.open("", "_blank");
                 if (win) {
-                  win.document.write(doc.content + `<script>setTimeout(function(){window.print()},500);<\/script>`);
+                  win.document.write(doc.content + `<script>setTimeout(function(){window.print()},600);<\/script>`);
                   win.document.close();
                 }
               } else if (doc.format === "slides") {
-                // Slides: open in fullscreen presentation view
                 const win = window.open("", "_blank");
                 if (win) {
                   win.document.write(doc.content);
                   win.document.close();
                 }
               } else {
-                // Fallback: generic download
                 const blob = new Blob([doc.content], { type: doc.mimeType });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement("a");
@@ -1467,14 +1504,18 @@ export default function Chat() {
               <FileDown className="h-5 w-5" />
               <div className="text-left">
                 <p className="font-semibold">
-                  {msg.docDownload.format === "pdf" ? "Save as PDF" : 
+                  {msg.docDownload.format === "csv" ? "Download Spreadsheet (.xlsx)" :
+                   msg.docDownload.format === "pdf" ? "Save as PDF" : 
                    msg.docDownload.format === "slides" ? "Open Presentation" :
+                   msg.docDownload.format === "docx" ? "Download Document (.doc)" :
                    `Download ${msg.docDownload.format.toUpperCase()}`}
                 </p>
                 <p className="text-[10px] text-primary/70">
-                  {msg.docDownload.format === "pdf" ? "Opens print dialog — choose 'Save as PDF'" :
+                  {msg.docDownload.format === "csv" ? "Professionally formatted Excel file" :
+                   msg.docDownload.format === "pdf" ? "Opens print dialog — choose 'Save as PDF'" :
                    msg.docDownload.format === "slides" ? "Opens in new tab for presentation" :
-                   msg.docDownload.fileName.replace(/\.html$/, msg.docDownload.format === "csv" ? ".csv" : ".doc")}
+                   msg.docDownload.format === "docx" ? "Opens in Microsoft Word / Google Docs" :
+                   doc.fileName}
                 </p>
               </div>
             </button>
