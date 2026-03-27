@@ -1515,7 +1515,7 @@ export default function Chat() {
                    msg.docDownload.format === "pdf" ? "Opens print dialog — choose 'Save as PDF'" :
                    msg.docDownload.format === "slides" ? "Opens in new tab for presentation" :
                    msg.docDownload.format === "docx" ? "Opens in Microsoft Word / Google Docs" :
-                   doc.fileName}
+                   msg.docDownload.fileName}
                 </p>
               </div>
             </button>
