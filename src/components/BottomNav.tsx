@@ -1,4 +1,4 @@
-import { BookOpen, BookMarked, User, MoreHorizontal, Gamepad2, Target, Wallet, Settings, Trophy, Zap, HelpCircle, Newspaper, FolderOpen, X } from "lucide-react";
+import { BookOpen, BookMarked, User, MoreHorizontal, Gamepad2, Target, Wallet, Settings, Trophy, Zap, HelpCircle, Newspaper, X } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -12,7 +12,6 @@ const PRIMARY_NAV = [
 ];
 
 const MORE_NAV = [
-  { to: "/assets", icon: FolderOpen, label: "Assets" },
   { to: "/games", icon: Gamepad2, label: "Games" },
   { to: "/drills", icon: Zap, label: "Live Drills" },
   { to: "/scoreboard", icon: Trophy, label: "Scoreboard" },
