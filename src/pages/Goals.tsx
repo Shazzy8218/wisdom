@@ -1,66 +1,38 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Target, ChevronLeft, Plus, Trash2, CheckCircle, Circle, Flame, Coins, Clock, Loader2, Trophy, TrendingUp, Pencil, X } from "lucide-react";
+import { Target, ChevronLeft, Plus, Trash2, CheckCircle, Circle, Flame, Coins, Clock, Loader2, Trophy, TrendingUp, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useGoals, UserGoal } from "@/hooks/useGoals";
 import { useProgress } from "@/hooks/useProgress";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "@/hooks/use-toast";
-
-const METRIC_OPTIONS = [
-  { value: "mastery", label: "Mastery %", icon: "🎯" },
-  { value: "lessons", label: "Lessons", icon: "📚" },
-  { value: "tokens", label: "Tokens", icon: "🪙" },
-  { value: "streak", label: "Streak Days", icon: "🔥" },
-  { value: "revenue", label: "Revenue $", icon: "💰" },
-  { value: "clients", label: "Clients", icon: "👥" },
-  { value: "custom", label: "Custom", icon: "⚡" },
-];
+import GoalCreateSheet, { GoalDraft } from "@/components/goals/GoalCreateSheet";
 
 export default function Goals() {
   const { goals, loading, createGoal, updateGoal, deleteGoal, toggleComplete } = useGoals();
   const { progress } = useProgress();
   const navigate = useNavigate();
   const [showCreate, setShowCreate] = useState(false);
-  const [title, setTitle] = useState("");
-  const [metric, setMetric] = useState("mastery");
-  const [targetVal, setTargetVal] = useState("80");
-  const [baselineVal, setBaselineVal] = useState("0");
-  const [deadline, setDeadline] = useState("");
-  const [why, setWhy] = useState("");
   const [creating, setCreating] = useState(false);
   const [expandedGoal, setExpandedGoal] = useState<string | null>(null);
   const [newStep, setNewStep] = useState("");
   const [editingGoalId, setEditingGoalId] = useState<string | null>(null);
   const [editCurrentValue, setEditCurrentValue] = useState("");
 
-  const resetForm = () => {
-    setTitle(""); setMetric("mastery"); setTargetVal("80"); setBaselineVal("0"); setDeadline(""); setWhy("");
-  };
-
-  const handleCreate = async () => {
-    if (!title.trim()) { toast({ title: "Enter a goal title" }); return; }
-    if (Number(targetVal) <= Number(baselineVal)) { toast({ title: "Target must be greater than baseline" }); return; }
+  const handleCreate = async (goal: GoalDraft) => {
     setCreating(true);
     try {
-      await createGoal({
-        title: title.trim(),
-        targetMetric: metric,
-        targetValue: Number(targetVal) || 100,
-        currentValue: Number(baselineVal) || 0,
-        baselineValue: Number(baselineVal) || 0,
-        deadline: deadline || null,
-        why: why.trim(),
-        roadmap: [],
-      });
-      setShowCreate(false);
-      resetForm();
+      await createGoal(goal);
       toast({ title: "✅ Goal created!" });
+      setShowCreate(false);
+      return true;
     } catch (e: any) {
       console.error("[Goals] create failed:", e);
       toast({ title: "Failed to create goal", description: e?.message || "Please try again", variant: "destructive" });
+      return false;
+    } finally {
+      setCreating(false);
     }
-    setCreating(false);
   };
 
   const toggleRoadmapStep = async (goalId: string, idx: number) => {
@@ -147,9 +119,12 @@ export default function Goals() {
           <p className="text-xs font-medium text-primary uppercase tracking-wider mb-1">Goals</p>
           <h1 className="font-display text-2xl font-bold text-foreground">Your Mission</h1>
         </div>
-        <button onClick={() => setShowCreate(true)}
-          className="p-2.5 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition-colors">
-          <Plus className="h-4.5 w-4.5" />
+        <button
+          onClick={() => setShowCreate(true)}
+          className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+        >
+          <Plus className="h-4 w-4" />
+          <span>Set Goal</span>
         </button>
       </div>
 
@@ -174,82 +149,14 @@ export default function Goals() {
         </div>
       </div>
 
-      {/* Create Goal Modal */}
-      <AnimatePresence>
-        {showCreate && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center p-0 sm:p-5"
-            onClick={(e) => e.target === e.currentTarget && setShowCreate(false)}>
-            <motion.div initial={{ y: 100 }} animate={{ y: 0 }} exit={{ y: 100 }}
-              className="w-full sm:max-w-md bg-card border border-border rounded-t-3xl sm:rounded-2xl p-6 max-h-[85vh] overflow-y-auto">
-              <div className="flex items-center justify-between mb-5">
-                <h2 className="font-display text-lg font-bold text-foreground">New Goal</h2>
-                <button onClick={() => { setShowCreate(false); resetForm(); }}
-                  className="p-1.5 rounded-xl hover:bg-muted/50 transition-colors">
-                  <X className="h-4 w-4 text-muted-foreground" />
-                </button>
-              </div>
-
-              <div className="space-y-4">
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">What do you want to achieve?</label>
-                  <input value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g., Master AI prompting"
-                    autoFocus
-                    className="w-full rounded-xl bg-muted/50 border border-border px-3.5 py-3 text-sm text-foreground placeholder:text-muted-foreground/50 outline-none focus:border-primary/40 transition-colors" />
-                </div>
-
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Why does this matter?</label>
-                  <input value={why} onChange={e => setWhy(e.target.value)} placeholder="Your motivation (optional)"
-                    className="w-full rounded-xl bg-muted/50 border border-border px-3.5 py-3 text-xs text-foreground placeholder:text-muted-foreground/50 outline-none focus:border-primary/40 transition-colors" />
-                </div>
-
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-2 block">Track by</label>
-                  <div className="grid grid-cols-4 gap-1.5">
-                    {METRIC_OPTIONS.map(opt => (
-                      <button key={opt.value} onClick={() => setMetric(opt.value)}
-                        className={`rounded-xl px-2 py-2 text-center transition-all ${
-                          metric === opt.value
-                            ? "bg-primary/10 border border-primary/30 text-primary"
-                            : "bg-muted/50 border border-transparent text-muted-foreground hover:bg-muted"
-                        }`}>
-                        <span className="text-sm block">{opt.icon}</span>
-                        <span className="text-[10px] block mt-0.5">{opt.label}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Starting at</label>
-                    <input value={baselineVal} onChange={e => setBaselineVal(e.target.value)} type="number"
-                      className="w-full rounded-xl bg-muted/50 border border-border px-3.5 py-2.5 text-sm text-foreground outline-none focus:border-primary/40 transition-colors" />
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Target</label>
-                    <input value={targetVal} onChange={e => setTargetVal(e.target.value)} type="number"
-                      className="w-full rounded-xl bg-muted/50 border border-border px-3.5 py-2.5 text-sm text-foreground outline-none focus:border-primary/40 transition-colors" />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Deadline (optional)</label>
-                  <input value={deadline} onChange={e => setDeadline(e.target.value)} type="date"
-                    className="w-full rounded-xl bg-muted/50 border border-border px-3.5 py-2.5 text-sm text-foreground outline-none focus:border-primary/40 transition-colors" />
-                </div>
-
-                <button onClick={handleCreate} disabled={creating || !title.trim()}
-                  className="w-full rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
-                  {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Target className="h-4 w-4" />}
-                  {creating ? "Creating..." : "Create Goal"}
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <GoalCreateSheet
+        open={showCreate}
+        onOpenChange={setShowCreate}
+        onSubmit={handleCreate}
+        creating={creating}
+        hasGoals={goals.length > 0}
+        progress={progress}
+      />
 
       {/* Active Goals */}
       {activeGoals.length > 0 && (
@@ -317,7 +224,7 @@ export default function Goals() {
           <p className="text-sm text-muted-foreground mb-6 max-w-xs mx-auto">Define what you want to achieve and track your journey step by step.</p>
           <button onClick={() => setShowCreate(true)}
             className="rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors inline-flex items-center gap-2">
-            <Plus className="h-4 w-4" /> Create Goal
+            <Plus className="h-4 w-4" /> Set Goal
           </button>
         </motion.div>
       )}
