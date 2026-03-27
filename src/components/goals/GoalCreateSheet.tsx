@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Coins, Flame, Target, Trophy, X } from "lucide-react";
 
@@ -103,6 +103,7 @@ export default function GoalCreateSheet({
   hasGoals,
   progress,
 }: GoalCreateSheetProps) {
+  const formRef = useRef<HTMLFormElement | null>(null);
   const initialBaseline = useMemo(() => getSuggestedBaseline("mastery", progress), [progress]);
   const initialTarget = useMemo(() => getSuggestedTarget("mastery", initialBaseline), [initialBaseline]);
 
@@ -200,7 +201,7 @@ export default function GoalCreateSheet({
             exit={{ y: 100 }}
             className="w-full sm:max-w-xl bg-card border border-border rounded-t-[2rem] sm:rounded-[1.75rem] max-h-[90vh] overflow-hidden"
           >
-            <form onSubmit={handleSubmit} className="flex max-h-[90vh] flex-col">
+            <form ref={formRef} onSubmit={handleSubmit} className="flex max-h-[90vh] flex-col">
               <div className="flex items-start justify-between border-b border-border px-5 py-4 sm:px-6">
                 <div>
                   <p className="text-xs font-medium uppercase tracking-[0.2em] text-primary">
@@ -365,7 +366,8 @@ export default function GoalCreateSheet({
                     Cancel
                   </button>
                   <button
-                    type="submit"
+                    type="button"
+                    onClick={() => formRef.current?.requestSubmit()}
                     disabled={creating || !title.trim() || Number(targetVal) <= Number(baselineVal)}
                     className="flex-1 rounded-2xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
                   >
