@@ -1141,7 +1141,7 @@ export default function Chat() {
           id: `doc-${Date.now()}`, role: "assistant",
           content: `Your ${formatLabel} is ready.`,
           toolsUsed: ["docgen"],
-          docDownload: { content: docResult.content, fileName: docResult.fileName || `owl-${format}.html`, mimeType: docResult.mimeType || "text/html", format },
+          docDownload: { content: docResult.content, fileName: docResult.fileName || `owl-${format}.html`, mimeType: docResult.mimeType || "text/html", format, structuredData: docResult.structuredData },
         };
         setMessages(prev => prev.filter(m => m.id !== loadingId).concat(docMsg));
       } else {
