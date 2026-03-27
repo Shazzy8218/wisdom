@@ -22,14 +22,19 @@ export function useGoals() {
   const [loading, setLoading] = useState(true);
 
   const fetchGoals = useCallback(async () => {
-    if (!user) { setLoading(false); return; }
-    const { data } = await supabase
-      .from("user_goals" as any)
-      .select("*")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false });
-    if (data) {
-      setGoals((data as any[]).map(rowToGoal));
+    if (!user) { setGoals([]); setLoading(false); return; }
+    try {
+      const { data, error } = await supabase
+        .from("user_goals")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+      if (error) { console.error("[Goals] fetch error:", error); setLoading(false); return; }
+      if (data) {
+        setGoals(data.map(rowToGoal));
+      }
+    } catch (e) {
+      console.error("[Goals] fetch exception:", e);
     }
     setLoading(false);
   }, [user]);
@@ -37,8 +42,8 @@ export function useGoals() {
   useEffect(() => { fetchGoals(); }, [fetchGoals]);
 
   const createGoal = useCallback(async (goal: Omit<UserGoal, "id" | "completed" | "createdAt">) => {
-    if (!user) return;
-    const { data, error } = await supabase.from("user_goals" as any).insert({
+    if (!user) throw new Error("Not authenticated");
+    const { data, error } = await supabase.from("user_goals").insert({
       user_id: user.id,
       title: goal.title,
       target_metric: goal.targetMetric,
@@ -47,15 +52,16 @@ export function useGoals() {
       baseline_value: goal.baselineValue,
       deadline: goal.deadline,
       why: goal.why,
-      roadmap: goal.roadmap,
-    } as any).select().maybeSingle();
-    if (error) { console.error("Goal create error:", error); throw error; }
-    if (data) setGoals(prev => [rowToGoal(data as any), ...prev]);
+      roadmap: goal.roadmap as any,
+    }).select().maybeSingle();
+    if (error) { console.error("[Goals] create error:", error); throw error; }
+    if (data) setGoals(prev => [rowToGoal(data), ...prev]);
+    return data;
   }, [user]);
 
   const updateGoal = useCallback(async (id: string, updates: Partial<UserGoal>) => {
     if (!user) return;
-    const dbUpdates: any = { updated_at: new Date().toISOString() };
+    const dbUpdates: Record<string, any> = { updated_at: new Date().toISOString() };
     if (updates.title !== undefined) dbUpdates.title = updates.title;
     if (updates.currentValue !== undefined) dbUpdates.current_value = updates.currentValue;
     if (updates.targetValue !== undefined) dbUpdates.target_value = updates.targetValue;
@@ -63,19 +69,30 @@ export function useGoals() {
     if (updates.roadmap !== undefined) dbUpdates.roadmap = updates.roadmap;
     if (updates.why !== undefined) dbUpdates.why = updates.why;
     if (updates.deadline !== undefined) dbUpdates.deadline = updates.deadline;
-    await supabase.from("user_goals" as any).update(dbUpdates).eq("id", id);
+    if (updates.baselineValue !== undefined) dbUpdates.baseline_value = updates.baselineValue;
+    if (updates.targetMetric !== undefined) dbUpdates.target_metric = updates.targetMetric;
+    
+    const { error } = await supabase.from("user_goals").update(dbUpdates).eq("id", id);
+    if (error) { console.error("[Goals] update error:", error); throw error; }
     setGoals(prev => prev.map(g => g.id === id ? { ...g, ...updates } : g));
   }, [user]);
 
   const deleteGoal = useCallback(async (id: string) => {
     if (!user) return;
-    await supabase.from("user_goals" as any).delete().eq("id", id);
+    const { error } = await supabase.from("user_goals").delete().eq("id", id);
+    if (error) { console.error("[Goals] delete error:", error); throw error; }
     setGoals(prev => prev.filter(g => g.id !== id));
   }, [user]);
 
-  const primaryGoal = goals[0] || null;
+  const toggleComplete = useCallback(async (id: string) => {
+    const goal = goals.find(g => g.id === id);
+    if (!goal) return;
+    await updateGoal(id, { completed: !goal.completed });
+  }, [goals, updateGoal]);
 
-  return { goals, primaryGoal, loading, createGoal, updateGoal, deleteGoal, refetch: fetchGoals };
+  const primaryGoal = goals.find(g => !g.completed) || goals[0] || null;
+
+  return { goals, primaryGoal, loading, createGoal, updateGoal, deleteGoal, toggleComplete, refetch: fetchGoals };
 }
 
 function rowToGoal(row: any): UserGoal {
@@ -88,7 +105,7 @@ function rowToGoal(row: any): UserGoal {
     baselineValue: Number(row.baseline_value),
     deadline: row.deadline,
     why: row.why || "",
-    roadmap: (row.roadmap as any[]) || [],
+    roadmap: (Array.isArray(row.roadmap) ? row.roadmap : []) as { step: string; done: boolean }[],
     completed: row.completed,
     createdAt: row.created_at,
   };
