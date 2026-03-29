@@ -102,10 +102,28 @@ export default function Goals() {
   const activeGoals = goals.filter(g => !g.completed);
   const completedGoals = goals.filter(g => g.completed);
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-6 w-6 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-6">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center max-w-sm">
+          <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
+            <LogIn className="h-8 w-8 text-primary" />
+          </div>
+          <h3 className="font-display text-lg font-bold text-foreground mb-2">Sign In Required</h3>
+          <p className="text-sm text-muted-foreground mb-6">You need to be signed in to set and track your goals.</p>
+          <button onClick={() => navigate("/auth")}
+            className="rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors inline-flex items-center gap-2">
+            <LogIn className="h-4 w-4" /> Sign In
+          </button>
+        </motion.div>
       </div>
     );
   }
