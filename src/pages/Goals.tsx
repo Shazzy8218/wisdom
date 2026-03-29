@@ -1,6 +1,10 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Target, ChevronLeft, Plus, Trash2, CheckCircle, Circle, Flame, Coins, Clock, Loader2, Trophy, TrendingUp, X } from "lucide-react";
+import {
+  Target, ChevronLeft, Plus, Trash2, CheckCircle, Circle, Flame,
+  Coins, Clock, Loader2, Trophy, TrendingUp, X, Brain, Sparkles,
+  ChevronRight, BarChart3, Zap, AlertTriangle
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useGoals, UserGoal } from "@/hooks/useGoals";
 import { useProgress } from "@/hooks/useProgress";
@@ -27,8 +31,7 @@ export default function Goals() {
       setShowCreate(false);
       return true;
     } catch (e: any) {
-      console.error("[Goals] create failed:", e);
-      toast({ title: "Failed to create goal", description: e?.message || "Please try again", variant: "destructive" });
+      toast({ title: "Failed to create goal", description: e?.message, variant: "destructive" });
       return false;
     } finally {
       setCreating(false);
@@ -39,35 +42,25 @@ export default function Goals() {
     const goal = goals.find(g => g.id === goalId);
     if (!goal) return;
     const updated = goal.roadmap.map((s, i) => i === idx ? { ...s, done: !s.done } : s);
-    try {
-      await updateGoal(goalId, { roadmap: updated });
-    } catch {
-      toast({ title: "Failed to update step", variant: "destructive" });
-    }
+    try { await updateGoal(goalId, { roadmap: updated }); }
+    catch { toast({ title: "Failed to update step", variant: "destructive" }); }
   };
 
   const addRoadmapStep = async (goalId: string) => {
     if (!newStep.trim()) return;
     const goal = goals.find(g => g.id === goalId);
     if (!goal) return;
-    const updated = [...goal.roadmap, { step: newStep.trim(), done: false }];
     try {
-      await updateGoal(goalId, { roadmap: updated });
+      await updateGoal(goalId, { roadmap: [...goal.roadmap, { step: newStep.trim(), done: false }] });
       setNewStep("");
-    } catch {
-      toast({ title: "Failed to add step", variant: "destructive" });
-    }
+    } catch { toast({ title: "Failed to add step", variant: "destructive" }); }
   };
 
   const removeRoadmapStep = async (goalId: string, idx: number) => {
     const goal = goals.find(g => g.id === goalId);
     if (!goal) return;
-    const updated = goal.roadmap.filter((_, i) => i !== idx);
-    try {
-      await updateGoal(goalId, { roadmap: updated });
-    } catch {
-      toast({ title: "Failed to remove step", variant: "destructive" });
-    }
+    try { await updateGoal(goalId, { roadmap: goal.roadmap.filter((_, i) => i !== idx) }); }
+    catch { toast({ title: "Failed to remove step", variant: "destructive" }); }
   };
 
   const handleUpdateProgress = async (goalId: string) => {
@@ -78,18 +71,12 @@ export default function Goals() {
       setEditingGoalId(null);
       setEditCurrentValue("");
       toast({ title: "Progress updated! 🎯" });
-    } catch {
-      toast({ title: "Failed to update progress", variant: "destructive" });
-    }
+    } catch { toast({ title: "Failed to update progress", variant: "destructive" }); }
   };
 
   const handleDelete = async (id: string) => {
-    try {
-      await deleteGoal(id);
-      toast({ title: "Goal deleted" });
-    } catch {
-      toast({ title: "Failed to delete", variant: "destructive" });
-    }
+    try { await deleteGoal(id); toast({ title: "Goal deleted" }); }
+    catch { toast({ title: "Failed to delete", variant: "destructive" }); }
   };
 
   const getProgressPercent = (g: UserGoal) => {
@@ -99,6 +86,26 @@ export default function Goals() {
 
   const activeGoals = goals.filter(g => !g.completed);
   const completedGoals = goals.filter(g => g.completed);
+
+  // Compute overall stats
+  const overallProgress = useMemo(() => {
+    if (activeGoals.length === 0) return 0;
+    return Math.round(activeGoals.reduce((sum, g) => sum + getProgressPercent(g), 0) / activeGoals.length);
+  }, [activeGoals]);
+
+  // Find goals at risk (less than expected progress based on deadline)
+  const atRiskGoals = useMemo(() => {
+    return activeGoals.filter(g => {
+      if (!g.deadline) return false;
+      const now = Date.now();
+      const created = new Date(g.createdAt).getTime();
+      const deadline = new Date(g.deadline).getTime();
+      if (deadline <= created) return false;
+      const timeElapsed = (now - created) / (deadline - created);
+      const progressMade = getProgressPercent(g) / 100;
+      return timeElapsed > 0.3 && progressMade < timeElapsed * 0.5;
+    });
+  }, [activeGoals]);
 
   if (loading) {
     return (
@@ -116,8 +123,8 @@ export default function Goals() {
           <ChevronLeft className="h-5 w-5 text-muted-foreground" />
         </button>
         <div className="flex-1">
-          <p className="text-xs font-medium text-primary uppercase tracking-wider mb-1">Goals</p>
-          <h1 className="font-display text-2xl font-bold text-foreground">Your Mission</h1>
+          <p className="text-xs font-medium text-primary uppercase tracking-wider mb-1">Strategic Goal Engine</p>
+          <h1 className="font-display text-2xl font-bold text-foreground">Mission Control</h1>
         </div>
         <button
           onClick={() => setShowCreate(true)}
@@ -128,9 +135,9 @@ export default function Goals() {
         </button>
       </div>
 
-      {/* Quick Stats */}
-      <div className="px-5 mb-5">
-        <div className="grid grid-cols-3 gap-2">
+      {/* Quick Stats Row */}
+      <div className="px-5 mb-4">
+        <div className="grid grid-cols-4 gap-2">
           <div className="rounded-xl bg-card border border-border p-3 text-center">
             <Flame className="h-4 w-4 text-amber-500 mx-auto mb-1" />
             <p className="text-lg font-bold text-foreground">{progress.streak}</p>
@@ -142,12 +149,58 @@ export default function Goals() {
             <p className="text-[10px] text-muted-foreground">Tokens</p>
           </div>
           <div className="rounded-xl bg-card border border-border p-3 text-center">
-            <Trophy className="h-4 w-4 text-accent-gold mx-auto mb-1" />
+            <Trophy className="h-4 w-4 text-amber-400 mx-auto mb-1" />
             <p className="text-lg font-bold text-foreground">{completedGoals.length}</p>
             <p className="text-[10px] text-muted-foreground">Done</p>
           </div>
+          <div className="rounded-xl bg-card border border-border p-3 text-center">
+            <BarChart3 className="h-4 w-4 text-primary mx-auto mb-1" />
+            <p className="text-lg font-bold text-foreground">{overallProgress}%</p>
+            <p className="text-[10px] text-muted-foreground">Overall</p>
+          </div>
         </div>
       </div>
+
+      {/* LOA Entry Card — show when no goals or always as option */}
+      <div className="px-5 mb-5">
+        <button
+          onClick={() => navigate("/life-optimizer")}
+          className="w-full rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/5 via-card to-primary/5 p-5 text-left transition-all hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5 group"
+        >
+          <div className="flex items-start gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 group-hover:bg-primary/20 transition-colors">
+              <Brain className="h-5 w-5 text-primary" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1">
+                <h3 className="font-display text-sm font-bold text-foreground">Life Optimization Advisor</h3>
+                <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[9px] font-bold text-primary uppercase tracking-wider">AI</span>
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                {goals.length === 0
+                  ? "Don't know where to start? Let the LOA conduct a ruthless diagnostic of your life and generate an actionable optimization plan."
+                  : "Run another diagnostic session to recalibrate your strategy, identify blind spots, or set new targets."}
+              </p>
+            </div>
+            <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors shrink-0 mt-1" />
+          </div>
+        </button>
+      </div>
+
+      {/* At-Risk Goals Warning */}
+      {atRiskGoals.length > 0 && (
+        <div className="px-5 mb-4">
+          <div className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4 flex items-start gap-3">
+            <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-xs font-bold text-foreground mb-0.5">Goal Drift Detected</p>
+              <p className="text-[11px] text-muted-foreground">
+                {atRiskGoals.length} goal{atRiskGoals.length > 1 ? "s" : ""} behind schedule: {atRiskGoals.map(g => g.title).join(", ")}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       <GoalCreateSheet
         open={showCreate}
@@ -184,6 +237,7 @@ export default function Goals() {
                 onSaveProgress={() => handleUpdateProgress(goal.id)}
                 onCancelEdit={() => { setEditingGoalId(null); setEditCurrentValue(""); }}
                 getProgressPercent={getProgressPercent}
+                isAtRisk={atRiskGoals.some(g => g.id === goal.id)}
               />
             ))}
           </div>
@@ -216,21 +270,29 @@ export default function Goals() {
 
       {/* Empty State */}
       {goals.length === 0 && !showCreate && (
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mx-5 text-center py-16">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mx-5 text-center py-10">
           <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
             <Target className="h-8 w-8 text-primary" />
           </div>
-          <h3 className="font-display text-lg font-bold text-foreground mb-2">Set Your First Goal</h3>
-          <p className="text-sm text-muted-foreground mb-6 max-w-xs mx-auto">Define what you want to achieve and track your journey step by step.</p>
-          <button onClick={() => setShowCreate(true)}
-            className="rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors inline-flex items-center gap-2">
-            <Plus className="h-4 w-4" /> Set Goal
-          </button>
+          <h3 className="font-display text-lg font-bold text-foreground mb-2">No Goals Yet</h3>
+          <p className="text-sm text-muted-foreground mb-6 max-w-xs mx-auto">Set a goal manually or let the Life Optimization Advisor create your strategic plan.</p>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <button onClick={() => setShowCreate(true)}
+              className="rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors inline-flex items-center justify-center gap-2">
+              <Plus className="h-4 w-4" /> Set Goal Manually
+            </button>
+            <button onClick={() => navigate("/life-optimizer")}
+              className="rounded-xl border border-primary/20 bg-primary/5 px-6 py-3 text-sm font-semibold text-primary hover:bg-primary/10 transition-colors inline-flex items-center justify-center gap-2">
+              <Brain className="h-4 w-4" /> Optimize My Life
+            </button>
+          </div>
         </motion.div>
       )}
     </div>
   );
 }
+
+/* ─── GoalCard Component ─── */
 
 interface GoalCardProps {
   goal: UserGoal;
@@ -251,40 +313,50 @@ interface GoalCardProps {
   onSaveProgress: () => void;
   onCancelEdit: () => void;
   getProgressPercent: (g: UserGoal) => number;
+  isAtRisk?: boolean;
 }
 
 function GoalCard({
   goal, index, expanded, onToggleExpand, onToggleStep, onAddStep, onRemoveStep,
   newStep, onNewStepChange, onDelete, onToggleComplete, onUpdateProgress,
   isEditingProgress, editCurrentValue, onEditCurrentValueChange, onSaveProgress, onCancelEdit,
-  getProgressPercent
+  getProgressPercent, isAtRisk
 }: GoalCardProps) {
   const percent = getProgressPercent(goal);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const stepsComplete = goal.roadmap.filter(s => s.done).length;
+  const totalSteps = goal.roadmap.length;
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.03 * index }}>
       <div className={`rounded-2xl border bg-card p-5 transition-all ${
-        index === 0 ? "border-primary/20" : "border-border"
+        isAtRisk ? "border-amber-500/30" : index === 0 ? "border-primary/20" : "border-border"
       }`}>
         {/* Header */}
         <button onClick={onToggleExpand} className="w-full flex items-start gap-3 text-left">
           <div className={`flex h-9 w-9 items-center justify-center rounded-xl shrink-0 ${
-            index === 0 ? "bg-primary/10" : "bg-muted/50"
+            isAtRisk ? "bg-amber-500/10" : index === 0 ? "bg-primary/10" : "bg-muted/50"
           }`}>
-            <Target className={`h-4.5 w-4.5 ${index === 0 ? "text-primary" : "text-muted-foreground"}`} />
+            {isAtRisk ? (
+              <AlertTriangle className="h-4.5 w-4.5 text-amber-500" />
+            ) : (
+              <Target className={`h-4.5 w-4.5 ${index === 0 ? "text-primary" : "text-muted-foreground"}`} />
+            )}
           </div>
           <div className="flex-1 min-w-0">
             <h3 className="font-display text-sm font-bold text-foreground truncate">{goal.title}</h3>
             {goal.why && <p className="text-xs text-muted-foreground mt-0.5 truncate italic">"{goal.why}"</p>}
+            {totalSteps > 0 && (
+              <p className="text-[10px] text-muted-foreground mt-1">{stepsComplete}/{totalSteps} milestones</p>
+            )}
           </div>
-          <span className="text-xs font-bold text-primary">{percent}%</span>
+          <span className={`text-xs font-bold ${isAtRisk ? "text-amber-500" : "text-primary"}`}>{percent}%</span>
         </button>
 
         {/* Progress Bar */}
         <div className="mt-3 mb-1">
-          <Progress value={percent} className="h-2" />
+          <Progress value={percent} className={`h-2 ${isAtRisk ? "[&>div]:bg-amber-500" : ""}`} />
           <div className="flex justify-between mt-1.5">
             <span className="text-[10px] text-muted-foreground">{goal.currentValue} / {goal.targetValue} {goal.targetMetric}</span>
             {goal.deadline && (
@@ -295,7 +367,7 @@ function GoalCard({
           </div>
         </div>
 
-        {/* Update Progress inline */}
+        {/* Update Progress */}
         {isEditingProgress ? (
           <div className="mt-3 flex items-center gap-2">
             <input value={editCurrentValue} onChange={e => onEditCurrentValueChange(e.target.value)}
@@ -318,8 +390,7 @@ function GoalCard({
             <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }}
               exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
               <div className="mt-4 pt-4 border-t border-border">
-                {/* Roadmap */}
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Roadmap Steps</p>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Roadmap</p>
                 {goal.roadmap.length > 0 && (
                   <div className="space-y-1.5 mb-3">
                     {goal.roadmap.map((step, i) => (
@@ -340,7 +411,6 @@ function GoalCard({
                   </div>
                 )}
 
-                {/* Add Step */}
                 <div className="flex gap-2 mb-4">
                   <input value={newStep} onChange={e => onNewStepChange(e.target.value)}
                     placeholder="Add a milestone..."
@@ -352,7 +422,6 @@ function GoalCard({
                   </button>
                 </div>
 
-                {/* Actions */}
                 <div className="flex gap-2">
                   <button onClick={onToggleComplete}
                     className="flex-1 rounded-xl border border-primary/20 px-3 py-2 text-xs font-medium text-primary hover:bg-primary/5 transition-colors flex items-center justify-center gap-1.5">
