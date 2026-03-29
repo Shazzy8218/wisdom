@@ -9,6 +9,7 @@ import { useGoals } from "@/hooks/useGoals";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { toast } from "@/hooks/use-toast";
 import { createThread, addMessageToThread } from "@/lib/chat-history";
+import { hasLoaGoalPayload, persistLoaGoalsFromMessage } from "@/lib/loa-goals";
 
 interface ChatMsg {
   role: "user" | "assistant";
@@ -31,9 +32,9 @@ What is your ultimate life goal for the next 12 months? I need specifics — an 
 
 export default function LifeOptimizer() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { session } = useAuth();
   const { progress } = useProgress();
-  const { goals, createGoal } = useGoals();
+  const { goals } = useGoals();
   const { profile } = useUserProfile();
   const [messages, setMessages] = useState<ChatMsg[]>([
     { role: "assistant", content: INTRO_MESSAGE },
@@ -60,87 +61,29 @@ export default function LifeOptimizer() {
 
   useEffect(() => { scrollToBottom(); }, [messages, scrollToBottom]);
 
-  // Extract goals from final plan with robust parsing
-  const extractAndCreateGoals = useCallback(async (content: string) => {
-    // Try exact markers first, then relaxed patterns
-    let jsonStr: string | null = null;
-    const exactMatch = content.match(/===GOALS_START===\s*([\s\S]*?)\s*===GOALS_END===/);
-    if (exactMatch) {
-      jsonStr = exactMatch[1].trim();
-    } else {
-      // Fallback: look for JSON array pattern between markers that might be slightly malformed
-      const relaxedMatch = content.match(/GOALS_START[=\s]*([\s\S]*?)[=\s]*GOALS_END/);
-      if (relaxedMatch) jsonStr = relaxedMatch[1].trim();
+  const activateMissionControl = useCallback(async (content: string) => {
+    if (!threadId) {
+      throw new Error("The session thread was not ready. Please send your message again.");
     }
 
-    if (!jsonStr) {
-      console.warn("[LOA] No goals markers found in response");
-      return;
+    const accessToken = session?.access_token;
+    if (!accessToken) {
+      throw new Error("Your session expired. Please sign in again to save goals.");
     }
 
-    // Strip markdown code fences if AI wrapped JSON in them
-    jsonStr = jsonStr.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
+    const result = await persistLoaGoalsFromMessage(content, accessToken, threadId);
 
-    let parsed: any[];
-    try {
-      parsed = JSON.parse(jsonStr);
-      if (!Array.isArray(parsed)) {
-        console.error("[LOA] Parsed goals is not an array:", typeof parsed);
-        toast({ title: "Goal parsing error", description: "AI returned invalid goal format. Please try again.", variant: "destructive" });
-        return;
-      }
-    } catch (e) {
-      console.error("[LOA] Failed to parse goals JSON:", e, "\nRaw:", jsonStr);
-      toast({ title: "Goal parsing error", description: "Could not parse the action plan. Please try again.", variant: "destructive" });
-      return;
-    }
-
-    if (parsed.length === 0) {
-      console.warn("[LOA] Empty goals array");
-      return;
-    }
-
-    let created = 0;
-    const errors: string[] = [];
-    for (const g of parsed) {
-      try {
-        // Validate required fields
-        const title = (g.title || "").trim();
-        if (!title) {
-          errors.push("Skipped goal with empty title");
-          continue;
-        }
-        await createGoal({
-          title,
-          targetMetric: g.targetMetric || g.target_metric || "custom",
-          targetValue: Number(g.targetValue || g.target_value) || 100,
-          currentValue: Number(g.currentValue || g.current_value) || 0,
-          baselineValue: Number(g.baselineValue || g.baseline_value) || 0,
-          deadline: g.deadline || null,
-          why: g.why || "",
-          roadmap: Array.isArray(g.roadmap) ? g.roadmap.map((r: any) => ({
-            step: typeof r === "string" ? r : (r.step || r.task || "Task"),
-            done: r.done === true || false,
-          })) : [],
-        });
-        created++;
-      } catch (e: any) {
-        console.error("[LOA] Failed to create goal:", e);
-        errors.push(e?.message || "Unknown error");
-      }
-    }
-
-    if (created > 0) {
-      setGoalsExtracted(true);
-      toast({
-        title: `🎯 ${created} goal${created > 1 ? "s" : ""} saved to Mission Control!`,
-        description: "Navigate to Goals to see your strategic roadmap.",
-      });
-    }
-    if (errors.length > 0 && created === 0) {
-      toast({ title: "Failed to save goals", description: errors[0], variant: "destructive" });
-    }
-  }, [createGoal]);
+    setGoalsExtracted(true);
+    navigate("/goals", {
+      replace: true,
+      state: {
+        loaImport: {
+          createdCount: result.createdCount,
+          importedAt: Date.now(),
+        },
+      },
+    });
+  }, [navigate, session?.access_token, threadId]);
 
   const sendMessage = useCallback(async () => {
     if (!input.trim() || streaming) return;
@@ -170,6 +113,8 @@ export default function LifeOptimizer() {
       existingGoals: goals.map(g => ({ title: g.title })),
     };
 
+    let assistantContent = "";
+
     try {
       const resp = await fetch(LOA_URL, {
         method: "POST",
@@ -191,7 +136,6 @@ export default function LifeOptimizer() {
       const reader = resp.body?.getReader();
       if (!reader) throw new Error("No reader");
 
-      let assistantContent = "";
       setMessages(prev => [...prev, { role: "assistant", content: "" }]);
 
       const decoder = new TextDecoder();
@@ -230,9 +174,17 @@ export default function LifeOptimizer() {
         addMessageToThread(threadId, "assistant", assistantContent);
       }
 
-      // Check for goals in the final message
-      if (assistantContent.includes("===GOALS_START===")) {
-        await extractAndCreateGoals(assistantContent);
+      if (hasLoaGoalPayload(assistantContent)) {
+        try {
+          await activateMissionControl(assistantContent);
+        } catch (activationError: any) {
+          console.error("[LOA] Goal activation error:", activationError);
+          toast({
+            title: "Mission Control activation failed",
+            description: activationError?.message || "Your plan was generated, but the goals could not be activated.",
+            variant: "destructive",
+          });
+        }
       }
     } catch (e: any) {
       console.error("[LOA] Stream error:", e);
@@ -244,7 +196,7 @@ export default function LifeOptimizer() {
       setStreaming(false);
       inputRef.current?.focus();
     }
-  }, [input, streaming, messages, progress, profile, goals, scrollToBottom, extractAndCreateGoals, threadId]);
+  }, [activateMissionControl, goals, input, messages, profile, progress, scrollToBottom, streaming, threadId]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
