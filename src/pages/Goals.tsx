@@ -1,14 +1,16 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Target, ChevronLeft, Plus, Trash2, CheckCircle, Circle, Flame, Coins, Clock, Loader2, Trophy, TrendingUp, X } from "lucide-react";
+import { Target, ChevronLeft, Plus, Trash2, CheckCircle, Circle, Flame, Coins, Clock, Loader2, Trophy, TrendingUp, X, LogIn } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useGoals, UserGoal } from "@/hooks/useGoals";
 import { useProgress } from "@/hooks/useProgress";
+import { useAuth } from "@/hooks/useAuth";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "@/hooks/use-toast";
 import GoalCreateSheet, { GoalDraft } from "@/components/goals/GoalCreateSheet";
 
 export default function Goals() {
+  const { user, loading: authLoading } = useAuth();
   const { goals, loading, createGoal, updateGoal, deleteGoal, toggleComplete } = useGoals();
   const { progress } = useProgress();
   const navigate = useNavigate();
