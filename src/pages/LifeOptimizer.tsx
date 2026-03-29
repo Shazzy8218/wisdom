@@ -41,8 +41,16 @@ export default function LifeOptimizer() {
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
   const [goalsExtracted, setGoalsExtracted] = useState(false);
+  const [threadId, setThreadId] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  // Create a chat thread on mount to persist the conversation
+  useEffect(() => {
+    const thread = createThread("Life Optimization Session", "loa-session");
+    setThreadId(thread.id);
+    addMessageToThread(thread.id, "assistant", INTRO_MESSAGE);
+  }, []);
 
   const scrollToBottom = useCallback(() => {
     setTimeout(() => {
