@@ -63,7 +63,8 @@ export default function LifeOptimizer() {
 
   const activateMissionControl = useCallback(async (content: string) => {
     try {
-      const accessToken = session?.access_token;
+      const { data: { session: freshSession } } = await supabase.auth.getSession();
+      const accessToken = freshSession?.access_token;
       if (!accessToken) {
         throw new Error("Please sign in to load goals into Mission Control.");
       }
@@ -94,7 +95,7 @@ export default function LifeOptimizer() {
       console.error("[LOA] activateMissionControl error:", err);
       throw err;
     }
-  }, [navigate, session, threadId]);
+  }, [navigate, threadId]);
 
   const sendMessage = useCallback(async () => {
     if (!input.trim() || streaming) return;
