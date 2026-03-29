@@ -222,7 +222,7 @@ export default function LifeOptimizer() {
       setStreaming(false);
       inputRef.current?.focus();
     }
-  }, [activateMissionControl, goals, input, messages, navigate, profile, progress, scrollToBottom, session, streaming, threadId]);
+  }, [activateMissionControl, goals, input, messages, navigate, profile, progress, scrollToBottom, streaming, threadId]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
