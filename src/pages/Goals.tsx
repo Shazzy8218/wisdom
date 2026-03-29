@@ -43,7 +43,7 @@ export default function Goals() {
     void refetch().finally(() => {
       toast({
         title: "Mission Control activated",
-        description: `${loaImport.createdCount ?? 0} goal${loaImport.createdCount === 1 ? "" : "s"} loaded from Life Optimization Advisor.",
+        description: `${loaImport.createdCount ?? 0} goal${loaImport.createdCount === 1 ? "" : "s"} loaded from Life Optimization Advisor.`,
       });
     });
 
