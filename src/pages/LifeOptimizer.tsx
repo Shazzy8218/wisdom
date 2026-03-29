@@ -177,6 +177,11 @@ export default function LifeOptimizer() {
         }
       }
 
+      // Persist assistant message
+      if (threadId && assistantContent) {
+        addMessageToThread(threadId, "assistant", assistantContent);
+      }
+
       // Check for goals in the final message
       if (assistantContent.includes("===GOALS_START===")) {
         await extractAndCreateGoals(assistantContent);
@@ -191,7 +196,7 @@ export default function LifeOptimizer() {
       setStreaming(false);
       inputRef.current?.focus();
     }
-  }, [input, streaming, messages, progress, profile, goals, scrollToBottom, extractAndCreateGoals]);
+  }, [input, streaming, messages, progress, profile, goals, scrollToBottom, extractAndCreateGoals, threadId]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
