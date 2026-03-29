@@ -9,7 +9,7 @@ import { useGoals } from "@/hooks/useGoals";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { toast } from "@/hooks/use-toast";
 import { createThread, addMessageToThread } from "@/lib/chat-history";
-import { hasLoaGoalPayload, extractGoalsFromLoaMessage } from "@/lib/loa-goals";
+import { hasLoaGoalPayload, persistLoaGoalsFromMessage } from "@/lib/loa-goals";
 
 interface ChatMsg {
   role: "user" | "assistant";
@@ -34,7 +34,7 @@ export default function LifeOptimizer() {
   const navigate = useNavigate();
   const { session } = useAuth();
   const { progress } = useProgress();
-  const { goals, createGoal } = useGoals();
+  const { goals } = useGoals();
   const { profile } = useUserProfile();
   const [messages, setMessages] = useState<ChatMsg[]>([
     { role: "assistant", content: INTRO_MESSAGE },
@@ -63,26 +63,16 @@ export default function LifeOptimizer() {
 
   const activateMissionControl = useCallback(async (content: string) => {
     try {
-      const drafts = extractGoalsFromLoaMessage(content);
-      let createdCount = 0;
-
-      for (const draft of drafts) {
-        try {
-          await createGoal({
-            title: draft.title,
-            targetMetric: draft.targetMetric,
-            targetValue: draft.targetValue,
-            currentValue: draft.currentValue,
-            baselineValue: draft.baselineValue,
-            deadline: draft.deadline,
-            why: draft.why,
-            roadmap: draft.roadmap,
-          });
-          createdCount++;
-        } catch (goalErr) {
-          console.error("[LOA] Failed to create goal:", draft.title, goalErr);
-        }
+      const accessToken = session?.access_token;
+      if (!accessToken) {
+        throw new Error("Please sign in to load goals into Mission Control.");
       }
+
+      const { createdCount } = await persistLoaGoalsFromMessage(
+        content,
+        accessToken,
+        threadId ?? "loa-session",
+      );
 
       if (createdCount === 0) {
         throw new Error("No goals could be saved. Please try again.");
@@ -95,16 +85,31 @@ export default function LifeOptimizer() {
       });
 
       setTimeout(() => {
-        navigate("/goals", { replace: true });
+        navigate("/goals", {
+          replace: true,
+          state: { loaImport: { createdCount } },
+        });
       }, 1000);
     } catch (err: any) {
       console.error("[LOA] activateMissionControl error:", err);
       throw err;
     }
-  }, [navigate, createGoal]);
+  }, [navigate, session, threadId]);
 
   const sendMessage = useCallback(async () => {
     if (!input.trim() || streaming) return;
+
+    const accessToken = session?.access_token;
+    if (!accessToken) {
+      toast({
+        title: "Sign in required",
+        description: "Please sign in so the advisor can save goals to your Mission Control.",
+        variant: "destructive",
+      });
+      navigate("/auth");
+      return;
+    }
+
     const userMsg: ChatMsg = { role: "user", content: input.trim() };
     const newMessages = [...messages, userMsg];
     setMessages(newMessages);
@@ -139,7 +144,7 @@ export default function LifeOptimizer() {
         headers: {
           "Content-Type": "application/json",
           apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          Authorization: `Bearer ${accessToken}`,
         },
         body: JSON.stringify({
           messages: newMessages.map(m => ({ role: m.role, content: m.content })),
@@ -214,7 +219,7 @@ export default function LifeOptimizer() {
       setStreaming(false);
       inputRef.current?.focus();
     }
-  }, [activateMissionControl, goals, input, messages, profile, progress, scrollToBottom, streaming, threadId]);
+  }, [activateMissionControl, goals, input, messages, navigate, profile, progress, scrollToBottom, session, streaming, threadId]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
