@@ -8,6 +8,7 @@ import { useProgress } from "@/hooks/useProgress";
 import { useGoals } from "@/hooks/useGoals";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { toast } from "@/hooks/use-toast";
+import { createThread, addMessageToThread } from "@/lib/chat-history";
 
 interface ChatMsg {
   role: "user" | "assistant";
