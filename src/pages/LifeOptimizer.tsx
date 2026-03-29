@@ -34,7 +34,7 @@ export default function LifeOptimizer() {
   const navigate = useNavigate();
   const { session } = useAuth();
   const { progress } = useProgress();
-  const { goals } = useGoals();
+  const { goals, createGoal } = useGoals();
   const { profile } = useUserProfile();
   const [messages, setMessages] = useState<ChatMsg[]>([
     { role: "assistant", content: INTRO_MESSAGE },
