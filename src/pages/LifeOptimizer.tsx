@@ -101,7 +101,8 @@ export default function LifeOptimizer() {
   const sendMessage = useCallback(async () => {
     if (!input.trim() || streaming) return;
 
-    const accessToken = session?.access_token;
+    const { data: { session: freshSession } } = await supabase.auth.getSession();
+    const accessToken = freshSession?.access_token;
     if (!accessToken) {
       toast({
         title: "Sign in required",
