@@ -156,6 +156,7 @@ function AppRoutes() {
           <Route path="/profile" element={<Profile />} />
           <Route path="/scoreboard" element={<Scoreboard />} />
           <Route path="/goals" element={<Goals />} />
+          <Route path="/life-optimizer" element={<LifeOptimizer />} />
           <Route path="/wallet" element={<WisdomWallet />} />
           <Route path="/store" element={<TokenStore />} />
           <Route path="/upgrade" element={<Upgrade />} />
