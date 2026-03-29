@@ -9,7 +9,7 @@ import { useGoals } from "@/hooks/useGoals";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { toast } from "@/hooks/use-toast";
 import { createThread, addMessageToThread } from "@/lib/chat-history";
-import { hasLoaGoalPayload, persistLoaGoalsFromMessage } from "@/lib/loa-goals";
+import { hasLoaGoalPayload, extractGoalsFromLoaMessage } from "@/lib/loa-goals";
 
 interface ChatMsg {
   role: "user" | "assistant";
@@ -34,7 +34,7 @@ export default function LifeOptimizer() {
   const navigate = useNavigate();
   const { session } = useAuth();
   const { progress } = useProgress();
-  const { goals } = useGoals();
+  const { goals, createGoal } = useGoals();
   const { profile } = useUserProfile();
   const [messages, setMessages] = useState<ChatMsg[]>([
     { role: "assistant", content: INTRO_MESSAGE },
@@ -62,28 +62,46 @@ export default function LifeOptimizer() {
   useEffect(() => { scrollToBottom(); }, [messages, scrollToBottom]);
 
   const activateMissionControl = useCallback(async (content: string) => {
-    if (!threadId) {
-      throw new Error("The session thread was not ready. Please send your message again.");
+    try {
+      const drafts = extractGoalsFromLoaMessage(content);
+      let createdCount = 0;
+
+      for (const draft of drafts) {
+        try {
+          await createGoal({
+            title: draft.title,
+            targetMetric: draft.targetMetric,
+            targetValue: draft.targetValue,
+            currentValue: draft.currentValue,
+            baselineValue: draft.baselineValue,
+            deadline: draft.deadline,
+            why: draft.why,
+            roadmap: draft.roadmap,
+          });
+          createdCount++;
+        } catch (goalErr) {
+          console.error("[LOA] Failed to create goal:", draft.title, goalErr);
+        }
+      }
+
+      if (createdCount === 0) {
+        throw new Error("No goals could be saved. Please try again.");
+      }
+
+      setGoalsExtracted(true);
+      toast({
+        title: `🎯 ${createdCount} goal${createdCount > 1 ? "s" : ""} created!`,
+        description: "Navigating to Mission Control...",
+      });
+
+      setTimeout(() => {
+        navigate("/goals", { replace: true });
+      }, 1000);
+    } catch (err: any) {
+      console.error("[LOA] activateMissionControl error:", err);
+      throw err;
     }
-
-    const accessToken = session?.access_token;
-    if (!accessToken) {
-      throw new Error("Your session expired. Please sign in again to save goals.");
-    }
-
-    const result = await persistLoaGoalsFromMessage(content, accessToken, threadId);
-
-    setGoalsExtracted(true);
-    navigate("/goals", {
-      replace: true,
-      state: {
-        loaImport: {
-          createdCount: result.createdCount,
-          importedAt: Date.now(),
-        },
-      },
-    });
-  }, [navigate, session?.access_token, threadId]);
+  }, [navigate, createGoal]);
 
   const sendMessage = useCallback(async () => {
     if (!input.trim() || streaming) return;
