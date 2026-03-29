@@ -102,6 +102,9 @@ export default function LifeOptimizer() {
     setInput("");
     setStreaming(true);
 
+    // Persist user message
+    if (threadId) addMessageToThread(threadId, "user", userMsg.content);
+
     const masteryScores = (progress as any).masteryScores || {};
     const masteryValues = Object.values(masteryScores).map(Number).filter(Number.isFinite);
     const masteryAvg = masteryValues.length > 0
