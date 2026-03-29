@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Target, ChevronLeft, Plus, Trash2, CheckCircle, Circle, Flame,
@@ -6,7 +6,7 @@ import {
   ChevronRight, BarChart3, Zap, AlertTriangle, ChevronDown,
   Crosshair, BookOpen, Dumbbell, Rocket, Eye, ArrowRight
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useGoals, UserGoal } from "@/hooks/useGoals";
 import { useProgress } from "@/hooks/useProgress";
 import { Progress } from "@/components/ui/progress";
@@ -15,9 +15,10 @@ import GoalCreateSheet, { GoalDraft } from "@/components/goals/GoalCreateSheet";
 import { decomposeGoal, decompositionToRoadmap, type GoalDecomposition } from "@/lib/goal-decompose";
 
 export default function Goals() {
-  const { goals, loading, createGoal, updateGoal, deleteGoal, toggleComplete } = useGoals();
+  const { goals, loading, createGoal, updateGoal, deleteGoal, toggleComplete, refetch } = useGoals();
   const { progress } = useProgress();
   const navigate = useNavigate();
+  const location = useLocation();
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
   const [expandedGoal, setExpandedGoal] = useState<string | null>(null);
@@ -25,6 +26,29 @@ export default function Goals() {
   const [editingGoalId, setEditingGoalId] = useState<string | null>(null);
   const [editCurrentValue, setEditCurrentValue] = useState("");
   const [decomposing, setDecomposing] = useState<string | null>(null); // goalId being decomposed
+
+  const openGoalCreation = useCallback(() => {
+    if (goals.length === 0) {
+      navigate("/life-optimizer");
+      return;
+    }
+
+    setShowCreate(true);
+  }, [goals.length, navigate]);
+
+  useEffect(() => {
+    const loaImport = (location.state as { loaImport?: { createdCount?: number } } | null)?.loaImport;
+    if (!loaImport) return;
+
+    void refetch().finally(() => {
+      toast({
+        title: "Mission Control activated",
+        description: `${loaImport.createdCount ?? 0} goal${loaImport.createdCount === 1 ? "" : "s"} loaded from Life Optimization Advisor.",
+      });
+    });
+
+    navigate(location.pathname, { replace: true, state: null });
+  }, [location.pathname, location.state, navigate, refetch]);
 
   const handleCreate = async (goal: GoalDraft) => {
     setCreating(true);
@@ -187,7 +211,7 @@ export default function Goals() {
           <h1 className="font-display text-2xl font-bold text-foreground">Mission Control</h1>
         </div>
         <button
-          onClick={() => setShowCreate(true)}
+          onClick={openGoalCreation}
           className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
         >
           <Plus className="h-4 w-4" />
@@ -375,7 +399,7 @@ export default function Goals() {
             Set a goal and the AI will decompose it into pillars, milestones, and micro-tasks — your personal strategic roadmap.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <button onClick={() => setShowCreate(true)}
+            <button onClick={openGoalCreation}
               className="rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors inline-flex items-center justify-center gap-2">
               <Plus className="h-4 w-4" /> Set Goal
             </button>
