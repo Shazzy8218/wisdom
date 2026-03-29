@@ -60,37 +60,85 @@ export default function LifeOptimizer() {
 
   useEffect(() => { scrollToBottom(); }, [messages, scrollToBottom]);
 
-  // Extract goals from final plan
+  // Extract goals from final plan with robust parsing
   const extractAndCreateGoals = useCallback(async (content: string) => {
-    const match = content.match(/===GOALS_START===\s*([\s\S]*?)\s*===GOALS_END===/);
-    if (!match) return;
+    // Try exact markers first, then relaxed patterns
+    let jsonStr: string | null = null;
+    const exactMatch = content.match(/===GOALS_START===\s*([\s\S]*?)\s*===GOALS_END===/);
+    if (exactMatch) {
+      jsonStr = exactMatch[1].trim();
+    } else {
+      // Fallback: look for JSON array pattern between markers that might be slightly malformed
+      const relaxedMatch = content.match(/GOALS_START[=\s]*([\s\S]*?)[=\s]*GOALS_END/);
+      if (relaxedMatch) jsonStr = relaxedMatch[1].trim();
+    }
+
+    if (!jsonStr) {
+      console.warn("[LOA] No goals markers found in response");
+      return;
+    }
+
+    // Strip markdown code fences if AI wrapped JSON in them
+    jsonStr = jsonStr.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
+
+    let parsed: any[];
     try {
-      const parsed = JSON.parse(match[1]);
-      if (!Array.isArray(parsed)) return;
-      let created = 0;
-      for (const g of parsed) {
-        try {
-          await createGoal({
-            title: g.title || "Untitled Goal",
-            targetMetric: g.targetMetric || "custom",
-            targetValue: Number(g.targetValue) || 100,
-            currentValue: Number(g.currentValue) || 0,
-            baselineValue: Number(g.baselineValue) || 0,
-            deadline: g.deadline || null,
-            why: g.why || "",
-            roadmap: Array.isArray(g.roadmap) ? g.roadmap : [],
-          });
-          created++;
-        } catch (e) {
-          console.error("[LOA] Failed to create goal:", e);
-        }
-      }
-      if (created > 0) {
-        setGoalsExtracted(true);
-        toast({ title: `🎯 ${created} goal${created > 1 ? "s" : ""} created!`, description: "Your action plan has been loaded into Goals." });
+      parsed = JSON.parse(jsonStr);
+      if (!Array.isArray(parsed)) {
+        console.error("[LOA] Parsed goals is not an array:", typeof parsed);
+        toast({ title: "Goal parsing error", description: "AI returned invalid goal format. Please try again.", variant: "destructive" });
+        return;
       }
     } catch (e) {
-      console.error("[LOA] Failed to parse goals JSON:", e);
+      console.error("[LOA] Failed to parse goals JSON:", e, "\nRaw:", jsonStr);
+      toast({ title: "Goal parsing error", description: "Could not parse the action plan. Please try again.", variant: "destructive" });
+      return;
+    }
+
+    if (parsed.length === 0) {
+      console.warn("[LOA] Empty goals array");
+      return;
+    }
+
+    let created = 0;
+    const errors: string[] = [];
+    for (const g of parsed) {
+      try {
+        // Validate required fields
+        const title = (g.title || "").trim();
+        if (!title) {
+          errors.push("Skipped goal with empty title");
+          continue;
+        }
+        await createGoal({
+          title,
+          targetMetric: g.targetMetric || g.target_metric || "custom",
+          targetValue: Number(g.targetValue || g.target_value) || 100,
+          currentValue: Number(g.currentValue || g.current_value) || 0,
+          baselineValue: Number(g.baselineValue || g.baseline_value) || 0,
+          deadline: g.deadline || null,
+          why: g.why || "",
+          roadmap: Array.isArray(g.roadmap) ? g.roadmap.map((r: any) => ({
+            step: typeof r === "string" ? r : (r.step || r.task || "Task"),
+            done: r.done === true || false,
+          })) : [],
+        });
+        created++;
+      } catch (e: any) {
+        console.error("[LOA] Failed to create goal:", e);
+        errors.push(e?.message || "Unknown error");
+      }
+    }
+
+    if (created > 0) {
+      setGoalsExtracted(true);
+      toast({
+        title: `🎯 ${created} goal${created > 1 ? "s" : ""} saved to Mission Control!`,
+        description: "Navigate to Goals to see your strategic roadmap.",
+      });
+    }
+    if (errors.length > 0 && created === 0) {
+      toast({ title: "Failed to save goals", description: errors[0], variant: "destructive" });
     }
   }, [createGoal]);
 

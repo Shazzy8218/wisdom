@@ -122,6 +122,7 @@ serve(async (req) => {
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "x-lovable-project-id": Deno.env.get("LOVABLE_PROJECT_ID") || "",
       },
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
