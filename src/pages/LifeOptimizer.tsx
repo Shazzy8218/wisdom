@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { ChevronLeft, Send, Loader2, Brain, Zap, Target, Sparkles } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 import { useProgress } from "@/hooks/useProgress";
 import { useGoals } from "@/hooks/useGoals";
 import { useUserProfile } from "@/hooks/useUserProfile";
