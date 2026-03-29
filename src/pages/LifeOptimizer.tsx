@@ -18,6 +18,7 @@ interface ChatMsg {
 }
 
 const LOA_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/loa-interview`;
+const AUTH_SESSION_LOOKUP_TIMEOUT_MS = 8000;
 
 const INTRO_MESSAGE = `**I am the Life Optimization Advisor.**
 
@@ -31,9 +32,75 @@ At the end, you'll get a zero-bullshit action plan with specific, measurable goa
 
 What is your ultimate life goal for the next 12 months? I need specifics — an income target, a lifestyle change, a skill you want to master. Not "be successful." Give me a number.`;
 
+function withTimeout<T>(promise: Promise<T>, ms: number, timeoutMessage: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(timeoutMessage)), ms);
+    promise
+      .then((value) => {
+        clearTimeout(timer);
+        resolve(value);
+      })
+      .catch((error) => {
+        clearTimeout(timer);
+        reject(error);
+      });
+  });
+}
+
+function extractAccessTokenFromStoredAuth(raw: string): string | null {
+  try {
+    const parsed = JSON.parse(raw);
+    if (typeof parsed?.access_token === "string" && parsed.access_token) return parsed.access_token;
+    if (typeof parsed?.currentSession?.access_token === "string" && parsed.currentSession.access_token) {
+      return parsed.currentSession.access_token;
+    }
+    if (typeof parsed?.session?.access_token === "string" && parsed.session.access_token) {
+      return parsed.session.access_token;
+    }
+  } catch {
+    // ignore malformed local storage payloads
+  }
+
+  return null;
+}
+
+function getAccessTokenFromLocalStorage(): string | null {
+  if (typeof window === "undefined") return null;
+
+  const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID?.trim();
+  const knownKey = projectId ? `sb-${projectId}-auth-token` : null;
+  const discoveredKeys = Object.keys(localStorage).filter((key) => key.startsWith("sb-") && key.endsWith("-auth-token"));
+  const keys = Array.from(new Set([knownKey, ...discoveredKeys].filter(Boolean))) as string[];
+
+  for (const key of keys) {
+    const raw = localStorage.getItem(key);
+    if (!raw) continue;
+    const token = extractAccessTokenFromStoredAuth(raw);
+    if (token) return token;
+  }
+
+  return null;
+}
+
+async function resolveLoaAccessToken(): Promise<string | null> {
+  const localToken = getAccessTokenFromLocalStorage();
+
+  try {
+    const sessionResult = await withTimeout(
+      supabase.auth.getSession(),
+      AUTH_SESSION_LOOKUP_TIMEOUT_MS,
+      "Auth session lookup timed out.",
+    );
+
+    return sessionResult.data.session?.access_token || localToken;
+  } catch {
+    return localToken;
+  }
+}
+
 export default function LifeOptimizer() {
   const navigate = useNavigate();
-  const { session } = useAuth();
+  const { loading: authLoading } = useAuth();
   const { progress } = useProgress();
   const { goals } = useGoals();
   const { profile } = useUserProfile();
@@ -64,8 +131,7 @@ export default function LifeOptimizer() {
 
   const activateMissionControl = useCallback(async (content: string) => {
     try {
-      const { data: { session: freshSession } } = await supabase.auth.getSession();
-      const accessToken = freshSession?.access_token;
+      const accessToken = await resolveLoaAccessToken();
       if (!accessToken) {
         throw new Error("Please sign in to load goals into Mission Control.");
       }
@@ -99,49 +165,56 @@ export default function LifeOptimizer() {
   }, [navigate, threadId]);
 
   const sendMessage = useCallback(async () => {
-    if (!input.trim() || streaming) return;
-
-    const { data: { session: freshSession } } = await supabase.auth.getSession();
-    const accessToken = freshSession?.access_token;
-    if (!accessToken) {
-      toast({
-        title: "Sign in required",
-        description: "Please sign in so the advisor can save goals to your Mission Control.",
-        variant: "destructive",
-      });
-      navigate("/auth");
-      return;
-    }
-
-    const userMsg: ChatMsg = { role: "user", content: input.trim() };
-    const newMessages = [...messages, userMsg];
-    setMessages(newMessages);
-    setInput("");
-    setStreaming(true);
-
-    // Persist user message
-    if (threadId) addMessageToThread(threadId, "user", userMsg.content);
-
-    const masteryScores = (progress as any).masteryScores || {};
-    const masteryValues = Object.values(masteryScores).map(Number).filter(Number.isFinite);
-    const masteryAvg = masteryValues.length > 0
-      ? Math.round(masteryValues.reduce((a: number, b: number) => a + b, 0) / masteryValues.length)
-      : 0;
-
-    const userContext = {
-      displayName: profile?.displayName || "",
-      streak: progress.streak,
-      tokens: progress.tokens,
-      masteryAvg,
-      lessonsCompleted: ((progress as any).completedLessons || []).length,
-      learningGoal: "",
-      goalMode: "",
-      existingGoals: goals.map(g => ({ title: g.title })),
-    };
-
-    let assistantContent = "";
+    const trimmedInput = input.trim();
+    if (!trimmedInput || streaming) return;
 
     try {
+      if (authLoading) {
+        toast({
+          title: "Restoring session",
+          description: "Your sign-in is still loading. Try again in a moment.",
+        });
+        return;
+      }
+
+      const accessToken = await resolveLoaAccessToken();
+      if (!accessToken) {
+        toast({
+          title: "Sign in required",
+          description: "Please sign in so the advisor can save goals to your Mission Control.",
+          variant: "destructive",
+        });
+        navigate("/auth");
+        return;
+      }
+
+      const userMsg: ChatMsg = { role: "user", content: trimmedInput };
+      const newMessages = [...messages, userMsg];
+      setMessages(newMessages);
+      setInput("");
+      setStreaming(true);
+
+      if (threadId) addMessageToThread(threadId, "user", userMsg.content);
+
+      const rawProgress = progress as any;
+      const masteryScores = rawProgress?.masteryScores ?? {};
+      const masteryValues = Object.values(masteryScores).map(Number).filter(Number.isFinite);
+      const masteryAvg = masteryValues.length > 0
+        ? Math.round(masteryValues.reduce((a: number, b: number) => a + b, 0) / masteryValues.length)
+        : 0;
+
+      const userContext = {
+        displayName: profile?.displayName || "",
+        streak: rawProgress?.streak ?? 0,
+        tokens: rawProgress?.tokens ?? 0,
+        masteryAvg,
+        lessonsCompleted: Array.isArray(rawProgress?.completedLessons) ? rawProgress.completedLessons.length : 0,
+        learningGoal: "",
+        goalMode: "",
+        existingGoals: Array.isArray(goals) ? goals.map((goal) => ({ title: goal.title })) : [],
+      };
+
+      let assistantContent = "";
       const resp = await fetch(LOA_URL, {
         method: "POST",
         headers: {
@@ -150,7 +223,7 @@ export default function LifeOptimizer() {
           Authorization: `Bearer ${accessToken}`,
         },
         body: JSON.stringify({
-          messages: newMessages.map(m => ({ role: m.role, content: m.content })),
+          messages: newMessages.map((message) => ({ role: message.role, content: message.content })),
           userContext,
         }),
       });
@@ -162,7 +235,7 @@ export default function LifeOptimizer() {
       const reader = resp.body?.getReader();
       if (!reader) throw new Error("No reader");
 
-      setMessages(prev => [...prev, { role: "assistant", content: "" }]);
+      setMessages((prev) => [...prev, { role: "assistant", content: "" }]);
 
       const decoder = new TextDecoder();
       let buffer = "";
@@ -184,18 +257,19 @@ export default function LifeOptimizer() {
             const delta = parsed.choices?.[0]?.delta?.content;
             if (delta) {
               assistantContent += delta;
-              setMessages(prev => {
+              setMessages((prev) => {
                 const copy = [...prev];
                 copy[copy.length - 1] = { role: "assistant", content: assistantContent };
                 return copy;
               });
               scrollToBottom();
             }
-          } catch {}
+          } catch {
+            // ignore malformed stream chunk
+          }
         }
       }
 
-      // Persist assistant message
       if (threadId && assistantContent) {
         addMessageToThread(threadId, "assistant", assistantContent);
       }
@@ -214,15 +288,15 @@ export default function LifeOptimizer() {
       }
     } catch (e: any) {
       console.error("[LOA] Stream error:", e);
-      setMessages(prev => [
-        ...prev.filter(m => m.content !== ""),
+      setMessages((prev) => [
+        ...prev.filter((message) => message.content !== ""),
         { role: "assistant", content: "Connection interrupted. Please try sending your message again." },
       ]);
     } finally {
       setStreaming(false);
       inputRef.current?.focus();
     }
-  }, [activateMissionControl, goals, input, messages, navigate, profile, progress, scrollToBottom, streaming, threadId]);
+  }, [activateMissionControl, authLoading, goals, input, messages, navigate, profile, progress, scrollToBottom, streaming, threadId]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
