@@ -100,13 +100,13 @@ export default function LifeOptimizer() {
       : 0;
 
     const userContext = {
-      displayName: profile?.display_name || "",
+      displayName: profile?.displayName || "",
       streak: progress.streak,
       tokens: progress.tokens,
       masteryAvg,
       lessonsCompleted: ((progress as any).completedLessons || []).length,
-      learningGoal: profile?.learning_goal || "",
-      goalMode: profile?.goal_mode || "",
+      learningGoal: "",
+      goalMode: "",
       existingGoals: goals.map(g => ({ title: g.title })),
     };
 
