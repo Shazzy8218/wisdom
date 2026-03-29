@@ -8,6 +8,7 @@ import { useProgress } from "@/hooks/useProgress";
 import { useGoals } from "@/hooks/useGoals";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { toast } from "@/hooks/use-toast";
+import { createThread, addMessageToThread } from "@/lib/chat-history";
 
 interface ChatMsg {
   role: "user" | "assistant";
@@ -40,8 +41,16 @@ export default function LifeOptimizer() {
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
   const [goalsExtracted, setGoalsExtracted] = useState(false);
+  const [threadId, setThreadId] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  // Create a chat thread on mount to persist the conversation
+  useEffect(() => {
+    const thread = createThread("Life Optimization Session", "loa-session");
+    setThreadId(thread.id);
+    addMessageToThread(thread.id, "assistant", INTRO_MESSAGE);
+  }, []);
 
   const scrollToBottom = useCallback(() => {
     setTimeout(() => {
@@ -92,6 +101,9 @@ export default function LifeOptimizer() {
     setMessages(newMessages);
     setInput("");
     setStreaming(true);
+
+    // Persist user message
+    if (threadId) addMessageToThread(threadId, "user", userMsg.content);
 
     const masteryScores = (progress as any).masteryScores || {};
     const masteryValues = Object.values(masteryScores).map(Number).filter(Number.isFinite);
@@ -165,6 +177,11 @@ export default function LifeOptimizer() {
         }
       }
 
+      // Persist assistant message
+      if (threadId && assistantContent) {
+        addMessageToThread(threadId, "assistant", assistantContent);
+      }
+
       // Check for goals in the final message
       if (assistantContent.includes("===GOALS_START===")) {
         await extractAndCreateGoals(assistantContent);
@@ -179,7 +196,7 @@ export default function LifeOptimizer() {
       setStreaming(false);
       inputRef.current?.focus();
     }
-  }, [input, streaming, messages, progress, profile, goals, scrollToBottom, extractAndCreateGoals]);
+  }, [input, streaming, messages, progress, profile, goals, scrollToBottom, extractAndCreateGoals, threadId]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
