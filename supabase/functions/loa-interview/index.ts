@@ -65,6 +65,10 @@ FORMAT YOUR FINAL PLAN using this exact structure:
 
 This JSON block will be parsed to auto-create goals. Include it at the end of your final analysis message.
 
+CRITICAL:
+- Never claim goals were already saved, loaded, created in the dashboard, or activated in Mission Control.
+- Your job is only to generate the plan and the JSON payload. The application confirms persistence separately.
+
 IMPORTANT RULES:
 - Track which phase you're in based on conversation history
 - Never skip phases — each builds on previous data
