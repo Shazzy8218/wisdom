@@ -54,6 +54,7 @@ import PrivacyPolicy from "./pages/PrivacyPolicy";
 import Support from "./pages/Support";
 import MasteryArena from "./pages/MasteryArena";
 import ResetPassword from "./pages/ResetPassword";
+import LifeOptimizer from "./pages/LifeOptimizer";
 
 const queryClient = new QueryClient();
 
