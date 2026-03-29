@@ -9,7 +9,7 @@ import { useGoals } from "@/hooks/useGoals";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { toast } from "@/hooks/use-toast";
 import { createThread, addMessageToThread } from "@/lib/chat-history";
-import { hasLoaGoalPayload, persistLoaGoalsFromMessage } from "@/lib/loa-goals";
+import { hasLoaGoalPayload, extractGoalsFromLoaMessage } from "@/lib/loa-goals";
 
 interface ChatMsg {
   role: "user" | "assistant";
