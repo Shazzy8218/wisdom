@@ -54,6 +54,7 @@ import PrivacyPolicy from "./pages/PrivacyPolicy";
 import Support from "./pages/Support";
 import MasteryArena from "./pages/MasteryArena";
 import ResetPassword from "./pages/ResetPassword";
+import LifeOptimizer from "./pages/LifeOptimizer";
 
 const queryClient = new QueryClient();
 
@@ -155,6 +156,7 @@ function AppRoutes() {
           <Route path="/profile" element={<Profile />} />
           <Route path="/scoreboard" element={<Scoreboard />} />
           <Route path="/goals" element={<Goals />} />
+          <Route path="/life-optimizer" element={<LifeOptimizer />} />
           <Route path="/wallet" element={<WisdomWallet />} />
           <Route path="/store" element={<TokenStore />} />
           <Route path="/upgrade" element={<Upgrade />} />
