@@ -17,17 +17,33 @@ export interface UserGoal {
 }
 
 export function useGoals() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [goals, setGoals] = useState<UserGoal[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const resolveAuthenticatedUser = useCallback(async () => {
+    if (user) return user;
+
+    const { data, error } = await supabase.auth.getSession();
+    if (error) throw error;
+
+    return data.session?.user ?? null;
+  }, [user]);
+
   const fetchGoals = useCallback(async () => {
-    if (!user) { setGoals([]); setLoading(false); return; }
+    const activeUser = user ?? (authLoading ? await resolveAuthenticatedUser() : null);
+
+    if (!activeUser) {
+      setGoals([]);
+      setLoading(false);
+      return;
+    }
+
     try {
       const { data, error } = await supabase
         .from("user_goals")
         .select("*")
-        .eq("user_id", user.id)
+        .eq("user_id", activeUser.id)
         .order("created_at", { ascending: false });
       if (error) { console.error("[Goals] fetch error:", error); setLoading(false); return; }
       if (data) {
@@ -37,14 +53,16 @@ export function useGoals() {
       console.error("[Goals] fetch exception:", e);
     }
     setLoading(false);
-  }, [user]);
+  }, [authLoading, resolveAuthenticatedUser, user]);
 
   useEffect(() => { fetchGoals(); }, [fetchGoals]);
 
   const createGoal = useCallback(async (goal: Omit<UserGoal, "id" | "completed" | "createdAt">) => {
-    if (!user) throw new Error("Not authenticated");
+    const activeUser = await resolveAuthenticatedUser();
+    if (!activeUser) throw new Error("Not authenticated");
+
     const { data, error } = await supabase.from("user_goals").insert({
-      user_id: user.id,
+      user_id: activeUser.id,
       title: goal.title,
       target_metric: goal.targetMetric,
       target_value: goal.targetValue,
@@ -57,10 +75,12 @@ export function useGoals() {
     if (error) { console.error("[Goals] create error:", error); throw error; }
     if (data) setGoals(prev => [rowToGoal(data), ...prev]);
     return data;
-  }, [user]);
+  }, [resolveAuthenticatedUser]);
 
   const updateGoal = useCallback(async (id: string, updates: Partial<UserGoal>) => {
-    if (!user) return;
+    const activeUser = await resolveAuthenticatedUser();
+    if (!activeUser) throw new Error("Not authenticated");
+
     const dbUpdates: Record<string, any> = { updated_at: new Date().toISOString() };
     if (updates.title !== undefined) dbUpdates.title = updates.title;
     if (updates.currentValue !== undefined) dbUpdates.current_value = updates.currentValue;
@@ -72,17 +92,19 @@ export function useGoals() {
     if (updates.baselineValue !== undefined) dbUpdates.baseline_value = updates.baselineValue;
     if (updates.targetMetric !== undefined) dbUpdates.target_metric = updates.targetMetric;
     
-    const { error } = await supabase.from("user_goals").update(dbUpdates).eq("id", id);
+    const { error } = await supabase.from("user_goals").update(dbUpdates).eq("id", id).eq("user_id", activeUser.id);
     if (error) { console.error("[Goals] update error:", error); throw error; }
     setGoals(prev => prev.map(g => g.id === id ? { ...g, ...updates } : g));
-  }, [user]);
+  }, [resolveAuthenticatedUser]);
 
   const deleteGoal = useCallback(async (id: string) => {
-    if (!user) return;
-    const { error } = await supabase.from("user_goals").delete().eq("id", id);
+    const activeUser = await resolveAuthenticatedUser();
+    if (!activeUser) throw new Error("Not authenticated");
+
+    const { error } = await supabase.from("user_goals").delete().eq("id", id).eq("user_id", activeUser.id);
     if (error) { console.error("[Goals] delete error:", error); throw error; }
     setGoals(prev => prev.filter(g => g.id !== id));
-  }, [user]);
+  }, [resolveAuthenticatedUser]);
 
   const toggleComplete = useCallback(async (id: string) => {
     const goal = goals.find(g => g.id === id);
