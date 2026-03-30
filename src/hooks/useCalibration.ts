@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import type { User } from "@supabase/supabase-js";
 import { useAuth } from "./useAuth";
 
 export interface CalibrationData {
@@ -22,8 +23,10 @@ const DEFAULT: CalibrationData = {
   calibrationDone: false,
 };
 
-export function useCalibration() {
-  const { user } = useAuth();
+export function useCalibration(externalUser?: User | null, externalAuthReady?: boolean) {
+  const auth = useAuth();
+  const user = externalUser !== undefined ? externalUser : auth.user;
+  const authReady = externalAuthReady ?? !auth.loading;
   const [data, setData] = useState<CalibrationData>(() => {
     const cached = localStorage.getItem("wisdom-calibration-cache");
     if (cached) {
@@ -38,10 +41,18 @@ export function useCalibration() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!authReady) {
+      setLoading(true);
+      return;
+    }
+
     if (!user) {
       setLoading(false);
       return;
     }
+
+    let cancelled = false;
+    setLoading(true);
 
     supabase
       .from("profiles")
@@ -49,6 +60,8 @@ export function useCalibration() {
       .eq("id", user.id)
       .single()
       .then(({ data: row, error }) => {
+        if (cancelled) return;
+
         if (row && !error) {
           const r = row as any;
           const d: CalibrationData = {
@@ -63,9 +76,19 @@ export function useCalibration() {
           setData(d);
           localStorage.setItem("wisdom-calibration-cache", JSON.stringify(d));
         }
+      })
+      .catch(() => {
+        if (cancelled) return;
+      })
+      .finally(() => {
+        if (cancelled) return;
         setLoading(false);
       });
-  }, [user]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [authReady, user]);
 
   const completeCalibration = useCallback(
     async (answers: {

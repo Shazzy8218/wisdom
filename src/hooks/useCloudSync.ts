@@ -1,57 +1,45 @@
 // Hook to sync all user data from cloud on login
 import { useEffect, useRef } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import type { User } from "@supabase/supabase-js";
 import { syncChatHistoryToCloud, resetChatCloudCache } from "@/lib/chat-history";
 import { syncPersonalizedLessons, resetPersonalizedLessonsSync } from "@/lib/personalized-lessons";
 import { loadCloudProgressOnLogin, resetCloudLoadedFlag } from "@/hooks/useProgress";
 
 let syncing = false;
 
-export function useCloudSync() {
-  const syncedRef = useRef(false);
+export function useCloudSync(user: User | null, authReady: boolean) {
+  const syncedUserIdRef = useRef<string | null>(null);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === "SIGNED_IN" && session?.user && !syncing) {
-        syncing = true;
-        try {
-          // Sync all data from cloud in parallel
-          await Promise.all([
-            loadCloudProgressOnLogin(),
-            syncChatHistoryToCloud(),
-            syncPersonalizedLessons(),
-          ]);
-        } catch (e) {
-          console.error("[CloudSync] Error:", e);
-        } finally {
-          syncing = false;
-          syncedRef.current = true;
-        }
-      }
-      if (event === "SIGNED_OUT") {
-        resetCloudLoadedFlag();
-        resetChatCloudCache();
-        resetPersonalizedLessonsSync();
-        syncedRef.current = false;
-      }
-    });
+    if (!authReady) return;
 
-    return () => subscription.unsubscribe();
-  }, []);
+    if (!user) {
+      resetCloudLoadedFlag();
+      resetChatCloudCache();
+      resetPersonalizedLessonsSync();
+      syncedUserIdRef.current = null;
+      syncing = false;
+      return;
+    }
 
-  // Also sync on mount if already logged in
-  useEffect(() => {
-    if (syncedRef.current || syncing) return;
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user && !syncedRef.current && !syncing) {
-        syncing = true;
-        Promise.all([
-          loadCloudProgressOnLogin(),
-          syncChatHistoryToCloud(),
-          syncPersonalizedLessons(),
-        ]).catch(e => console.error("[CloudSync] Error:", e))
-          .finally(() => { syncing = false; syncedRef.current = true; });
-      }
-    });
-  }, []);
+    if (syncing || syncedUserIdRef.current === user.id) return;
+
+    let cancelled = false;
+    syncing = true;
+
+    Promise.all([
+      loadCloudProgressOnLogin(),
+      syncChatHistoryToCloud(),
+      syncPersonalizedLessons(),
+    ])
+      .catch((e) => console.error("[CloudSync] Error:", e))
+      .finally(() => {
+        syncing = false;
+        if (!cancelled) syncedUserIdRef.current = user.id;
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [authReady, user]);
 }
