@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
-import { BookOpen, BarChart3, Gamepad2, BookMarked, ChevronRight, Zap, Flame } from "lucide-react";
+import { BookOpen, BarChart3, Gamepad2, BookMarked, ChevronRight, Zap, Flame, Target, Trophy, TrendingUp } from "lucide-react";
 import { Link } from "react-router-dom";
 import StatBlock from "@/components/StatBlock";
 import { QUOTES, MICRO_LESSONS } from "@/lib/data";
@@ -9,12 +9,14 @@ import { CATEGORY_TRACKS } from "@/lib/categories";
 import { useLiveClock } from "@/hooks/useLiveClock";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { getAnalytics } from "@/lib/analytics-engine";
+import { useGoals } from "@/hooks/useGoals";
 import NextMoveCard from "@/components/NextMoveCard";
 import InsightCard from "@/components/InsightCard";
 import owlLogo from "@/assets/owl-logo.png";
 import OwlIcon from "@/components/OwlIcon";
 import HiddenOwl from "@/components/HiddenOwl";
 import OwlHuntTracker from "@/components/OwlHuntTracker";
+import { Progress } from "@/components/ui/progress";
 
 const QUOTE_SEEN_KEY = "wisdom-seen-quotes-v2";
 
@@ -42,6 +44,7 @@ export default function Index() {
   const { progress } = useProgress();
   const clock = useLiveClock();
   const { profile } = useUserProfile();
+  const { goals, primaryGoal } = useGoals();
   const analytics = useMemo(() => getAnalytics(), [progress]);
 
   const masteryAvg = useMemo(() => {
@@ -59,6 +62,15 @@ export default function Index() {
   const topSuggestion = analytics.suggestions[0] || null;
   const focusSuggestion = analytics.suggestions.find(s => s.type === "focus-today") || null;
   const topInsight = analytics.insights[0] || null;
+
+  const activeGoals = goals.filter(g => !g.completed);
+  const goalProgress = useMemo(() => {
+    if (activeGoals.length === 0) return 0;
+    return Math.round(activeGoals.reduce((sum, g) => {
+      if (g.targetValue === g.baselineValue) return sum;
+      return sum + Math.min(100, Math.round(((g.currentValue - g.baselineValue) / (g.targetValue - g.baselineValue)) * 100));
+    }, 0) / activeGoals.length);
+  }, [activeGoals]);
 
   return (
     <div className="min-h-screen pb-4">
@@ -116,12 +128,51 @@ export default function Index() {
         <HiddenOwl locationId="home-quote" className="absolute -right-1 bottom-2" size={16} />
       </motion.div>
 
-      {/* Section 3: Scoreboard */}
-      <div className="grid grid-cols-2 gap-3 px-5 mb-6">
-        <StatBlock label="Tokens" value={progress.tokens} icon="✦" accent delay={0} />
-        <StatBlock label="Streak" value={progress.streak} icon="🔥" delay={0} />
-        <StatBlock label="Mastery" value={`${masteryAvg}%`} icon="◉" delay={0} />
-        <StatBlock label="XP" value={todayXP} icon="⚡" delay={0} />
+      {/* Section 3: Daily Mastery Snapshot */}
+      <div className="px-5 mb-6">
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-[10px] font-bold text-primary uppercase tracking-[0.15em]">Daily Mastery Snapshot</p>
+            <Link to="/goals" className="text-[10px] font-medium text-muted-foreground hover:text-primary transition-colors flex items-center gap-1">
+              Mission Control <ChevronRight className="h-3 w-3" />
+            </Link>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="rounded-xl bg-card border border-border p-3">
+              <div className="flex items-center gap-2 mb-1.5">
+                <Target className="h-3.5 w-3.5 text-primary" />
+                <span className="text-[10px] text-muted-foreground">Goal Progress</span>
+              </div>
+              <p className="text-xl font-black text-foreground">{goalProgress}%</p>
+              <Progress value={goalProgress} className="h-1 mt-1" />
+            </div>
+            <div className="rounded-xl bg-card border border-border p-3">
+              <div className="flex items-center gap-2 mb-1.5">
+                <Flame className="h-3.5 w-3.5 text-amber-500" />
+                <span className="text-[10px] text-muted-foreground">Streak</span>
+              </div>
+              <p className="text-xl font-black text-foreground">{progress.streak}<span className="text-xs text-muted-foreground ml-1">days</span></p>
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-2 mt-2">
+            <StatBlock label="Tokens" value={progress.tokens} icon="✦" accent delay={0} />
+            <StatBlock label="Mastery" value={`${masteryAvg}%`} icon="◉" delay={0} />
+            <StatBlock label="XP" value={todayXP} icon="⚡" delay={0} />
+          </div>
+          {/* Primary goal quick view */}
+          {primaryGoal && !primaryGoal.completed && (
+            <Link to="/goals" className="mt-2 block">
+              <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 flex items-center gap-3 hover:border-primary/40 transition-colors">
+                <TrendingUp className="h-4 w-4 text-primary shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-[11px] font-semibold text-foreground truncate">{primaryGoal.title}</p>
+                  <p className="text-[10px] text-muted-foreground">{primaryGoal.currentValue}/{primaryGoal.targetValue} {primaryGoal.targetMetric}</p>
+                </div>
+                <span className="text-xs font-bold text-primary">{goalProgress}%</span>
+              </div>
+            </Link>
+          )}
+        </motion.div>
       </div>
 
       {/* Focus Today */}
