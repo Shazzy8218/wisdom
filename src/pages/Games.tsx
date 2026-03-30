@@ -221,6 +221,39 @@ export default function Games() {
         ))}
       </div>
 
+      {/* Leaderboard — Personal Best Rankings */}
+      <div className="px-5 mt-7">
+        <h2 className="text-sm font-bold text-foreground mb-3 uppercase tracking-wider flex items-center gap-2">
+          <Crown className="h-4 w-4 text-primary" /> Personal Leaderboard
+        </h2>
+        <div className="rounded-2xl border border-border/50 bg-card/60 overflow-hidden">
+          {GAMES.filter(g => (stats.bestScores[g.id] || 0) > 0)
+            .sort((a, b) => (stats.bestScores[b.id] || 0) - (stats.bestScores[a.id] || 0))
+            .slice(0, 5)
+            .map((game, i) => (
+              <Link key={game.id} to={game.route} className="flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors border-b border-border/20 last:border-b-0">
+                <span className={`text-sm font-black w-6 text-center ${i === 0 ? "text-primary" : i === 1 ? "text-amber-400" : "text-muted-foreground"}`}>
+                  #{i + 1}
+                </span>
+                <span className="text-lg">{game.icon}</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-bold text-foreground">{game.title}</p>
+                  <p className="text-[10px] text-muted-foreground">{game.subtitle}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm font-black text-foreground">{stats.bestScores[game.id]?.toLocaleString()}</p>
+                  <p className="text-[9px] text-muted-foreground">pts</p>
+                </div>
+              </Link>
+            ))}
+          {GAMES.filter(g => (stats.bestScores[g.id] || 0) > 0).length === 0 && (
+            <div className="p-6 text-center">
+              <p className="text-xs text-muted-foreground">Play games to populate your leaderboard</p>
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Achievements */}
       <div className="px-5 mt-7">
         <h2 className="text-sm font-bold text-foreground mb-3 uppercase tracking-wider">Achievements</h2>
@@ -228,7 +261,7 @@ export default function Games() {
           {Object.entries(ACHIEVEMENTS).map(([id, ach]) => {
             const unlocked = unlockedAchievements.includes(id);
             return (
-              <div key={id} className={`shrink-0 w-20 rounded-xl border p-3 text-center transition-all ${unlocked ? "bg-accent-gold/10 border-accent-gold/30" : "bg-card/30 border-border/30 opacity-40"}`}>
+              <div key={id} className={`shrink-0 w-20 rounded-xl border p-3 text-center transition-all ${unlocked ? "bg-primary/10 border-primary/30" : "bg-card/30 border-border/30 opacity-40"}`}>
                 <div className="text-2xl mb-1">{ach.icon}</div>
                 <p className="text-[9px] font-bold text-foreground leading-tight">{ach.title}</p>
               </div>
