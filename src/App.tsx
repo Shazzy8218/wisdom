@@ -16,7 +16,7 @@ import Courses from "./pages/Courses";
 import LearnFeed from "./pages/LearnFeed";
 import Games from "./pages/Games";
 import Profile from "./pages/Profile";
-import Scoreboard from "./pages/Index";
+import Dashboard from "./pages/Index";
 import Goals from "./pages/Goals";
 import NotFound from "./pages/NotFound";
 import WisdomWallet from "./pages/WisdomWallet";
@@ -154,7 +154,7 @@ function AppRoutes() {
           <Route path="/category/:categoryId/module" element={<ModuleView />} />
           <Route path="/category/:categoryId/lesson" element={<LessonView />} />
           <Route path="/profile" element={<Profile />} />
-          <Route path="/scoreboard" element={<Scoreboard />} />
+          <Route path="/scoreboard" element={<Navigate to="/goals" replace />} />
           <Route path="/goals" element={<Goals />} />
           <Route path="/life-optimizer" element={<LifeOptimizer />} />
           <Route path="/wallet" element={<WisdomWallet />} />
