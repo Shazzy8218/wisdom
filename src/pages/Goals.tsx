@@ -4,7 +4,7 @@ import {
   Target, ChevronLeft, Plus, Trash2, CheckCircle, Circle, Flame,
   Coins, Clock, Loader2, Trophy, TrendingUp, X, Brain, Sparkles,
   ChevronRight, BarChart3, Zap, AlertTriangle, ChevronDown,
-  Crosshair, BookOpen, Dumbbell, Rocket, Eye, ArrowRight
+  Crosshair, BookOpen, Dumbbell, Rocket, Eye, ArrowRight, Award, Star
 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useGoals, UserGoal } from "@/hooks/useGoals";
