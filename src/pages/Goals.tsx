@@ -214,28 +214,58 @@ export default function Goals() {
         </button>
       </div>
 
-      {/* Command Stats */}
-      <div className="px-5 mb-4">
-        <div className="grid grid-cols-4 gap-2">
-          <div className="rounded-xl bg-card border border-border p-3 text-center">
-            <Flame className="h-4 w-4 text-amber-500 mx-auto mb-1" />
-            <p className="text-lg font-bold text-foreground">{progress.streak}</p>
-            <p className="text-[10px] text-muted-foreground">Streak</p>
+      {/* Precision Tracker — Accountability Scoreboard */}
+      <div className="px-5 mb-5">
+        <p className="text-[10px] font-bold text-primary uppercase tracking-[0.15em] mb-3">Precision Tracker</p>
+        <div className="grid grid-cols-2 gap-2">
+          <div className="rounded-xl bg-card border border-border p-3">
+            <div className="flex items-center gap-2 mb-1">
+              <BarChart3 className="h-4 w-4 text-primary" />
+              <span className="text-[10px] text-muted-foreground font-medium">Goal Progress</span>
+            </div>
+            <p className="text-2xl font-black text-foreground">{overallProgress}%</p>
+            <Progress value={overallProgress} className="h-1 mt-1.5" />
           </div>
-          <div className="rounded-xl bg-card border border-border p-3 text-center">
-            <Target className="h-4 w-4 text-primary mx-auto mb-1" />
-            <p className="text-lg font-bold text-foreground">{doneTasks}/{totalTasks}</p>
-            <p className="text-[10px] text-muted-foreground">Tasks</p>
+          <div className="rounded-xl bg-card border border-border p-3">
+            <div className="flex items-center gap-2 mb-1">
+              <Flame className="h-4 w-4 text-amber-500" />
+              <span className="text-[10px] text-muted-foreground font-medium">Active Streak</span>
+            </div>
+            <p className="text-2xl font-black text-foreground">{progress.streak}<span className="text-sm text-muted-foreground ml-1">days</span></p>
           </div>
-          <div className="rounded-xl bg-card border border-border p-3 text-center">
-            <Trophy className="h-4 w-4 text-amber-400 mx-auto mb-1" />
-            <p className="text-lg font-bold text-foreground">{completedGoals.length}</p>
-            <p className="text-[10px] text-muted-foreground">Achieved</p>
+          <div className="rounded-xl bg-card border border-border p-3">
+            <div className="flex items-center gap-2 mb-1">
+              <Star className="h-4 w-4 text-primary" />
+              <span className="text-[10px] text-muted-foreground font-medium">Tokens Earned</span>
+            </div>
+            <p className="text-2xl font-black text-foreground">{progress.tokens.toLocaleString()}</p>
           </div>
-          <div className="rounded-xl bg-card border border-border p-3 text-center">
-            <BarChart3 className="h-4 w-4 text-primary mx-auto mb-1" />
-            <p className="text-lg font-bold text-foreground">{overallProgress}%</p>
-            <p className="text-[10px] text-muted-foreground">Overall</p>
+          <div className="rounded-xl bg-card border border-border p-3">
+            <div className="flex items-center gap-2 mb-1">
+              <Award className="h-4 w-4 text-primary" />
+              <span className="text-[10px] text-muted-foreground font-medium">Mastery</span>
+            </div>
+            <p className="text-2xl font-black text-foreground">{(() => {
+              const vals = Object.values(progress.masteryScores || {});
+              return vals.length > 0 ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : 0;
+            })()}%</p>
+          </div>
+        </div>
+        <div className="mt-2 grid grid-cols-3 gap-2">
+          <div className="rounded-xl bg-card border border-border p-2.5 text-center">
+            <Target className="h-3.5 w-3.5 text-primary mx-auto mb-1" />
+            <p className="text-sm font-bold text-foreground">{doneTasks}/{totalTasks}</p>
+            <p className="text-[9px] text-muted-foreground">Tasks Done</p>
+          </div>
+          <div className="rounded-xl bg-card border border-border p-2.5 text-center">
+            <Trophy className="h-3.5 w-3.5 text-amber-400 mx-auto mb-1" />
+            <p className="text-sm font-bold text-foreground">{completedGoals.length}</p>
+            <p className="text-[9px] text-muted-foreground">Achieved</p>
+          </div>
+          <div className="rounded-xl bg-card border border-border p-2.5 text-center">
+            <Zap className="h-3.5 w-3.5 text-primary mx-auto mb-1" />
+            <p className="text-sm font-bold text-foreground">{progress.xp.toLocaleString()}</p>
+            <p className="text-[9px] text-muted-foreground">Total XP</p>
           </div>
         </div>
       </div>
