@@ -28,13 +28,8 @@ export default function Goals() {
   const [decomposing, setDecomposing] = useState<string | null>(null); // goalId being decomposed
 
   const openGoalCreation = useCallback(() => {
-    if (goals.length === 0) {
-      navigate("/life-optimizer");
-      return;
-    }
-
     setShowCreate(true);
-  }, [goals.length, navigate]);
+  }, []);
 
   useEffect(() => {
     const loaImport = (location.state as { loaImport?: { createdCount?: number } } | null)?.loaImport;
@@ -293,7 +288,7 @@ export default function Goals() {
               </div>
               <p className="text-xs text-muted-foreground leading-relaxed">
                 {goals.length === 0
-                  ? "Don't know where to start? Let the LOA define your strategic trajectory."
+                  ? "Want AI help instead? Let the LOA define your strategic trajectory after you explore manual goal setup."
                   : "Run a diagnostic to recalibrate your strategy or set new targets."}
               </p>
             </div>
@@ -396,7 +391,7 @@ export default function Goals() {
           </div>
           <h3 className="font-display text-lg font-bold text-foreground mb-2">No Active Missions</h3>
           <p className="text-sm text-muted-foreground mb-6 max-w-xs mx-auto">
-            Set a goal and the AI will decompose it into pillars, milestones, and micro-tasks — your personal strategic roadmap.
+            Create a mission manually or use LOA for a deeper strategy pass — either way your roadmap auto-builds into actionable steps.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <button onClick={openGoalCreation}

@@ -1,27 +1,80 @@
-import { useState, useEffect, useCallback } from "react";
+import { useCallback, useSyncExternalStore } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
 
+interface AuthSnapshot {
+  user: User | null;
+  session: Session | null;
+  loading: boolean;
+}
+
+let authSnapshot: AuthSnapshot = {
+  user: null,
+  session: null,
+  loading: true,
+};
+
+let authInitialized = false;
+let initialSessionResolved = false;
+const authListeners = new Set<() => void>();
+
+function emitAuthSnapshot(nextSnapshot: AuthSnapshot) {
+  authSnapshot = nextSnapshot;
+  authListeners.forEach((listener) => listener());
+}
+
+function initializeAuth() {
+  if (authInitialized) return;
+  authInitialized = true;
+
+  supabase.auth.onAuthStateChange((_event, session) => {
+    emitAuthSnapshot({
+      user: session?.user ?? null,
+      session,
+      loading: !initialSessionResolved,
+    });
+  });
+
+  void supabase.auth
+    .getSession()
+    .then(({ data: { session } }) => {
+      initialSessionResolved = true;
+      emitAuthSnapshot({
+        user: session?.user ?? null,
+        session,
+        loading: false,
+      });
+    })
+    .catch(() => {
+      initialSessionResolved = true;
+      emitAuthSnapshot({
+        user: null,
+        session: null,
+        loading: false,
+      });
+    });
+}
+
+function subscribeToAuth(listener: () => void) {
+  initializeAuth();
+  authListeners.add(listener);
+
+  return () => {
+    authListeners.delete(listener);
+  };
+}
+
+function getAuthSnapshot() {
+  initializeAuth();
+  return authSnapshot;
+}
+
 export function useAuth() {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
+  const { user, session, loading } = useSyncExternalStore(
+    subscribeToAuth,
+    getAuthSnapshot,
+    getAuthSnapshot,
+  );
 
   const signUp = useCallback(async (email: string, password: string, displayName: string) => {
     const { data, error } = await supabase.auth.signUp({
@@ -38,10 +91,14 @@ export function useAuth() {
   const signIn = useCallback(async (email: string, password: string) => {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
-    // Update last_login_at
+
     if (data.user) {
-      await supabase.from("profiles").update({ last_login_at: new Date().toISOString() }).eq("id", data.user.id);
+      void supabase
+        .from("profiles")
+        .update({ last_login_at: new Date().toISOString() })
+        .eq("id", data.user.id);
     }
+
     return data;
   }, []);
 

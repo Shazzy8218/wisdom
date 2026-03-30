@@ -55,6 +55,18 @@ const QUICK_STARTS = [
     metric: "revenue",
     why: "Turn skills into measurable business results",
   },
+  {
+    label: "Ship faster",
+    title: "Launch an AI product in 30 days",
+    metric: "custom",
+    why: "Turn ideas into a shipped outcome with a clear deadline",
+  },
+  {
+    label: "Win clients",
+    title: "Sign 3 new AI consulting clients",
+    metric: "clients",
+    why: "Create a concrete pipeline goal tied to revenue and proof of demand",
+  },
 ];
 
 function getMasteryBaseline(scores?: Record<string, number>) {
@@ -220,6 +232,11 @@ export default function GoalCreateSheet({
               </div>
 
               <div className="flex-1 space-y-5 overflow-y-auto px-5 py-5 sm:px-6">
+                <div className="rounded-2xl border border-primary/20 bg-primary/5 px-4 py-3">
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">Manual Goal Builder</p>
+                  <p className="mt-1 text-xs text-muted-foreground">Smart baselines pull from your real stats, and a strategic roadmap is generated automatically after you save.</p>
+                </div>
+
                 <div className="grid gap-2 sm:grid-cols-3">
                   {QUICK_STARTS.map((preset) => (
                     <button

@@ -3,7 +3,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { ChevronLeft, Send, Loader2, Brain, Zap, Target, Sparkles } from "lucide-react";
 import ReactMarkdown from "react-markdown";
-import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useProgress } from "@/hooks/useProgress";
 import { useGoals } from "@/hooks/useGoals";
@@ -100,7 +99,6 @@ async function resolveLoaAccessToken(): Promise<string | null> {
 
 export default function LifeOptimizer() {
   const navigate = useNavigate();
-  const { loading: authLoading } = useAuth();
   const { progress } = useProgress();
   const { goals } = useGoals();
   const { profile } = useUserProfile();
@@ -169,14 +167,6 @@ export default function LifeOptimizer() {
     if (!trimmedInput || streaming) return;
 
     try {
-      if (authLoading) {
-        toast({
-          title: "Restoring session",
-          description: "Your sign-in is still loading. Try again in a moment.",
-        });
-        return;
-      }
-
       const accessToken = await resolveLoaAccessToken();
       if (!accessToken) {
         toast({
@@ -296,7 +286,7 @@ export default function LifeOptimizer() {
       setStreaming(false);
       inputRef.current?.focus();
     }
-  }, [activateMissionControl, authLoading, goals, input, messages, navigate, profile, progress, scrollToBottom, streaming, threadId]);
+  }, [activateMissionControl, goals, input, messages, navigate, profile, progress, scrollToBottom, streaming, threadId]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
