@@ -54,12 +54,14 @@ export function useCalibration(externalUser?: User | null, externalAuthReady?: b
     let cancelled = false;
     setLoading(true);
 
-    supabase
-      .from("profiles")
-      .select("goal_mode, output_mode, calibration_done, primary_desire, answer_tone, learning_style, intensity")
-      .eq("id", user.id)
-      .single()
-      .then(({ data: row, error }) => {
+    void (async () => {
+      try {
+        const { data: row, error } = await supabase
+          .from("profiles")
+          .select("goal_mode, output_mode, calibration_done, primary_desire, answer_tone, learning_style, intensity")
+          .eq("id", user.id)
+          .single();
+
         if (cancelled) return;
 
         if (row && !error) {
@@ -76,14 +78,13 @@ export function useCalibration(externalUser?: User | null, externalAuthReady?: b
           setData(d);
           localStorage.setItem("wisdom-calibration-cache", JSON.stringify(d));
         }
-      })
-      .catch(() => {
+      } catch {
         if (cancelled) return;
-      })
-      .finally(() => {
+      } finally {
         if (cancelled) return;
         setLoading(false);
-      });
+      }
+    })();
 
     return () => {
       cancelled = true;
