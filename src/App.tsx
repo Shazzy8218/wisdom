@@ -60,8 +60,8 @@ const queryClient = new QueryClient();
 
 function AppRoutes() {
   const { user, loading } = useAuth();
-  const { calibration, loading: calLoading, completeCalibration } = useCalibration();
-  useCloudSync();
+  const { calibration, loading: calLoading, completeCalibration } = useCalibration(user, !loading);
+  useCloudSync(user, !loading);
   const [splashDismissed, setSplashDismissed] = useState(false);
   const [calibrationSkipped, setCalibrationSkipped] = useState(() => {
     return localStorage.getItem("wisdom-calibration-skipped") === "true";

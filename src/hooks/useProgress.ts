@@ -1,4 +1,4 @@
-import { useState, useCallback, useSyncExternalStore, useEffect } from "react";
+import { useCallback, useSyncExternalStore } from "react";
 import { loadCachedProgress, saveCacheProgress, saveCloudProgress, fetchCloudProgress, type UserProgress } from "@/lib/progress";
 
 let listeners: (() => void)[] = [];
@@ -42,11 +42,6 @@ export function resetCloudLoadedFlag() {
 
 export function useProgress() {
   const progress = useSyncExternalStore(subscribe, getSnapshot);
-
-  // On mount, fetch cloud progress once
-  useEffect(() => {
-    loadCloudProgressOnLogin();
-  }, []);
 
   const update = useCallback((updater: (p: UserProgress) => UserProgress) => {
     cachedProgress = updater(cachedProgress);
