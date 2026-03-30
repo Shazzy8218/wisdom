@@ -14,7 +14,7 @@ const PRIMARY_NAV = [
 const MORE_NAV = [
   { to: "/games", icon: Gamepad2, label: "Games" },
   { to: "/drills", icon: Zap, label: "Live Drills" },
-  { to: "/scoreboard", icon: Trophy, label: "Scoreboard" },
+  
   { to: "/goals", icon: Target, label: "Goals" },
   { to: "/wallet", icon: Wallet, label: "Wallet" },
   { to: "/feed", icon: Newspaper, label: "Feed" },
