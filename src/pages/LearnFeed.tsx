@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
-import { Loader2, Radio, SlidersHorizontal, RefreshCw, Shield, Eye, Zap } from "lucide-react";
+import { Loader2, Radio, SlidersHorizontal, RefreshCw, Eye, Zap } from "lucide-react";
 import FeedCard from "@/components/FeedCard";
 import { STARTER_FEED, getSeenCardIds, markCardSeen, type FeedCard as FeedCardT } from "@/lib/feed-cards";
 import { useProgress } from "@/hooks/useProgress";

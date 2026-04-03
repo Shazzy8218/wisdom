@@ -1,4 +1,4 @@
-import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, Radar, BarChart, Bar, XAxis, YAxis, Tooltip, ComposedChart, Line, Area } from "recharts";
+import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, Radar, XAxis, YAxis, Tooltip, ComposedChart, Line, Area } from "recharts";
 import { AlertTriangle, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import type { FeedCard } from "@/lib/feed-cards";
 
