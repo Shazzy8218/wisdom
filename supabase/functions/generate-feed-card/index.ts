@@ -13,67 +13,118 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    const types = [
-      "quick-fact", "micro-lesson", "challenge", "myth-vs-truth", "news",
-      "key-insight", "reality-check", "source-comparison", "deep-pattern",
+    // Phenomenon Decoder card types weighted toward strategic readouts
+    const phenomenonTypes = [
+      "phenomenon-brief", "phenomenon-brief",
+      "reality-compass", "reality-compass",
+      "strategic-impact", "strategic-impact",
+      "opportunity-watch",
+      "systemic-context",
     ];
-    const cardType = types[Math.floor(Math.random() * types.length)];
+    const classicTypes = [
+      "key-insight", "reality-check", "deep-pattern",
+      "quick-fact", "micro-lesson", "challenge", "myth-vs-truth",
+    ];
+
+    // Weight toward phenomenon cards (70/30)
+    const pool = Math.random() < 0.7 ? phenomenonTypes : classicTypes;
+    const cardType = pool[Math.floor(Math.random() * pool.length)];
 
     let modeInstruction = "";
-    if (mode === "nerd") modeInstruction = "Make it more technical, include statistics, data, and detailed diagrams. Target intermediate+ learners.";
-    if (mode === "quick") modeInstruction = "Make it ultra-concise. Max 2 sentences for content. Quick fact, instant takeaway.";
+    if (mode === "nerd" || mode === "decoder") modeInstruction = "Maximum analytical depth. Include systemic context, interconnections, underlying drivers, and operational archetypes. Every claim must be evidence-grounded.";
+    if (mode === "quick") modeInstruction = "Ultra-concise strategic signal. Max 3 sentences for content. Lead with the actionable insight.";
 
     let styleInstruction = "";
-    if (learningStyle === "visual") styleInstruction = "Emphasize visual elements: diagrams, before/after comparisons, labeled steps.";
-    if (learningStyle === "reader") styleInstruction = "Use structured bullets, cheat-sheet format, dense but clear text.";
-    if (learningStyle === "hands-on") styleInstruction = "Focus on practical drills, 'try it now' prompts, and real scenarios.";
+    if (learningStyle === "visual") styleInstruction = "Emphasize trajectory projections, trend data, and influence webs for visual impact.";
+    if (learningStyle === "reader") styleInstruction = "Dense analytical text with structured layers: brief → context → impact → directives.";
+    if (learningStyle === "hands-on") styleInstruction = "Focus on adaptation directives and concrete strategic actions the user can take immediately.";
 
-    const cognitiveInstructions: Record<string, string> = {
-      "key-insight": `Generate a KEY INSIGHT card. This should expose a critical data pattern, relationship, or non-obvious truth that affects decision-making. Include:
-- A concise factual summary as the hook
-- Evidence-based contextual analysis as content
-- An 'impactAnalysis' explaining how this affects the user's decisions
-- 1-2 'decisionProtocols' with actionable steps
-- Suggest relevant analyticalFlags from: source-comparison, logical-chain, correlation-observation, narrative-framing, data-verification, bias-detected`,
+    const phenomenonInstructions: Record<string, string> = {
+      "phenomenon-brief": `Generate a PHENOMENON BRIEF — a concise decode of an observable event (policy shift, market movement, tech release, cultural trend). Include:
+- phenomenonDomain: one of "policy", "market", "technology", "social", "media"
+- systemicContext: the deeper forces and historical parallels behind this phenomenon
+- strategicImpactProjection: direct impact on the user's goals/finances/autonomy
+- 2-3 adaptationDirectives with urgency levels (low/medium/high/critical) and domains
+- urgencyLevel: "monitor", "alert", or "critical"
+- interconnections: 3-4 related phenomena or patterns
+- underlyingDrivers: 2-3 core forces behind the event
+- Use visual "trajectory" with trajectoryData (3-4 items with label, current %, projected %)`,
 
-      "reality-check": `Generate a REALITY CHECK card. Present contrasting perspectives on a topic to help users evaluate independently. Include:
-- Two contrasting views as 'contrastingViewA' and 'contrastingViewB'
-- An 'impactAnalysis' explaining what this means for the user
-- 1-2 'decisionProtocols' with concrete actions
-- Set visual to 'compare'`,
+      "reality-compass": `Generate a REALITY COMPASS card — expose contrasting narratives around a phenomenon. Include:
+- phenomenonDomain
+- realityCompassDominant: the mainstream/dominant narrative (2-3 sentences)
+- realityCompassAlternative: the data-driven alternative interpretation (2-3 sentences)
+- systemicContext explaining the pattern of narrative divergence
+- strategicImpactProjection
+- interconnections and underlyingDrivers
+- urgencyLevel`,
 
-      "source-comparison": `Generate a SOURCE COMPARISON card. Show how different information sources present the same topic differently. Include:
-- 2-3 'sourceStreams' each with a 'name' (source type) and 'perspective' (how they frame it)
-- An 'impactAnalysis' about information literacy
-- Suggest analyticalFlags like 'source-comparison' and 'narrative-framing'`,
+      "strategic-impact": `Generate a STRATEGIC IMPACT card — focus on a phenomenon's direct effect on users. Include:
+- phenomenonDomain
+- systemicContext
+- strategicImpactProjection (specific, quantified where possible)
+- 2-3 adaptationDirectives with urgency and domain
+- operationalArchetype: name, description, historicalExample
+- trendData with 5-7 data points showing the trend trajectory
+- Use visual "trend-map"
+- urgencyLevel`,
 
-      "deep-pattern": `Generate a DEEP PATTERN card. Identify a systemic trend or influence pattern across multiple domains. Include:
-- 'trendData' with 3-5 data points (label + value pairs) for visualization
-- OR 'connections' with 3-5 influence connections (from, to, strength 1-100)
-- Set visual to 'trend-map' or 'influence-web' accordingly
-- An 'impactAnalysis'
-- 2-3 'decisionProtocols' with actionable intelligence
-- Suggest analyticalFlags`,
+      "opportunity-watch": `Generate an OPPORTUNITY WATCH card — identify an emerging opportunity or erosion. Include:
+- phenomenonDomain
+- opportunitySignalType: "erosion" or "amplification"
+- opportunitySignalDescription: specific opportunity details
+- systemicContext
+- strategicImpactProjection
+- 2-3 adaptationDirectives
+- trajectoryData with 3 items showing the shift
+- Use visual "trajectory"
+- urgencyLevel`,
+
+      "systemic-context": `Generate a SYSTEMIC CONTEXT card — map a repeatable pattern or cycle. Include:
+- phenomenonDomain
+- systemicContext (detailed pattern analysis)
+- operationalArchetype with name, description, historicalExample
+- strategicImpactProjection
+- underlyingDrivers (3-4 forces)
+- Use visual "steps" with 4-5 stages of the pattern/cycle
+- urgencyLevel`,
     };
 
-    const typeSpecific = cognitiveInstructions[cardType] || "";
+    const classicInstructions: Record<string, string> = {
+      "key-insight": `Generate a KEY INSIGHT card exposing a critical pattern. Include impactAnalysis, 1-2 decisionProtocols, and analyticalFlags.`,
+      "reality-check": `Generate a REALITY CHECK card with contrasting views (contrastingViewA, contrastingViewB), impactAnalysis, and decisionProtocols.`,
+      "deep-pattern": `Generate a DEEP PATTERN card with trendData or connections for visualization, impactAnalysis, and decisionProtocols. Use visual "trend-map" or "influence-web".`,
+      "quick-fact": `Generate a QUICK FACT with a specific, non-obvious insight. Use diagram or chart visual.`,
+      "micro-lesson": `Generate a MICRO-LESSON with before/after comparison and tryPrompt. Use compare visual.`,
+      "challenge": `Generate a multiple-choice CHALLENGE with 4 options, one correct. Make wrong answers plausible.`,
+      "myth-vs-truth": `Generate MYTH VS TRUTH with mythStatement and truthStatement. Use compare visual.`,
+    };
 
-    const systemPrompt = `You generate feed cards for Wisdom AI, a premium cognitive augmentation app. Each card is a 15-60 second learning drop that enhances information literacy and critical thinking.
+    const typeSpecific = phenomenonInstructions[cardType] || classicInstructions[cardType] || "";
 
-Rules:
-- NEVER use filler or vague motivation. Every sentence must contain a specific insight.
-- Content must be practical, actionable, and intellectually rigorous.
-- Write at a "street-smart textbook" level — not academic, not dumbed down.
-- For cognitive augmentation cards (key-insight, reality-check, source-comparison, deep-pattern): focus on enhancing the user's ability to analyze, discern, and make autonomous decisions.
+    const systemPrompt = `You are the Phenomenon Decoder — an advanced reality amplification engine for Wisdom Owl, a premium strategic intelligence app. Your purpose is to rapidly surface, dissect, and contextualize observable phenomena that impact user autonomy, decision-making, and strategic advantage.
+
+CORE PRINCIPLES:
+- Impact-First: Every decoded phenomenon must explain its DIRECT impact on the user's strategic goals, finances, or cognitive clarity
+- Pattern Recognition: Connect seemingly disparate events into coherent strategic readouts
+- Evidence-Grounded: No speculation without data. Cite patterns, not opinions
+- Actionable Intelligence: Every card must include concrete adaptation directives
+- No filler, no motivation, no platitudes. Raw strategic intelligence only.
+
+DOMAIN COVERAGE:
+- Policy & Regulatory: Government actions, legal changes, international agreements
+- Market & Economic: Financial data, trade patterns, resource flows
+- Technology: AI advancements, platforms, hardware, vulnerabilities
+- Social & Cultural: Discourse shifts, demographic changes, value evolution
+- Media & Information: Framing analysis, narrative comparison, information asymmetries
+
+TONE: Street-smart intelligence analyst. Direct. Specific. No academic hedging. Write like a briefing for someone who needs to make decisions NOW.
+
 ${modeInstruction}
 ${styleInstruction}
 
-Card type to generate: ${cardType}
-
-${typeSpecific}
-${cardType === "myth-vs-truth" ? "Include a mythStatement (the common misconception) and truthStatement (the reality with evidence)." : ""}
-${cardType === "news" ? "Generate an EVERGREEN tech/AI concept explainer. Label source as 'General Update — Evergreen Concept'. Set confidence 85-95. Do NOT pretend it's current news." : ""}
-${cardType === "challenge" ? "Create a multiple-choice challenge where only one option is correct. Make wrong answers plausible but clearly wrong to someone who knows the material." : ""}`;
+Card type: ${cardType}
+${typeSpecific}`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -85,44 +136,61 @@ ${cardType === "challenge" ? "Create a multiple-choice challenge where only one 
         model: "google/gemini-3-flash-preview",
         messages: [
           { role: "system", content: systemPrompt },
-          { role: "user", content: `Generate a ${cardType} feed card. ${excludeIds?.length ? `Avoid similar topics to: ${excludeIds.slice(-10).join(",")}` : ""}` }
+          { role: "user", content: `Generate a ${cardType} feed card. Focus on current, real-world phenomena. ${excludeIds?.length ? `Avoid similar topics to: ${excludeIds.slice(-10).join(",")}` : ""}` }
         ],
         tools: [{
           type: "function",
           function: {
             name: "create_feed_card",
-            description: "Create a structured feed card for cognitive augmentation",
+            description: "Create a structured Phenomenon Decoder feed card",
             parameters: {
               type: "object",
               properties: {
-                title: { type: "string", description: "Catchy title, max 8 words" },
-                hook: { type: "string", description: "1-sentence hook" },
-                content: { type: "string", description: "Main content, 2-5 sentences, specific and actionable" },
-                visual: { type: "string", enum: ["diagram", "infographic", "compare", "steps", "chart", "icon", "trend-map", "influence-web"] },
-                visualLabels: { type: "array", items: { type: "string" }, description: "Labels for visual elements (3-5 items)" },
-                visualBefore: { type: "string", description: "Before text for compare visual" },
-                visualAfter: { type: "string", description: "After text for compare visual" },
-                trendData: { type: "array", items: { type: "object", properties: { label: { type: "string" }, value: { type: "number" } }, required: ["label", "value"] }, description: "For trend-map visual" },
-                connections: { type: "array", items: { type: "object", properties: { from: { type: "string" }, to: { type: "string" }, strength: { type: "number" } }, required: ["from", "to", "strength"] }, description: "For influence-web visual" },
+                title: { type: "string", description: "Punchy title, max 8 words" },
+                hook: { type: "string", description: "1-sentence hook that creates urgency" },
+                content: { type: "string", description: "Phenomenon brief: 2-5 sentences, specific and evidence-grounded" },
+                visual: { type: "string", enum: ["diagram", "infographic", "compare", "steps", "chart", "icon", "trend-map", "influence-web", "trajectory"] },
+                visualLabels: { type: "array", items: { type: "string" }, description: "Labels for visual elements" },
+                visualBefore: { type: "string" },
+                visualAfter: { type: "string" },
+                trendData: { type: "array", items: { type: "object", properties: { label: { type: "string" }, value: { type: "number" } }, required: ["label", "value"] } },
+                connections: { type: "array", items: { type: "object", properties: { from: { type: "string" }, to: { type: "string" }, strength: { type: "number" } }, required: ["from", "to", "strength"] } },
+                trajectoryData: { type: "array", items: { type: "object", properties: { label: { type: "string" }, current: { type: "number" }, projected: { type: "number" } }, required: ["label", "current", "projected"] } },
                 category: { type: "string" },
                 difficulty: { type: "string", enum: ["beginner", "intermediate", "advanced"] },
                 interaction: { type: "string", enum: ["choice", "tap-reveal"] },
-                options: { type: "array", items: { type: "string" }, description: "4 choices if interaction=choice" },
-                correctAnswer: { type: "number", description: "Index 0-3 of correct answer" },
-                tryPrompt: { type: "string", description: "A practice prompt" },
-                shareSnippet: { type: "string", description: "Shareable 1-liner insight" },
-                xp: { type: "number", description: "30-70" },
-                tokens: { type: "number", description: "6-15" },
-                mythStatement: { type: "string", description: "For myth-vs-truth type" },
-                truthStatement: { type: "string", description: "For myth-vs-truth type" },
-                source: { type: "string", description: "For news type" },
-                confidence: { type: "number", description: "For news type, 0-100" },
-                impactAnalysis: { type: "string", description: "How this affects the user's decision-making, health, finances, or autonomy" },
-                analyticalFlags: { type: "array", items: { type: "string", enum: ["source-comparison", "logical-chain", "correlation-observation", "narrative-framing", "data-verification", "bias-detected"] }, description: "Suggested analytical flags for this card" },
-                sourceStreams: { type: "array", items: { type: "object", properties: { name: { type: "string" }, perspective: { type: "string" } }, required: ["name", "perspective"] }, description: "Different source perspectives for source-comparison cards" },
-                decisionProtocols: { type: "array", items: { type: "object", properties: { action: { type: "string" }, linkedCourse: { type: "string" }, linkedCourseId: { type: "string" } }, required: ["action"] }, description: "Actionable steps for decision support" },
-                contrastingViewA: { type: "string", description: "First contrasting perspective for reality-check" },
-                contrastingViewB: { type: "string", description: "Second contrasting perspective for reality-check" },
+                options: { type: "array", items: { type: "string" } },
+                correctAnswer: { type: "number" },
+                tryPrompt: { type: "string" },
+                shareSnippet: { type: "string" },
+                xp: { type: "number" },
+                tokens: { type: "number" },
+                mythStatement: { type: "string" },
+                truthStatement: { type: "string" },
+                source: { type: "string" },
+                confidence: { type: "number" },
+                // Phenomenon Decoder fields
+                phenomenonDomain: { type: "string", enum: ["policy", "market", "technology", "social", "media"] },
+                systemicContext: { type: "string", description: "Deeper forces and historical parallels" },
+                strategicImpactProjection: { type: "string", description: "Direct impact on user's goals/finances/autonomy" },
+                opportunitySignalType: { type: "string", enum: ["erosion", "amplification"] },
+                opportunitySignalDescription: { type: "string" },
+                adaptationDirectives: { type: "array", items: { type: "object", properties: { directive: { type: "string" }, urgency: { type: "string", enum: ["low", "medium", "high", "critical"] }, domain: { type: "string" } }, required: ["directive", "urgency", "domain"] } },
+                operationalArchetypeName: { type: "string" },
+                operationalArchetypeDescription: { type: "string" },
+                operationalArchetypeHistoricalExample: { type: "string" },
+                realityCompassDominant: { type: "string" },
+                realityCompassAlternative: { type: "string" },
+                interconnections: { type: "array", items: { type: "string" } },
+                underlyingDrivers: { type: "array", items: { type: "string" } },
+                urgencyLevel: { type: "string", enum: ["monitor", "alert", "critical"] },
+                // Legacy cognitive fields
+                impactAnalysis: { type: "string" },
+                analyticalFlags: { type: "array", items: { type: "string", enum: ["source-comparison", "logical-chain", "correlation-observation", "narrative-framing", "data-verification", "bias-detected", "pattern-divergence", "unaccounted-variable", "strategic-incongruence"] } },
+                sourceStreams: { type: "array", items: { type: "object", properties: { name: { type: "string" }, perspective: { type: "string" } }, required: ["name", "perspective"] } },
+                decisionProtocols: { type: "array", items: { type: "object", properties: { action: { type: "string" }, linkedCourse: { type: "string" }, linkedCourseId: { type: "string" } }, required: ["action"] } },
+                contrastingViewA: { type: "string" },
+                contrastingViewB: { type: "string" },
               },
               required: ["title", "hook", "content", "visual", "category", "difficulty", "shareSnippet", "xp", "tokens"],
               additionalProperties: false,
@@ -147,7 +215,7 @@ ${cardType === "challenge" ? "Create a multiple-choice challenge where only one 
 
     const raw = JSON.parse(toolCall.function.arguments);
     const card = {
-      id: `feed-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      id: `pd-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
       type: cardType,
       title: raw.title,
       hook: raw.hook,
@@ -160,11 +228,12 @@ ${cardType === "challenge" ? "Create a multiple-choice challenge where only one 
         steps: raw.visual === "steps" ? raw.visualLabels : undefined,
         trendData: raw.trendData,
         connections: raw.connections,
+        trajectoryData: raw.trajectoryData,
       },
-      category: raw.category || "Computer & math",
-      difficulty: raw.difficulty || "beginner",
-      xp: raw.xp || 40,
-      tokens: raw.tokens || 8,
+      category: raw.category || "Strategic Intelligence",
+      difficulty: raw.difficulty || "intermediate",
+      xp: raw.xp || 50,
+      tokens: raw.tokens || 12,
       interaction: raw.interaction,
       options: raw.options,
       correctAnswer: raw.correctAnswer,
@@ -174,6 +243,24 @@ ${cardType === "challenge" ? "Create a multiple-choice challenge where only one 
       truthStatement: raw.truthStatement,
       source: raw.source,
       confidence: raw.confidence,
+      // Phenomenon Decoder fields
+      phenomenonDomain: raw.phenomenonDomain,
+      systemicContext: raw.systemicContext,
+      strategicImpactProjection: raw.strategicImpactProjection,
+      opportunitySignal: raw.opportunitySignalType && raw.opportunitySignalDescription
+        ? { type: raw.opportunitySignalType, description: raw.opportunitySignalDescription }
+        : undefined,
+      adaptationDirectives: raw.adaptationDirectives,
+      operationalArchetype: raw.operationalArchetypeName
+        ? { name: raw.operationalArchetypeName, description: raw.operationalArchetypeDescription || "", historicalExample: raw.operationalArchetypeHistoricalExample }
+        : undefined,
+      realityCompass: raw.realityCompassDominant && raw.realityCompassAlternative
+        ? { dominant: raw.realityCompassDominant, alternative: raw.realityCompassAlternative }
+        : undefined,
+      interconnections: raw.interconnections,
+      underlyingDrivers: raw.underlyingDrivers,
+      urgencyLevel: raw.urgencyLevel,
+      // Legacy
       impactAnalysis: raw.impactAnalysis,
       analyticalFlags: raw.analyticalFlags,
       sourceStreams: raw.sourceStreams,

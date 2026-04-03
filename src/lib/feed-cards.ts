@@ -1,12 +1,14 @@
-// Feed card types and starter content for the Cognitive Augmentation Feed
+// Feed card types and starter content for the Phenomenon Decoder — Reality Amplification Engine
 
 export type FeedCardType =
   | "quick-fact" | "micro-lesson" | "news" | "challenge" | "myth-vs-truth" | "video"
-  | "key-insight" | "reality-check" | "source-comparison" | "deep-pattern";
+  | "key-insight" | "reality-check" | "source-comparison" | "deep-pattern"
+  | "phenomenon-brief" | "systemic-context" | "strategic-impact" | "opportunity-watch" | "reality-compass";
 
 export type AnalyticalFlag =
   | "source-comparison" | "logical-chain" | "correlation-observation"
-  | "narrative-framing" | "data-verification" | "bias-detected";
+  | "narrative-framing" | "data-verification" | "bias-detected"
+  | "pattern-divergence" | "unaccounted-variable" | "strategic-incongruence";
 
 export const ANALYTICAL_FLAGS: Record<AnalyticalFlag, { label: string; icon: string; color: string }> = {
   "source-comparison": { label: "Source Comparison", icon: "🔍", color: "text-blue-400" },
@@ -15,6 +17,9 @@ export const ANALYTICAL_FLAGS: Record<AnalyticalFlag, { label: string; icon: str
   "narrative-framing": { label: "Narrative Framing", icon: "🪞", color: "text-cyan-400" },
   "data-verification": { label: "Data Verification", icon: "✓", color: "text-emerald-400" },
   "bias-detected": { label: "Bias Detected", icon: "⚠️", color: "text-rose-400" },
+  "pattern-divergence": { label: "Pattern Divergence", icon: "⚡", color: "text-orange-400" },
+  "unaccounted-variable": { label: "Unaccounted Variable", icon: "❓", color: "text-yellow-400" },
+  "strategic-incongruence": { label: "Strategic Incongruence", icon: "🎯", color: "text-red-400" },
 };
 
 export interface DecisionProtocol {
@@ -23,13 +28,25 @@ export interface DecisionProtocol {
   linkedCourseId?: string;
 }
 
+export interface AdaptationDirective {
+  directive: string;
+  urgency: "low" | "medium" | "high" | "critical";
+  domain: string;
+}
+
+export interface OperationalArchetype {
+  name: string;
+  description: string;
+  historicalExample?: string;
+}
+
 export interface FeedCard {
   id: string;
   type: FeedCardType;
   title: string;
   hook: string;
   content: string;
-  visual: "diagram" | "infographic" | "compare" | "steps" | "chart" | "icon" | "trend-map" | "influence-web";
+  visual: "diagram" | "infographic" | "compare" | "steps" | "chart" | "icon" | "trend-map" | "influence-web" | "trajectory" | "anomaly-grid";
   visualData?: {
     labels?: string[];
     steps?: string[];
@@ -37,6 +54,7 @@ export interface FeedCard {
     after?: string;
     trendData?: { label: string; value: number }[];
     connections?: { from: string; to: string; strength: number }[];
+    trajectoryData?: { label: string; current: number; projected: number }[];
   };
   category: string;
   difficulty: "beginner" | "intermediate" | "advanced";
@@ -51,12 +69,23 @@ export interface FeedCard {
   confidence?: number;
   mythStatement?: string;
   truthStatement?: string;
-  // New cognitive augmentation fields
+  // Cognitive augmentation fields
   analyticalFlags?: AnalyticalFlag[];
   impactAnalysis?: string;
   sourceStreams?: { name: string; perspective: string }[];
   decisionProtocols?: DecisionProtocol[];
   contrastingViews?: { viewA: string; viewB: string };
+  // Phenomenon Decoder fields
+  phenomenonDomain?: "policy" | "market" | "technology" | "social" | "media";
+  systemicContext?: string;
+  strategicImpactProjection?: string;
+  opportunitySignal?: { type: "erosion" | "amplification"; description: string };
+  adaptationDirectives?: AdaptationDirective[];
+  operationalArchetype?: OperationalArchetype;
+  realityCompass?: { dominant: string; alternative: string };
+  interconnections?: string[];
+  underlyingDrivers?: string[];
+  urgencyLevel?: "monitor" | "alert" | "critical";
 }
 
 // Analytical flags user storage
@@ -81,9 +110,139 @@ export function toggleUserFlag(cardId: string, flag: AnalyticalFlag): Analytical
   } catch { return []; }
 }
 
-// 30+ starter cards covering all types
+// Domain icons for phenomenon cards
+export const DOMAIN_ICONS: Record<string, string> = {
+  policy: "🏛️",
+  market: "📈",
+  technology: "⚙️",
+  social: "🌐",
+  media: "📡",
+};
+
+// Starter cards — mix of original + phenomenon decoder cards
 export const STARTER_FEED: FeedCard[] = [
-  // === QUICK FACTS ===
+  // === PHENOMENON DECODER CARDS ===
+  {
+    id: "pd-1", type: "phenomenon-brief", title: "The Silent Subsidy Shift",
+    hook: "Government subsidies are quietly redirecting capital flows.",
+    content: "Major economies are restructuring clean energy subsidies, redirecting billions from consumer incentives to industrial manufacturing credits. This shifts the beneficiary from end-users to producers, fundamentally altering which companies capture value and which consumers bear rising costs.",
+    visual: "trajectory",
+    visualData: {
+      trajectoryData: [
+        { label: "Consumer Subsidies", current: 72, projected: 35 },
+        { label: "Industrial Credits", current: 28, projected: 65 },
+        { label: "R&D Grants", current: 45, projected: 58 },
+      ]
+    },
+    category: "Policy & Economics", difficulty: "advanced", xp: 60, tokens: 14,
+    phenomenonDomain: "policy",
+    systemicContext: "This mirrors the 2008 post-crisis pattern where government spending shifted from consumer stimulus to institutional support, concentrating recovery benefits among corporations while individual purchasing power eroded.",
+    strategicImpactProjection: "If you hold consumer-facing clean energy stocks, your thesis may be weakening. Producer-side companies and industrial suppliers become the primary beneficiaries. Portfolio rebalancing window: 6-12 months.",
+    opportunitySignal: { type: "amplification", description: "Industrial clean energy suppliers and B2B energy tech companies are positioned for outsized growth." },
+    adaptationDirectives: [
+      { directive: "Audit your portfolio for consumer-subsidy-dependent positions", urgency: "high", domain: "Finance" },
+      { directive: "Research top 5 industrial clean energy manufacturers by market cap", urgency: "medium", domain: "Research" },
+    ],
+    operationalArchetype: { name: "Subsidy Reallocation Cycle", description: "Government shifts incentives from consumers to producers, concentrating economic benefits at the institutional level.", historicalExample: "Post-2008 TARP funds benefited banks over homeowners" },
+    urgencyLevel: "alert",
+    shareSnippet: "Governments are silently shifting clean energy subsidies from consumers to industrial producers. The beneficiaries are changing. Are you positioned correctly?"
+  },
+  {
+    id: "pd-2", type: "reality-compass", title: "AI Regulation: Protection or Capture?",
+    hook: "Two incompatible narratives. One shapes your future.",
+    content: "The global push for AI regulation is accelerating. But the question isn't whether it's happening — it's who benefits from the specific rules being written, and whether they protect the public or entrench incumbents.",
+    visual: "compare",
+    category: "Technology & Policy", difficulty: "advanced", xp: 55, tokens: 12,
+    phenomenonDomain: "policy",
+    realityCompass: {
+      dominant: "AI regulation protects society from existential risk and ensures ethical deployment. Major tech companies support regulation because they recognize the danger of uncontrolled AI development.",
+      alternative: "AI regulation creates compliance barriers that only well-funded incumbents can meet, effectively preventing competition from startups and open-source alternatives. Incumbent support for regulation is strategic market protection disguised as safety concern."
+    },
+    systemicContext: "This pattern — incumbents supporting regulation that creates barriers to entry — has repeated across pharma (FDA approval costs), finance (Dodd-Frank compliance), and telecom (spectrum licensing). The pattern is: advocate safety → write complex rules → fund compliance teams competitors can't afford.",
+    strategicImpactProjection: "If you're building with or investing in AI, the regulatory environment determines whether open-source alternatives remain viable. Compliance costs above $10M/year filter out all but the largest players.",
+    interconnections: ["Regulatory capture in pharma", "Telecom spectrum auctions", "Financial compliance costs", "EU GDPR impact on small businesses"],
+    underlyingDrivers: ["Market concentration incentives", "Lobbying expenditure asymmetry", "Public fear amplification"],
+    urgencyLevel: "alert",
+    shareSnippet: "AI regulation: is it protecting you, or protecting incumbents FROM you? Follow the compliance costs."
+  },
+  {
+    id: "pd-3", type: "strategic-impact", title: "The Attention Bandwidth Crisis",
+    hook: "Your cognitive capacity is a finite resource under siege.",
+    content: "Average daily screen time hit 7.5 hours in 2024. But the real metric isn't time — it's attention fragmentation. The average person context-switches 566 times per day, each switch costing 23 minutes of refocus time. The math is devastating: you lose 40% of productive capacity to switching alone.",
+    visual: "trend-map",
+    visualData: {
+      trendData: [
+        { label: "2018", value: 35 },
+        { label: "2019", value: 42 },
+        { label: "2020", value: 58 },
+        { label: "2021", value: 62 },
+        { label: "2022", value: 71 },
+        { label: "2023", value: 78 },
+        { label: "2024", value: 85 },
+      ]
+    },
+    category: "Cognitive Autonomy", difficulty: "intermediate", xp: 50, tokens: 11,
+    phenomenonDomain: "social",
+    systemicContext: "The attention economy is not accidental — it's engineered. Every major platform employs teams of behavioral psychologists optimizing for engagement metrics (time-on-app, scroll depth, notification interaction rates). Your attention is the product being sold.",
+    strategicImpactProjection: "Those who reclaim deliberate attention allocation gain a compounding cognitive advantage. In knowledge work, the gap between a focused 4-hour block and 8 fragmented hours is roughly 3:1 in output quality.",
+    adaptationDirectives: [
+      { directive: "Implement 90-minute deep work blocks with all notifications disabled", urgency: "high", domain: "Productivity" },
+      { directive: "Audit your notification settings — eliminate all non-critical alerts", urgency: "critical", domain: "Digital Hygiene" },
+      { directive: "Track your context-switches for one week using a simple tally", urgency: "medium", domain: "Self-Awareness" },
+    ],
+    operationalArchetype: { name: "Attention Extraction Economy", description: "Platforms compete to capture and monetize human attention, creating systemic cognitive degradation.", historicalExample: "Television's impact on reading habits in the 1960s — same pattern, amplified 100x" },
+    urgencyLevel: "critical",
+    shareSnippet: "You context-switch 566 times/day, losing 40% of productive capacity. Your attention is being extracted as a commodity."
+  },
+  {
+    id: "pd-4", type: "opportunity-watch", title: "The Privacy Premium Emerging",
+    hook: "Data privacy is becoming a luxury good. Position early.",
+    content: "Consumer willingness to pay for privacy has tripled since 2020. Apple's privacy-as-feature strategy captured $45B in additional services revenue. The privacy premium isn't about hiding — it's about control, and consumers will increasingly pay for it.",
+    visual: "trajectory",
+    visualData: {
+      trajectoryData: [
+        { label: "Privacy-first SaaS", current: 12, projected: 45 },
+        { label: "Data broker revenue", current: 68, projected: 42 },
+        { label: "Consumer privacy spend", current: 8, projected: 35 },
+      ]
+    },
+    category: "Market Intelligence", difficulty: "intermediate", xp: 55, tokens: 12,
+    phenomenonDomain: "market",
+    opportunitySignal: { type: "amplification", description: "Privacy-first products and services are entering a hyper-growth phase. B2B privacy compliance tools and consumer privacy tech are the two fastest-growing subcategories." },
+    systemicContext: "The data broker model peaked in 2022. GDPR enforcement, state-level privacy laws (California, Virginia, Colorado), and consumer awareness are creating regulatory and market pressure that favors privacy-centric business models.",
+    strategicImpactProjection: "If you're building products: privacy-by-design is no longer a cost center, it's a revenue driver. If you're investing: privacy tech is following the cybersecurity growth curve with a 5-year lag.",
+    adaptationDirectives: [
+      { directive: "Audit your product's data collection — eliminate everything non-essential", urgency: "high", domain: "Product Strategy" },
+      { directive: "Research privacy-first alternatives to your current analytics stack", urgency: "medium", domain: "Technology" },
+    ],
+    urgencyLevel: "monitor",
+    shareSnippet: "Privacy is becoming a premium product. Consumer willingness to pay for it tripled since 2020. The data broker model is peaking."
+  },
+  {
+    id: "pd-5", type: "systemic-context", title: "Debt Ceiling Theater: The Pattern",
+    hook: "Every cycle follows the same playbook. Here's the map.",
+    content: "The debt ceiling 'crisis' follows a repeatable 5-stage pattern that has played out 78 times since 1960. Understanding this pattern eliminates the noise and reveals the actual decision points and their market implications.",
+    visual: "steps",
+    visualData: {
+      steps: [
+        "Stage 1: Approaching limit → media alarm escalation begins",
+        "Stage 2: Political posturing → demands and counter-demands",
+        "Stage 3: Extraordinary measures → Treasury buys 2-4 months",
+        "Stage 4: Market volatility spike → short-term fear peaks",
+        "Stage 5: Last-minute resolution → relief rally follows",
+      ]
+    },
+    category: "Political Economy", difficulty: "advanced", xp: 65, tokens: 14,
+    phenomenonDomain: "policy",
+    systemicContext: "This is a manufactured crisis cycle. The debt ceiling itself is a legislative artifact — most democracies don't have one. Its primary function has evolved from fiscal control to political leverage. The pattern has resolved the same way 78 out of 78 times.",
+    strategicImpactProjection: "Historical data shows markets drop 3-7% during Stage 4, then recover within 30-60 days post-resolution. Those who understand the pattern can position during the fear spike rather than panic-sell.",
+    operationalArchetype: { name: "Manufactured Crisis Cycle", description: "A predictable multi-stage political-economic pattern where artificial urgency is created, exploited for leverage, then resolved — with consistent market impacts at each stage.", historicalExample: "2011, 2013, 2023 debt ceiling episodes all followed this exact pattern" },
+    underlyingDrivers: ["Political leverage dynamics", "Media engagement incentives", "Institutional trader strategies"],
+    urgencyLevel: "monitor",
+    shareSnippet: "The debt ceiling has been 'resolved' 78 out of 78 times since 1960. It's a pattern, not a crisis. Learn the 5-stage cycle."
+  },
+
+  // === CLASSIC CARDS (kept for variety) ===
   {
     id: "ff-1", type: "quick-fact", title: "AI Doesn't \"Understand\" You",
     hook: "It predicts the next word. That's it.",
@@ -101,25 +260,6 @@ export const STARTER_FEED: FeedCard[] = [
     interaction: "choice", options: ["Role + Format + Example", "Length of prompt", "Using big words", "Asking politely"], correctAnswer: 0,
     shareSnippet: "80% of AI output quality comes from just 3 things: Role, Format, and one Example."
   },
-  {
-    id: "ff-3", type: "quick-fact", title: "Context Window = Short-Term Memory",
-    hook: "AI can only 'see' a fixed amount of text at once.",
-    content: "GPT-4 sees ~128K tokens (≈300 pages). Claude sees ~200K. But attention degrades in the middle — put critical info at the START and END of your prompt. This is called the 'lost in the middle' problem.",
-    visual: "diagram", visualData: { labels: ["Strong Recall ←", "Middle (weak)", "→ Strong Recall"] },
-    category: "Computer & math", difficulty: "intermediate", xp: 45, tokens: 9,
-    shareSnippet: "AI forgets what's in the middle of long prompts. Put key info at the start AND end."
-  },
-  {
-    id: "ff-4", type: "quick-fact", title: "Every AI Has a 'Temperature'",
-    hook: "One setting controls creativity vs. accuracy.",
-    content: "Temperature 0 = robotic, deterministic, same answer every time. Temperature 1+ = creative, varied, sometimes unhinged. For code and data: use 0-0.3. For writing and brainstorming: use 0.7-1.0. Most people never change this.",
-    visual: "compare", visualData: { before: "Temp 0.1: 'The capital of France is Paris.'", after: "Temp 1.2: 'Paris! The beating heart of French civilization, where every cobblestone whispers history...'" },
-    category: "Computer & math", difficulty: "intermediate", xp: 40, tokens: 8,
-    interaction: "choice", options: ["0-0.3 for accuracy, 0.7+ for creativity", "Always max temperature", "Temperature doesn't matter", "Higher = faster"], correctAnswer: 0,
-    shareSnippet: "Temperature 0 = robot. Temperature 1 = poet. Most people never change this setting."
-  },
-
-  // === MICRO-LESSONS ===
   {
     id: "ff-5", type: "micro-lesson", title: "Before/After: Email Prompts",
     hook: "Watch a vague prompt become a precision tool.",
@@ -140,31 +280,6 @@ export const STARTER_FEED: FeedCard[] = [
     shareSnippet: "AI lies confidently. The 3-Source Rule: verify every fact with 2 independent sources."
   },
   {
-    id: "ff-7", type: "micro-lesson", title: "System Prompts: Your Secret Weapon",
-    hook: "This is the instruction layer most people don't know exists.",
-    content: "A system prompt is a persistent instruction that shapes every AI response. Think of it as the 'personality OS'. Example: 'You are a startup advisor with 20 years of experience. You give direct, no-BS advice. Always include a specific next step. Never use jargon without explaining it.' Now every reply follows these rules.",
-    visual: "diagram", visualData: { labels: ["System: Define role + rules", "↓ Shapes every response", "User: Specific question", "↓ Answer follows rules"] },
-    category: "Computer & math", difficulty: "intermediate", xp: 60, tokens: 12,
-    tryPrompt: "Write a system prompt for an AI assistant tailored to your daily work.",
-    shareSnippet: "System prompts are AI's personality OS. Most users don't even know they exist."
-  },
-
-  // === CHALLENGES ===
-  {
-    id: "ff-8", type: "challenge", title: "Pick the Best Prompt",
-    hook: "Only one of these will get you a great output.",
-    content: "You need AI to help plan a product launch. Which prompt wins?",
-    visual: "icon", category: "Management", difficulty: "beginner", xp: 40, tokens: 8,
-    interaction: "choice",
-    options: [
-      "Help me launch my product",
-      "You are a product marketing manager. Create a 4-week launch plan for a B2B SaaS tool. Include: timeline, channels, budget allocation, and KPIs.",
-      "Write a really detailed plan for launching something",
-      "Give me a marketing plan please"
-    ], correctAnswer: 1,
-    shareSnippet: "The best prompt has a Role, a Task, and specific Constraints. Generic = generic output."
-  },
-  {
     id: "ff-9", type: "challenge", title: "Spot the Hallucination",
     hook: "One of these AI 'facts' is completely made up.",
     content: "AI generated these statements. Which one is a hallucination?",
@@ -179,17 +294,6 @@ export const STARTER_FEED: FeedCard[] = [
     shareSnippet: "AI invents fake studies with real-sounding names. Always verify citations."
   },
   {
-    id: "ff-10", type: "challenge", title: "Fix This Output",
-    hook: "This AI response is mediocre. Make it great.",
-    content: "AI wrote: 'Marketing is important for businesses. You should do social media. Also try email marketing. Content is king.'\n\nWhat's the fix? Add constraints: 'Rewrite for a B2B SaaS startup with $5K/month budget. Prioritize by ROI. Include specific tools and metrics for each channel.'",
-    visual: "compare", visualData: { before: "Marketing is important. Do social media. Try email. Content is king.", after: "For $5K/month B2B SaaS: 1) LinkedIn outbound ($1.5K) — target 50 prospects/week, track reply rate. 2) SEO blog ($2K) — 4 posts/month targeting long-tail keywords..." },
-    category: "Business & finance", difficulty: "intermediate", xp: 55, tokens: 11,
-    tryPrompt: "Take a generic AI output you've gotten recently. Add 3 constraints and regenerate.",
-    shareSnippet: "Generic prompts produce generic output. Adding 3 constraints transforms everything."
-  },
-
-  // === MYTH VS TRUTH ===
-  {
     id: "ff-11", type: "myth-vs-truth", title: "AI Will Take All Jobs",
     hook: "The most repeated AI myth — debunked with data.",
     mythStatement: "AI will replace most human jobs within 5 years.",
@@ -200,16 +304,6 @@ export const STARTER_FEED: FeedCard[] = [
     shareSnippet: "AI won't take your job. A person using AI will take your job."
   },
   {
-    id: "ff-12", type: "myth-vs-truth", title: "Longer Prompts = Better Results",
-    hook: "More words ≠ more quality. Here's the real rule.",
-    mythStatement: "The longer and more detailed your prompt, the better the AI output.",
-    truthStatement: "Prompt quality beats prompt length. A focused 2-sentence prompt with clear constraints often outperforms a rambling paragraph. Key: be specific, not verbose. 'Write a 200-word product description for eco-friendly water bottles targeting college students' beats a 500-word unfocused brief.",
-    content: "The sweet spot: enough detail to remove ambiguity, but short enough that every word earns its place. Think of it like a creative brief — the best ones are tight.",
-    visual: "compare", visualData: { before: "500 words of vague instructions", after: "2 sentences with clear Role + Task + Format" },
-    category: "Computer & math", difficulty: "beginner", xp: 30, tokens: 6,
-    shareSnippet: "Prompt quality > prompt length. A focused 2-sentence prompt beats a rambling paragraph."
-  },
-  {
     id: "ff-13", type: "myth-vs-truth", title: "AI Is Always Neutral",
     hook: "AI has biases. Here's why and what to do about it.",
     mythStatement: "AI is objective and unbiased because it's a machine.",
@@ -218,66 +312,6 @@ export const STARTER_FEED: FeedCard[] = [
     visual: "diagram", visualData: { labels: ["Human Data (biased)", "→ AI Training", "→ Biased Patterns", "→ Your Output"] },
     category: "Social services", difficulty: "intermediate", xp: 45, tokens: 9,
     shareSnippet: "AI isn't neutral. It inherits biases from training data. Always ask for multiple perspectives."
-  },
-
-  // === NEWS / EVERGREEN ===
-  {
-    id: "ff-14", type: "news", title: "RAG: Why AI Can Now Search the Web",
-    hook: "Retrieval-Augmented Generation changed everything.",
-    content: "RAG lets AI pull real-time information from databases or the web before generating a response. Instead of relying only on training data, RAG-powered AI checks current sources first. This is why newer AI tools can cite actual URLs and provide up-to-date answers.",
-    visual: "diagram", visualData: { labels: ["Your Question", "→ Retrieves live data", "→ Combines with AI knowledge", "→ Accurate, sourced answer"] },
-    category: "Computer & math", difficulty: "intermediate", xp: 50, tokens: 10,
-    source: "General Update — Evergreen Concept", confidence: 95,
-    shareSnippet: "RAG = AI that checks real sources before answering. No more outdated responses."
-  },
-  {
-    id: "ff-15", type: "news", title: "Multi-Modal AI: Beyond Text",
-    hook: "AI now sees images, hears audio, and generates video.",
-    content: "Multi-modal AI processes text, images, audio, and video simultaneously. You can now: upload a photo and ask questions about it, generate images from text, transcribe and summarize audio, and even create short videos from descriptions. This convergence means AI assistants will soon handle any media type natively.",
-    visual: "diagram", visualData: { labels: ["Text ←→ Images ←→ Audio ←→ Video", "All in one model"] },
-    category: "Computer & math", difficulty: "beginner", xp: 40, tokens: 8,
-    source: "General Update — Evergreen Concept", confidence: 90,
-    shareSnippet: "AI now processes text, images, audio, and video together. The assistant of the future handles everything."
-  },
-
-  // === MORE QUICK FACTS ===
-  {
-    id: "ff-16", type: "quick-fact", title: "Tokens ≠ Words",
-    hook: "AI charges per token, not per word. Here's the conversion.",
-    content: "1 token ≈ 0.75 words (or ~4 characters). 'Hamburger' = 3 tokens. 'I love AI' = 3 tokens. A 1,000-word essay ≈ 1,333 tokens. Knowing this helps you estimate costs and stay within context limits. Pro tip: technical jargon and non-English text use MORE tokens per word.",
-    visual: "infographic", visualData: { labels: ["1 token ≈ 4 chars", "'Hello world' = 2 tokens", "1000 words ≈ 1333 tokens"] },
-    category: "Computer & math", difficulty: "beginner", xp: 30, tokens: 6,
-    shareSnippet: "AI charges per token, not per word. 1 token ≈ 4 characters. Know this to control costs."
-  },
-  {
-    id: "ff-17", type: "quick-fact", title: "The Goldilocks Prompt",
-    hook: "Not too vague. Not too long. Just right.",
-    content: "The ideal prompt length is 30-80 words for most tasks. Under 10 words: too vague, AI guesses your intent. Over 150 words: AI may lose focus or contradict itself. The sweet spot: enough context to remove ambiguity + clear format instructions + one good example.",
-    visual: "chart", visualData: { labels: ["Too Short (<10w)", "Sweet Spot (30-80w)", "Too Long (>150w)"] },
-    category: "Computer & math", difficulty: "beginner", xp: 35, tokens: 7,
-    shareSnippet: "The ideal AI prompt is 30-80 words. Enough to remove ambiguity, short enough to stay focused."
-  },
-
-  // === MORE CHALLENGES ===
-  {
-    id: "ff-18", type: "challenge", title: "Build the Workflow",
-    hook: "Arrange these steps to create an AI-powered content pipeline.",
-    content: "Put these in the right order for an AI content workflow:\nA) Edit and fact-check output\nB) Define audience and goal\nC) Generate first draft with AI\nD) Create system prompt with role + constraints\nE) Iterate with refinement prompts",
-    visual: "steps", visualData: { steps: ["B → D → C → E → A"] },
-    category: "Arts & media", difficulty: "intermediate", xp: 55, tokens: 11,
-    interaction: "choice", options: ["B → D → C → E → A", "C → A → B → D → E", "A → B → C → D → E", "D → C → B → A → E"], correctAnswer: 0,
-    shareSnippet: "AI workflow: Define goal → Set role → Generate → Iterate → Fact-check. Order matters."
-  },
-
-  // === MORE MICRO-LESSONS ===
-  {
-    id: "ff-19", type: "micro-lesson", title: "The Persona Stack",
-    hook: "Layer 3 personas for expert-level AI output.",
-    content: "Instead of one role, stack three: 'You are a senior copywriter (writing), data analyst (evidence), and behavioral psychologist (persuasion). Write a landing page for a fitness app that uses data-backed claims and psychological triggers.' Each persona contributes a unique strength to the output.",
-    visual: "diagram", visualData: { labels: ["Persona 1: Skill", "+ Persona 2: Evidence", "+ Persona 3: Psychology", "= Expert-level output"] },
-    category: "Computer & math", difficulty: "advanced", xp: 65, tokens: 13,
-    tryPrompt: "Stack 3 relevant personas for your next AI task. Compare with a single-role prompt.",
-    shareSnippet: "Stack 3 AI personas (skill + evidence + psychology) for expert-level output."
   },
   {
     id: "ff-20", type: "micro-lesson", title: "The Anti-Fluff Filter",
@@ -312,7 +346,7 @@ export function toggleSaveCard(id: string): boolean {
   const idx = saved.indexOf(id);
   if (idx >= 0) { saved.splice(idx, 1); } else { saved.push(id); }
   localStorage.setItem(SAVED_KEY, JSON.stringify(saved));
-  return idx < 0; // returns true if now saved
+  return idx < 0;
 }
 
 export function getUnseenCards(): FeedCard[] {
