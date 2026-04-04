@@ -38,6 +38,13 @@ const TYPE_LABELS: Record<string, { label: string; color: string }> = {
   "strategic-impact": { label: "STRATEGIC IMPACT", color: "text-red-400 bg-red-400/10" },
   "opportunity-watch": { label: "OPPORTUNITY WATCH", color: "text-accent-green bg-accent-green/10" },
   "reality-compass": { label: "REALITY COMPASS", color: "text-purple-400 bg-purple-400/10" },
+  // Domain Leverage Engine types
+  "money-momentum": { label: "MONEY MOMENTUM", color: "text-accent-green bg-accent-green/10" },
+  "leverage-point": { label: "LEVERAGE POINT", color: "text-accent-gold bg-accent-gold/10" },
+  "profit-pathway": { label: "PROFIT PATHWAY", color: "text-accent-green bg-accent-green/10" },
+  "rich-mindset": { label: "RICH MINDSET", color: "text-primary bg-primary/10" },
+  "ethical-compass": { label: "ETHICAL COMPASS", color: "text-amber-400 bg-amber-400/10" },
+  "pitfall-alert": { label: "PITFALL ALERT", color: "text-destructive bg-destructive/10" },
 };
 
 const URGENCY_BADGES: Record<string, { label: string; color: string }> = {
