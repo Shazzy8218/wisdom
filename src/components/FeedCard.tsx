@@ -224,12 +224,14 @@ export default function FeedCard({ card, onComplete }: Props) {
               <span className={`text-[9px] font-black uppercase tracking-[0.3em] rounded-md px-1.5 py-0.5 ${typeInfo.color}`}>
                 {typeInfo.label}
               </span>
-              {!isPhenomenon && (
+              {!isPhenomenon && !isDLE && (
                 <>
                   <span className="text-text-tertiary text-[9px]">·</span>
                   <span className="text-[9px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">{card.difficulty}</span>
                 </>
               )}
+              {/* ROI badge for DLE cards */}
+              {isDLE && card.roiPotential && <ROIBadge card={card} />}
               {/* Urgency badge */}
               {urgency && (
                 <span className={`text-[8px] font-black uppercase tracking-[0.15em] rounded-md px-1.5 py-0.5 flex items-center gap-1 ${urgency.color}`}>
