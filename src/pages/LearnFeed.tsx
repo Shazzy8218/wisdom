@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Loader2, RefreshCw } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 import FeedCard from "@/components/FeedCard";
 import {
   STARTER_FEED, markCardSeen, type FeedCard as FeedCardT,
