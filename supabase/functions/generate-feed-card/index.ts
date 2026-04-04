@@ -13,7 +13,7 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    // Phenomenon Decoder card types weighted toward strategic readouts
+    // Card type pools
     const phenomenonTypes = [
       "phenomenon-brief", "phenomenon-brief",
       "reality-compass", "reality-compass",
@@ -21,18 +21,36 @@ serve(async (req) => {
       "opportunity-watch",
       "systemic-context",
     ];
+    const wealthTypes = [
+      "money-momentum", "money-momentum",
+      "leverage-point", "leverage-point",
+      "profit-pathway",
+      "rich-mindset", "rich-mindset",
+      "ethical-compass",
+      "pitfall-alert",
+    ];
     const classicTypes = [
       "key-insight", "reality-check", "deep-pattern",
       "quick-fact", "micro-lesson", "challenge", "myth-vs-truth",
     ];
 
-    // Weight toward phenomenon cards (70/30)
-    const pool = Math.random() < 0.7 ? phenomenonTypes : classicTypes;
+    // Select pool based on mode
+    let pool: string[];
+    if (mode === "wealth") {
+      pool = Math.random() < 0.85 ? wealthTypes : classicTypes;
+    } else {
+      // decoder/nerd/quick: 50% phenomenon, 30% wealth, 20% classic
+      const r = Math.random();
+      if (r < 0.5) pool = phenomenonTypes;
+      else if (r < 0.8) pool = wealthTypes;
+      else pool = classicTypes;
+    }
     const cardType = pool[Math.floor(Math.random() * pool.length)];
 
     let modeInstruction = "";
     if (mode === "nerd" || mode === "decoder") modeInstruction = "Maximum analytical depth. Include systemic context, interconnections, underlying drivers, and operational archetypes. Every claim must be evidence-grounded.";
     if (mode === "quick") modeInstruction = "Ultra-concise strategic signal. Max 3 sentences for content. Lead with the actionable insight.";
+    if (mode === "wealth") modeInstruction = "Focus on wealth creation, financial optimization, and ethical finance. Every insight must include concrete dollar amounts, percentages, or actionable financial steps. Include ethical framework considerations.";
 
     let styleInstruction = "";
     if (learningStyle === "visual") styleInstruction = "Emphasize trajectory projections, trend data, and influence webs for visual impact.";
@@ -40,85 +58,109 @@ serve(async (req) => {
     if (learningStyle === "hands-on") styleInstruction = "Focus on adaptation directives and concrete strategic actions the user can take immediately.";
 
     const phenomenonInstructions: Record<string, string> = {
-      "phenomenon-brief": `Generate a PHENOMENON BRIEF — a concise decode of an observable event (policy shift, market movement, tech release, cultural trend). Include:
-- phenomenonDomain: one of "policy", "market", "technology", "social", "media"
-- systemicContext: the deeper forces and historical parallels behind this phenomenon
-- strategicImpactProjection: direct impact on the user's goals/finances/autonomy
-- 2-3 adaptationDirectives with urgency levels (low/medium/high/critical) and domains
-- urgencyLevel: "monitor", "alert", or "critical"
-- interconnections: 3-4 related phenomena or patterns
-- underlyingDrivers: 2-3 core forces behind the event
-- Use visual "trajectory" with trajectoryData (3-4 items with label, current %, projected %)`,
+      "phenomenon-brief": `Generate a PHENOMENON BRIEF — a concise decode of an observable event. Include phenomenonDomain, systemicContext, strategicImpactProjection, 2-3 adaptationDirectives, urgencyLevel, interconnections, underlyingDrivers. Use visual "trajectory" with trajectoryData.`,
+      "reality-compass": `Generate a REALITY COMPASS card — expose contrasting narratives. Include phenomenonDomain, realityCompassDominant, realityCompassAlternative, systemicContext, strategicImpactProjection, interconnections, underlyingDrivers, urgencyLevel.`,
+      "strategic-impact": `Generate a STRATEGIC IMPACT card. Include phenomenonDomain, systemicContext, strategicImpactProjection, 2-3 adaptationDirectives, operationalArchetype, trendData, urgencyLevel. Use visual "trend-map".`,
+      "opportunity-watch": `Generate an OPPORTUNITY WATCH card. Include phenomenonDomain, opportunitySignalType, opportunitySignalDescription, systemicContext, strategicImpactProjection, 2-3 adaptationDirectives, trajectoryData. Use visual "trajectory".`,
+      "systemic-context": `Generate a SYSTEMIC CONTEXT card. Include phenomenonDomain, systemicContext, operationalArchetype, strategicImpactProjection, underlyingDrivers, urgencyLevel. Use visual "steps".`,
+    };
 
-      "reality-compass": `Generate a REALITY COMPASS card — expose contrasting narratives around a phenomenon. Include:
-- phenomenonDomain
-- realityCompassDominant: the mainstream/dominant narrative (2-3 sentences)
-- realityCompassAlternative: the data-driven alternative interpretation (2-3 sentences)
-- systemicContext explaining the pattern of narrative divergence
-- strategicImpactProjection
-- interconnections and underlyingDrivers
-- urgencyLevel`,
+    const wealthInstructions: Record<string, string> = {
+      "money-momentum": `Generate a MONEY MOMENTUM BRIEF — a concise, high-impact financial insight showing how money compounds or flows. Include:
+- wealthDomain: one of "investing", "tax-optimization", "business-structure", "cashflow", "negotiation", "asset-protection", "behavioral-finance"
+- leveragePoint: the core financial leverage being exploited
+- profitPathwayScenario, profitPathwayOutcome, profitPathwayTimeframe: concrete "if X then Y" projection
+- 1-2 ethicalFrameworks with tradition (jewish/islamic/stoic/utilitarian/virtue/esg), principle, and application
+- 2-3 profitProtocols (actionable steps)
+- roiPotential: "low", "medium", "high", or "extreme"
+- Use visual "trajectory" with trajectoryData showing the financial shift`,
 
-      "strategic-impact": `Generate a STRATEGIC IMPACT card — focus on a phenomenon's direct effect on users. Include:
-- phenomenonDomain
-- systemicContext
-- strategicImpactProjection (specific, quantified where possible)
+      "leverage-point": `Generate a LEVERAGE POINT card — expose an underutilized legal, financial, or structural advantage. Include:
+- wealthDomain
+- leveragePoint: the specific mechanism being leveraged
+- richMindsetCommonBelief and richMindsetWealthBuilder: contrasting mindsets
+- 1-2 ethicalFrameworks
 - 2-3 adaptationDirectives with urgency and domain
-- operationalArchetype: name, description, historicalExample
-- trendData with 5-7 data points showing the trend trajectory
-- Use visual "trend-map"
-- urgencyLevel`,
+- roiPotential
+- Use visual "steps" with 4-5 implementation steps`,
 
-      "opportunity-watch": `Generate an OPPORTUNITY WATCH card — identify an emerging opportunity or erosion. Include:
-- phenomenonDomain
-- opportunitySignalType: "erosion" or "amplification"
-- opportunitySignalDescription: specific opportunity details
-- systemicContext
-- strategicImpactProjection
-- 2-3 adaptationDirectives
-- trajectoryData with 3 items showing the shift
-- Use visual "trajectory"
-- urgencyLevel`,
+      "profit-pathway": `Generate a PROFIT PATHWAY card — a specific, actionable route to financial gain. Include:
+- wealthDomain
+- profitPathwayScenario, profitPathwayOutcome, profitPathwayTimeframe
+- leveragePoint
+- 2-3 profitProtocols
+- 1-2 ethicalFrameworks
+- roiPotential
+- Use visual "trajectory" or "compare"`,
 
-      "systemic-context": `Generate a SYSTEMIC CONTEXT card — map a repeatable pattern or cycle. Include:
-- phenomenonDomain
-- systemicContext (detailed pattern analysis)
-- operationalArchetype with name, description, historicalExample
-- strategicImpactProjection
-- underlyingDrivers (3-4 forces)
-- Use visual "steps" with 4-5 stages of the pattern/cycle
-- urgencyLevel`,
+      "rich-mindset": `Generate a RICH MINDSET card — contrast common financial beliefs with wealth-builder practices. Include:
+- wealthDomain
+- richMindsetCommonBelief and richMindsetWealthBuilder
+- financialPitfallName, financialPitfallDescription, financialPitfallAvoidance
+- 1-2 ethicalFrameworks
+- 2-3 profitProtocols
+- roiPotential
+- Use visual "compare"`,
+
+      "ethical-compass": `Generate an ETHICAL COMPASS card — deep dive into ethical finance from diverse traditions. Include:
+- wealthDomain
+- 2-3 ethicalFrameworks from different traditions (jewish, islamic, stoic, utilitarian, virtue, esg)
+- leveragePoint: how the ethical constraint creates advantage
+- profitPathwayScenario, profitPathwayOutcome, profitPathwayTimeframe
+- roiPotential
+- Use visual "diagram"`,
+
+      "pitfall-alert": `Generate a PITFALL ALERT card — expose a common financial trap. Include:
+- wealthDomain
+- financialPitfallName, financialPitfallDescription, financialPitfallAvoidance
+- profitPathwayScenario, profitPathwayOutcome, profitPathwayTimeframe (showing savings from avoiding the pitfall)
+- 1-2 ethicalFrameworks
+- urgencyLevel
+- trendData showing the trend
+- Use visual "trend-map"`,
     };
 
     const classicInstructions: Record<string, string> = {
-      "key-insight": `Generate a KEY INSIGHT card exposing a critical pattern. Include impactAnalysis, 1-2 decisionProtocols, and analyticalFlags.`,
-      "reality-check": `Generate a REALITY CHECK card with contrasting views (contrastingViewA, contrastingViewB), impactAnalysis, and decisionProtocols.`,
-      "deep-pattern": `Generate a DEEP PATTERN card with trendData or connections for visualization, impactAnalysis, and decisionProtocols. Use visual "trend-map" or "influence-web".`,
+      "key-insight": `Generate a KEY INSIGHT card with impactAnalysis, 1-2 decisionProtocols, and analyticalFlags.`,
+      "reality-check": `Generate a REALITY CHECK card with contrastingViewA, contrastingViewB, impactAnalysis, and decisionProtocols.`,
+      "deep-pattern": `Generate a DEEP PATTERN card with trendData or connections, impactAnalysis, and decisionProtocols.`,
       "quick-fact": `Generate a QUICK FACT with a specific, non-obvious insight. Use diagram or chart visual.`,
       "micro-lesson": `Generate a MICRO-LESSON with before/after comparison and tryPrompt. Use compare visual.`,
-      "challenge": `Generate a multiple-choice CHALLENGE with 4 options, one correct. Make wrong answers plausible.`,
+      "challenge": `Generate a multiple-choice CHALLENGE with 4 options, one correct.`,
       "myth-vs-truth": `Generate MYTH VS TRUTH with mythStatement and truthStatement. Use compare visual.`,
     };
 
-    const typeSpecific = phenomenonInstructions[cardType] || classicInstructions[cardType] || "";
+    const typeSpecific = phenomenonInstructions[cardType] || wealthInstructions[cardType] || classicInstructions[cardType] || "";
 
-    const systemPrompt = `You are the Phenomenon Decoder — an advanced reality amplification engine for Wisdom Owl, a premium strategic intelligence app. Your purpose is to rapidly surface, dissect, and contextualize observable phenomena that impact user autonomy, decision-making, and strategic advantage.
+    const systemPrompt = `You are the Domain Leverage Engine — an advanced reality amplification and wealth optimization engine for Wisdom Owl, a premium strategic intelligence app. You serve dual purposes:
+
+1. PHENOMENON DECODER: Rapidly surface, dissect, and contextualize observable phenomena impacting user autonomy and strategic advantage.
+2. WEALTH ENGINE: Deliver highly condensed, actionable intelligence for wealth creation, resource optimization, and ethical financial mastery.
 
 CORE PRINCIPLES:
-- Impact-First: Every decoded phenomenon must explain its DIRECT impact on the user's strategic goals, finances, or cognitive clarity
-- Pattern Recognition: Connect seemingly disparate events into coherent strategic readouts
-- Evidence-Grounded: No speculation without data. Cite patterns, not opinions
-- Actionable Intelligence: Every card must include concrete adaptation directives
-- No filler, no motivation, no platitudes. Raw strategic intelligence only.
+- Impact-First: Every insight must explain DIRECT impact on user's finances, goals, or strategic position
+- Evidence-Grounded: Use real numbers, percentages, historical data. No vague claims
+- Actionable: Every card must include concrete steps, dollar amounts, or specific strategies
+- Ethical Integration: Include relevant ethical frameworks (Jewish, Islamic, Stoic, ESG) for sustainable wealth
+- No filler, no motivation, no platitudes. Raw strategic and financial intelligence only
 
-DOMAIN COVERAGE:
-- Policy & Regulatory: Government actions, legal changes, international agreements
-- Market & Economic: Financial data, trade patterns, resource flows
-- Technology: AI advancements, platforms, hardware, vulnerabilities
-- Social & Cultural: Discourse shifts, demographic changes, value evolution
-- Media & Information: Framing analysis, narrative comparison, information asymmetries
+WEALTH DOMAINS:
+- Investing: Compound growth, asset allocation, market positioning
+- Tax Optimization: Legal provisions, entity structuring, deductions
+- Business Structure: LLCs, S-Corps, trusts, holding companies
+- Cash Flow: Revenue streams, expense optimization, automation
+- Negotiation: Salary, contracts, deals, pricing
+- Asset Protection: Legal shields, insurance, diversification
+- Behavioral Finance: Cognitive biases, emotional spending, decision traps
 
-TONE: Street-smart intelligence analyst. Direct. Specific. No academic hedging. Write like a briefing for someone who needs to make decisions NOW.
+ETHICAL TRADITIONS TO INTEGRATE:
+- Jewish Business Ethics (Tzedakah, fair dealing, honest weights)
+- Islamic Finance (no Riba, risk-sharing, real asset backing)
+- Stoic Ethics (discipline, needs vs desires, long-term thinking)
+- ESG Principles (sustainability, governance, social impact)
+- Utilitarian/Virtue Ethics where relevant
+
+TONE: Street-smart financial strategist meets ethical philosopher. Direct. Specific. Quantified. Write like a private wealth advisor briefing a client who needs to act NOW.
 
 ${modeInstruction}
 ${styleInstruction}
@@ -136,21 +178,21 @@ ${typeSpecific}`;
         model: "google/gemini-3-flash-preview",
         messages: [
           { role: "system", content: systemPrompt },
-          { role: "user", content: `Generate a ${cardType} feed card. Focus on current, real-world phenomena. ${excludeIds?.length ? `Avoid similar topics to: ${excludeIds.slice(-10).join(",")}` : ""}` }
+          { role: "user", content: `Generate a ${cardType} feed card. Focus on real-world, actionable intelligence. ${excludeIds?.length ? `Avoid similar topics to: ${excludeIds.slice(-10).join(",")}` : ""}` }
         ],
         tools: [{
           type: "function",
           function: {
             name: "create_feed_card",
-            description: "Create a structured Phenomenon Decoder feed card",
+            description: "Create a structured feed card for the Domain Leverage Engine",
             parameters: {
               type: "object",
               properties: {
                 title: { type: "string", description: "Punchy title, max 8 words" },
                 hook: { type: "string", description: "1-sentence hook that creates urgency" },
-                content: { type: "string", description: "Phenomenon brief: 2-5 sentences, specific and evidence-grounded" },
+                content: { type: "string", description: "2-5 sentences, specific and evidence-grounded" },
                 visual: { type: "string", enum: ["diagram", "infographic", "compare", "steps", "chart", "icon", "trend-map", "influence-web", "trajectory"] },
-                visualLabels: { type: "array", items: { type: "string" }, description: "Labels for visual elements" },
+                visualLabels: { type: "array", items: { type: "string" } },
                 visualBefore: { type: "string" },
                 visualAfter: { type: "string" },
                 trendData: { type: "array", items: { type: "object", properties: { label: { type: "string" }, value: { type: "number" } }, required: ["label", "value"] } },
@@ -170,9 +212,9 @@ ${typeSpecific}`;
                 source: { type: "string" },
                 confidence: { type: "number" },
                 // Phenomenon Decoder fields
-                phenomenonDomain: { type: "string", enum: ["policy", "market", "technology", "social", "media"] },
-                systemicContext: { type: "string", description: "Deeper forces and historical parallels" },
-                strategicImpactProjection: { type: "string", description: "Direct impact on user's goals/finances/autonomy" },
+                phenomenonDomain: { type: "string", enum: ["policy", "market", "technology", "social", "media", "finance", "legal"] },
+                systemicContext: { type: "string" },
+                strategicImpactProjection: { type: "string" },
                 opportunitySignalType: { type: "string", enum: ["erosion", "amplification"] },
                 opportunitySignalDescription: { type: "string" },
                 adaptationDirectives: { type: "array", items: { type: "object", properties: { directive: { type: "string" }, urgency: { type: "string", enum: ["low", "medium", "high", "critical"] }, domain: { type: "string" } }, required: ["directive", "urgency", "domain"] } },
@@ -184,6 +226,20 @@ ${typeSpecific}`;
                 interconnections: { type: "array", items: { type: "string" } },
                 underlyingDrivers: { type: "array", items: { type: "string" } },
                 urgencyLevel: { type: "string", enum: ["monitor", "alert", "critical"] },
+                // Domain Leverage Engine fields
+                wealthDomain: { type: "string", enum: ["investing", "tax-optimization", "business-structure", "cashflow", "negotiation", "asset-protection", "behavioral-finance"] },
+                leveragePoint: { type: "string", description: "The core financial leverage being exploited" },
+                profitPathwayScenario: { type: "string" },
+                profitPathwayOutcome: { type: "string" },
+                profitPathwayTimeframe: { type: "string" },
+                richMindsetCommonBelief: { type: "string" },
+                richMindsetWealthBuilder: { type: "string" },
+                ethicalFrameworks: { type: "array", items: { type: "object", properties: { tradition: { type: "string", enum: ["jewish", "islamic", "stoic", "utilitarian", "virtue", "esg"] }, principle: { type: "string" }, application: { type: "string" } }, required: ["tradition", "principle", "application"] } },
+                financialPitfallName: { type: "string" },
+                financialPitfallDescription: { type: "string" },
+                financialPitfallAvoidance: { type: "string" },
+                roiPotential: { type: "string", enum: ["low", "medium", "high", "extreme"] },
+                profitProtocols: { type: "array", items: { type: "object", properties: { action: { type: "string" }, linkedCourse: { type: "string" }, linkedCourseId: { type: "string" } }, required: ["action"] } },
                 // Legacy cognitive fields
                 impactAnalysis: { type: "string" },
                 analyticalFlags: { type: "array", items: { type: "string", enum: ["source-comparison", "logical-chain", "correlation-observation", "narrative-framing", "data-verification", "bias-detected", "pattern-divergence", "unaccounted-variable", "strategic-incongruence"] } },
@@ -215,7 +271,7 @@ ${typeSpecific}`;
 
     const raw = JSON.parse(toolCall.function.arguments);
     const card = {
-      id: `pd-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      id: `dle-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
       type: cardType,
       title: raw.title,
       hook: raw.hook,
@@ -260,6 +316,21 @@ ${typeSpecific}`;
       interconnections: raw.interconnections,
       underlyingDrivers: raw.underlyingDrivers,
       urgencyLevel: raw.urgencyLevel,
+      // Domain Leverage Engine fields
+      wealthDomain: raw.wealthDomain,
+      leveragePoint: raw.leveragePoint,
+      profitPathway: raw.profitPathwayScenario && raw.profitPathwayOutcome
+        ? { scenario: raw.profitPathwayScenario, potentialOutcome: raw.profitPathwayOutcome, timeframe: raw.profitPathwayTimeframe || "" }
+        : undefined,
+      richMindsetContrast: raw.richMindsetCommonBelief && raw.richMindsetWealthBuilder
+        ? { commonBelief: raw.richMindsetCommonBelief, wealthBuilder: raw.richMindsetWealthBuilder }
+        : undefined,
+      ethicalFrameworks: raw.ethicalFrameworks,
+      financialPitfall: raw.financialPitfallName
+        ? { name: raw.financialPitfallName, description: raw.financialPitfallDescription || "", avoidanceStrategy: raw.financialPitfallAvoidance || "" }
+        : undefined,
+      roiPotential: raw.roiPotential,
+      profitProtocols: raw.profitProtocols,
       // Legacy
       impactAnalysis: raw.impactAnalysis,
       analyticalFlags: raw.analyticalFlags,
