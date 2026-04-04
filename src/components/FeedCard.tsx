@@ -169,6 +169,7 @@ export default function FeedCard({ card, onComplete }: Props) {
 
   const typeInfo = TYPE_LABELS[card.type] || TYPE_LABELS["quick-fact"];
   const isPhenomenon = isPhenomenonCard(card.type);
+  const isDLE = isDLECard(card.type);
   const urgency = card.urgencyLevel ? URGENCY_BADGES[card.urgencyLevel] : null;
 
   const handleOptionSelect = (idx: number) => {
