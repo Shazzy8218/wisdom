@@ -220,7 +220,6 @@ export default function FeedCard({ card, onComplete }: Props) {
                 <span className="text-sm">{DOMAIN_ICONS[card.phenomenonDomain] || "📡"}</span>
               )}
               {isDLE && card.wealthDomain && <WealthDomainBadge card={card} />}
-              )}
               <span className={`text-[9px] font-black uppercase tracking-[0.3em] rounded-md px-1.5 py-0.5 ${typeInfo.color}`}>
                 {typeInfo.label}
               </span>
