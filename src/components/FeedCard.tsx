@@ -357,6 +357,7 @@ export default function FeedCard({ card, onComplete }: Props) {
 
                 {/* Decision protocols */}
                 {card.decisionProtocols && <DecisionProtocols protocols={card.decisionProtocols} />}
+                {card.profitProtocols && <DecisionProtocols protocols={card.profitProtocols} />}
 
                 {/* Try it prompt */}
                 {card.tryPrompt && (

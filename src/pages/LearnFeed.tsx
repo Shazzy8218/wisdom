@@ -9,10 +9,11 @@ import { generateFeedCard } from "@/lib/ai-stream";
 import HiddenOwl from "@/components/HiddenOwl";
 import { Skeleton } from "@/components/ui/skeleton";
 
-type FeedMode = "decoder" | "nerd" | "quick";
+type FeedMode = "decoder" | "wealth" | "nerd" | "quick";
 
 const MODE_CONFIG: Record<FeedMode, { label: string; icon: React.ReactNode; desc: string }> = {
   decoder: { label: "Phenomenon Decoder", icon: <Radio className="h-4 w-4" />, desc: "Strategic readouts & reality deconstruction" },
+  wealth: { label: "Wealth Engine", icon: <Zap className="h-4 w-4" />, desc: "Money momentum, leverage points & ethical finance" },
   nerd: { label: "Deep Analysis", icon: <Eye className="h-4 w-4" />, desc: "Maximum depth, data, and interconnections" },
   quick: { label: "Flash Intel", icon: <Zap className="h-4 w-4" />, desc: "Rapid-fire strategic signals" },
 };
