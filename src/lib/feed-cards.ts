@@ -146,6 +146,16 @@ export const DOMAIN_ICONS: Record<string, string> = {
   technology: "⚙️",
   social: "🌐",
   media: "📡",
+  finance: "💰",
+  legal: "⚖️",
+  // Wealth domain icons
+  investing: "📊",
+  "tax-optimization": "🧾",
+  "business-structure": "🏗️",
+  cashflow: "💵",
+  negotiation: "🤝",
+  "asset-protection": "🛡️",
+  "behavioral-finance": "🧠",
 };
 
 // Starter cards — mix of original + phenomenon decoder cards
