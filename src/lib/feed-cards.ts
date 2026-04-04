@@ -1,9 +1,11 @@
-// Feed card types and starter content for the Phenomenon Decoder — Reality Amplification Engine
+// Feed card types and starter content for the Phenomenon Decoder & Domain Leverage Engine
 
 export type FeedCardType =
   | "quick-fact" | "micro-lesson" | "news" | "challenge" | "myth-vs-truth" | "video"
   | "key-insight" | "reality-check" | "source-comparison" | "deep-pattern"
-  | "phenomenon-brief" | "systemic-context" | "strategic-impact" | "opportunity-watch" | "reality-compass";
+  | "phenomenon-brief" | "systemic-context" | "strategic-impact" | "opportunity-watch" | "reality-compass"
+  // Domain Leverage Engine types
+  | "money-momentum" | "leverage-point" | "profit-pathway" | "rich-mindset" | "ethical-compass" | "pitfall-alert";
 
 export type AnalyticalFlag =
   | "source-comparison" | "logical-chain" | "correlation-observation"
