@@ -145,7 +145,7 @@ export default function FeedCard({ card, onComplete }: Props) {
   const [saved, setSaved] = useState(() => getSavedCards().includes(card.id));
   const navigate = useNavigate();
 
-  const typeInfo = TYPE_LABELS[card.type] || TYPE_LABELS["quick-fact"];
+  const typeInfo = TYPE_LABELS[card.type] || { label: card.type.toUpperCase().replace(/-/g, " "), color: "text-muted-foreground bg-muted" };
   const isPhenomenon = isPhenomenonCard(card.type);
   const isDLE = isDLECard(card.type);
   const urgency = card.urgencyLevel ? URGENCY_BADGES[card.urgencyLevel] : null;
