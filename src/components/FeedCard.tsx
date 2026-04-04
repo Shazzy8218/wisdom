@@ -209,7 +209,7 @@ export default function FeedCard({ card, onComplete }: Props) {
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, amount: 0.3 }}
         transition={{ duration: 0.4 }}
-        className={`glass-card overflow-hidden film-grain max-w-lg mx-auto w-full ${isPhenomenon ? "border-primary/10" : ""}`}
+        className={`glass-card overflow-hidden film-grain max-w-lg mx-auto w-full ${isPhenomenon ? "border-primary/10" : ""} ${isDLE ? "border-accent-green/10" : ""}`}
       >
         {/* Header */}
         <div className="p-5 pb-3">
