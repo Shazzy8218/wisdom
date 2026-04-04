@@ -86,7 +86,7 @@ export default function LearnFeed() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const genLock = useRef(false);
   const allCardIds = useRef(new Set(STARTER_FEED.map(c => c.id)));
-  const autoGenTriggered = useRef(false);
+  
 
   const filteredCards = cards.filter(c => activeFilters.has(getCardCategory(c.type)));
 
