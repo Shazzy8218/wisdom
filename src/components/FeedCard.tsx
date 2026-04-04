@@ -23,13 +23,6 @@ interface Props {
 }
 
 const TYPE_LABELS: Record<string, { label: string; color: string }> = {
-  "quick-fact": { label: "QUICK FACT", color: "text-accent-foreground bg-accent/20" },
-  "micro-lesson": { label: "MICRO-LESSON", color: "text-primary" },
-  "news": { label: "EVERGREEN", color: "text-accent-foreground" },
-  "challenge": { label: "CHALLENGE", color: "text-primary" },
-  "myth-vs-truth": { label: "MYTH VS TRUTH", color: "text-destructive" },
-  "video": { label: "VIDEO", color: "text-accent-foreground" },
-  "key-insight": { label: "KEY INSIGHT", color: "text-primary bg-primary/10" },
   "reality-check": { label: "REALITY CHECK", color: "text-amber-400 bg-amber-400/10" },
   "source-comparison": { label: "SOURCE ANALYSIS", color: "text-blue-400 bg-blue-400/10" },
   "deep-pattern": { label: "DEEP PATTERN", color: "text-purple-400 bg-purple-400/10" },
@@ -38,7 +31,6 @@ const TYPE_LABELS: Record<string, { label: string; color: string }> = {
   "strategic-impact": { label: "STRATEGIC IMPACT", color: "text-red-400 bg-red-400/10" },
   "opportunity-watch": { label: "OPPORTUNITY WATCH", color: "text-accent-green bg-accent-green/10" },
   "reality-compass": { label: "REALITY COMPASS", color: "text-purple-400 bg-purple-400/10" },
-  // Domain Leverage Engine types
   "money-momentum": { label: "MONEY MOMENTUM", color: "text-accent-green bg-accent-green/10" },
   "leverage-point": { label: "LEVERAGE POINT", color: "text-accent-gold bg-accent-gold/10" },
   "profit-pathway": { label: "PROFIT PATHWAY", color: "text-accent-green bg-accent-green/10" },
@@ -70,20 +62,6 @@ function VisualBlock({ card }: { card: FeedCardType }) {
   if (card.type === "source-comparison" && card.sourceStreams?.length) return <SourceComparisonViz card={card} />;
   if (card.type === "reality-check" && card.contrastingViews) return <ContrastingViewsViz card={card} />;
 
-  if (card.type === "myth-vs-truth") {
-    return (
-      <div className="space-y-3">
-        <div className="rounded-2xl border border-destructive/30 bg-destructive/10 p-4">
-          <p className="text-micro font-bold uppercase tracking-widest text-destructive mb-1">❌ MYTH</p>
-          <p className="text-body text-foreground">{card.mythStatement}</p>
-        </div>
-        <div className="rounded-2xl border border-accent-green/30 bg-accent-green/10 p-4">
-          <p className="text-micro font-bold uppercase tracking-widest text-accent-green mb-1">✅ TRUTH</p>
-          <p className="text-body text-foreground">{card.truthStatement}</p>
-        </div>
-      </div>
-    );
-  }
 
   if (card.visual === "compare" && card.visualData?.before && card.visualData?.after) {
     return (
