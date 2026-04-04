@@ -7,7 +7,8 @@ import OwlIcon from "@/components/OwlIcon";
 const PRIMARY_NAV = [
   { to: "/", icon: null, label: "Chat", isOwl: true },
   { to: "/courses", icon: BookOpen, label: "Courses" },
-  { to: "/library", icon: BookMarked, label: "Library" },
+  { to: "/feed", icon: Newspaper, label: "Feed" },
+  { to: "/goals", icon: Target, label: "Goals" },
   { to: "/profile", icon: User, label: "Profile" },
 ];
 
