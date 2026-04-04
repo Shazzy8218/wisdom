@@ -21,7 +21,7 @@ import {
 const MAIN_NAV = [
   { title: "Chat", url: "/", icon: null, isOwl: true },
   { title: "Courses", url: "/courses", icon: BookOpen },
-  { title: "Library", url: "/library", icon: BookMarked },
+  { title: "Feed", url: "/feed", icon: Newspaper },
   { title: "Games", url: "/games", icon: Gamepad2 },
   { title: "Live Drills", url: "/drills", icon: Zap },
 ];
