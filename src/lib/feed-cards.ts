@@ -493,6 +493,160 @@ export const STARTER_FEED: FeedCard[] = [
     tryPrompt: "Add the anti-fluff filter to your next prompt. Compare before and after.",
     shareSnippet: "'No filler. Every sentence must contain a specific insight or concrete example.' — The anti-fluff filter."
   },
+  // === ADDITIONAL HIGH-VALUE CARDS ===
+  {
+    id: "hv-1", type: "money-momentum", title: "The Tax-Loss Harvesting Edge",
+    hook: "The IRS lets you write off investment losses against gains. Most people don't.",
+    content: "Tax-loss harvesting means selling losing investments to offset capital gains taxes. If you made $10K in stock gains and lost $4K elsewhere, you pay tax on $6K instead of $10K. You can even deduct up to $3K/year against regular income. Robo-advisors automate this, saving investors 1-2% annually in taxes.",
+    visual: "trajectory",
+    visualData: { trajectoryData: [
+      { label: "Without harvesting", current: 100, projected: 72 },
+      { label: "With harvesting", current: 100, projected: 85 },
+      { label: "Tax savings", current: 0, projected: 13 },
+    ]},
+    category: "Tax Strategy", difficulty: "intermediate", xp: 55, tokens: 12,
+    wealthDomain: "tax-optimization",
+    leveragePoint: "The tax code rewards strategic loss realization. This is free money most people leave on the table.",
+    profitPathway: { scenario: "Implement tax-loss harvesting on a $100K portfolio", potentialOutcome: "Save $1,500-3,000/year in taxes", timeframe: "Annual, compounding benefit" },
+    profitProtocols: [{ action: "Review unrealized losses in your portfolio quarterly" }, { action: "Set up automated tax-loss harvesting through your broker" }],
+    roiPotential: "high",
+    shareSnippet: "Tax-loss harvesting can save you 1-2% annually. The IRS lets you deduct investment losses — most people don't use this."
+  },
+  {
+    id: "hv-2", type: "phenomenon-brief", title: "The Great Skill Repricing",
+    hook: "AI is compressing the value of knowledge work. Some skills are rising.",
+    content: "Coding, copywriting, data analysis, and translation are being commoditized by AI. But skills involving judgment under uncertainty — sales negotiation, crisis management, creative direction, complex stakeholder management — are repricing upward. The gap between automatable and non-automatable skills will widen 3-5x by 2027.",
+    visual: "trajectory",
+    visualData: { trajectoryData: [
+      { label: "Routine knowledge work", current: 75, projected: 30 },
+      { label: "Judgment-based skills", current: 60, projected: 90 },
+      { label: "AI-augmented hybrid", current: 40, projected: 85 },
+    ]},
+    category: "Career Strategy", difficulty: "intermediate", xp: 50, tokens: 11,
+    phenomenonDomain: "technology",
+    systemicContext: "This mirrors the industrial revolution pattern: routine manual labor was devalued, but skilled trades and management roles appreciated in value. The same bifurcation is happening in white-collar work.",
+    strategicImpactProjection: "If your primary income relies on skills AI can replicate, you have a 2-3 year window to pivot toward judgment-heavy capabilities or AI-augmented workflows.",
+    adaptationDirectives: [
+      { directive: "Audit your top 5 income-generating skills against AI automation risk", urgency: "high", domain: "Career" },
+      { directive: "Invest in one judgment-based skill this quarter (negotiation, leadership, creative strategy)", urgency: "medium", domain: "Development" },
+    ],
+    urgencyLevel: "alert",
+    shareSnippet: "AI is repricing skills. Routine knowledge work is falling. Judgment under uncertainty is rising. Where are your skills?"
+  },
+  {
+    id: "hv-3", type: "rich-mindset", title: "Salary vs. Equity: The Wealth Split",
+    hook: "Employees trade time for money. Owners trade risk for upside.",
+    content: "The median W-2 employee earns $56K/year. The median small business owner earns $64K — only 14% more. But median net worth tells the real story: employees at $95K, business owners at $1.17M. The difference isn't income — it's equity accumulation. Every year you work for salary alone, you're building someone else's equity.",
+    visual: "compare",
+    visualData: { before: "Salary path: $56K/yr income, $95K median net worth after 20 years", after: "Equity path: $64K/yr income, $1.17M median net worth after 20 years" },
+    category: "Wealth Creation", difficulty: "intermediate", xp: 55, tokens: 12,
+    wealthDomain: "investing",
+    richMindsetContrast: {
+      commonBelief: "A good salary with benefits is the safest path to wealth.",
+      wealthBuilder: "Salary is a tool for funding equity positions. Every dollar earned should be split: living expenses, reserves, and equity-building investments."
+    },
+    ethicalFrameworks: [
+      { tradition: "jewish", principle: "Parnassah — honest livelihood with multiple income streams", application: "Diversify income sources; don't depend entirely on one employer" },
+    ],
+    profitProtocols: [
+      { action: "Calculate what percentage of your income builds YOUR equity vs. your employer's" },
+      { action: "Start one side project that builds equity you own — even if it earns $0 initially" },
+    ],
+    roiPotential: "extreme",
+    shareSnippet: "Employees earn 14% more salary than business owners. But owners have 12x the net worth. The difference is equity."
+  },
+  {
+    id: "hv-4", type: "strategic-impact", title: "The Attention Monopoly Play",
+    hook: "Five companies control 80% of global digital attention. Here's the play.",
+    content: "Google, Meta, Apple, Amazon, and TikTok collectively control 80% of digital attention hours. This isn't just a market share stat — it determines which businesses survive. If your revenue depends on organic reach through these platforms, you're building on rented land. Every algorithm change is a rent increase you can't negotiate.",
+    visual: "trend-map",
+    visualData: { trendData: [
+      { label: "2018", value: 55 }, { label: "2019", value: 62 }, { label: "2020", value: 70 },
+      { label: "2021", value: 74 }, { label: "2022", value: 77 }, { label: "2023", value: 80 },
+    ]},
+    category: "Market Intelligence", difficulty: "advanced", xp: 60, tokens: 13,
+    phenomenonDomain: "market",
+    systemicContext: "Attention concentration follows the same power-law as wealth concentration. The top 5 platforms capture exponentially more attention than the next 50 combined.",
+    strategicImpactProjection: "Businesses dependent on a single platform's algorithm for distribution face existential risk with every update. Email lists, direct relationships, and owned channels are the only hedge.",
+    adaptationDirectives: [
+      { directive: "Build an owned audience channel (email list, community) as your primary distribution", urgency: "critical", domain: "Business" },
+      { directive: "Diversify across at least 3 acquisition channels — never depend on one platform", urgency: "high", domain: "Strategy" },
+    ],
+    operationalArchetype: { name: "Platform Dependency Trap", description: "Businesses build on rented platforms, then face existential risk when platform rules change.", historicalExample: "Facebook organic reach dropped from 16% to 2% between 2012-2023, destroying businesses built on free reach" },
+    urgencyLevel: "critical",
+    shareSnippet: "5 companies control 80% of digital attention. If your business depends on their algorithms, you're building on rented land."
+  },
+  {
+    id: "hv-5", type: "leverage-point", title: "The Roth Conversion Ladder",
+    hook: "How early retirees access retirement funds penalty-free.",
+    content: "The Roth Conversion Ladder lets you access traditional IRA/401K funds before age 59½ without the 10% penalty. Convert traditional to Roth each year, wait 5 years, withdraw the converted amount tax-free. If you're in a low-income year (sabbatical, early retirement, career transition), you convert at a lower tax bracket — paying less tax than you would at withdrawal.",
+    visual: "steps",
+    visualData: { steps: [
+      "Year 1: Convert $40K from Traditional IRA to Roth (pay tax at current low bracket)",
+      "Year 2: Convert another $40K (pay low tax again)",
+      "Year 3-5: Continue converting annually",
+      "Year 6: Withdraw Year 1 conversion tax and penalty-free",
+      "Year 7+: Each year's conversion becomes accessible — perpetual pipeline",
+    ]},
+    category: "Tax Strategy", difficulty: "advanced", xp: 65, tokens: 14,
+    wealthDomain: "tax-optimization",
+    leveragePoint: "The 5-year Roth conversion rule creates a penalty-free bridge to retirement funds. Most financial advisors don't mention it because it requires planning.",
+    richMindsetContrast: {
+      commonBelief: "Retirement money is locked until 59½. Early withdrawal means 10% penalty plus taxes.",
+      wealthBuilder: "The tax code has specific provisions for strategic conversions. A Roth ladder built during low-income years can save $50K+ in penalties and taxes."
+    },
+    roiPotential: "extreme",
+    shareSnippet: "The Roth Conversion Ladder lets you access retirement funds before 59½ with zero penalty. Most people don't know this exists."
+  },
+  {
+    id: "hv-6", type: "pitfall-alert", title: "The Inflation Illusion",
+    hook: "Your savings are losing 3-7% purchasing power annually. Silently.",
+    content: "Keeping $50K in a savings account at 0.5% APY while inflation runs at 5% means you lose $2,250 in purchasing power annually. Over 10 years, that $50K buys what $38K buys today. The 'safety' of savings accounts is an illusion — you're guaranteed to lose money in real terms. Even high-yield savings at 4.5% barely keeps pace.",
+    visual: "trajectory",
+    visualData: { trajectoryData: [
+      { label: "Savings account (0.5%)", current: 50, projected: 31 },
+      { label: "High-yield savings (4.5%)", current: 50, projected: 47 },
+      { label: "Index fund (10% avg)", current: 50, projected: 80 },
+    ]},
+    category: "Behavioral Finance", difficulty: "beginner", xp: 45, tokens: 10,
+    wealthDomain: "investing",
+    financialPitfall: { name: "Nominal vs. Real Return Confusion", description: "People see their bank balance staying the same and feel 'safe' while inflation erodes purchasing power invisibly.", avoidanceStrategy: "Keep only 3-6 months expenses in savings. Everything else must beat inflation — index funds, I-bonds, or real assets." },
+    ethicalFrameworks: [
+      { tradition: "stoic", principle: "See things as they are, not as they appear", application: "Calculate your REAL (inflation-adjusted) return, not the nominal number on screen" },
+    ],
+    urgencyLevel: "alert",
+    shareSnippet: "$50K in a savings account loses $2,250/year in purchasing power to inflation. 'Safe' savings are a guaranteed loss."
+  },
+  {
+    id: "hv-7", type: "quick-fact", title: "The 1% Daily Improvement Math",
+    hook: "1% better daily = 37x better in a year. Here's the real math.",
+    content: "1.01^365 = 37.78. Getting 1% better each day for a year makes you nearly 38x better. But 0.99^365 = 0.03. Getting 1% worse each day leaves you at 3% of where you started. Tiny habits compound in both directions — the asymmetry is brutal.",
+    visual: "trajectory",
+    visualData: { trajectoryData: [
+      { label: "+1% daily", current: 1, projected: 38 },
+      { label: "No change", current: 1, projected: 1 },
+      { label: "-1% daily", current: 1, projected: 0 },
+    ]},
+    category: "Performance", difficulty: "beginner", xp: 35, tokens: 7,
+    shareSnippet: "1% better daily = 37x better in a year. 1% worse daily = 97% decline. Small habits have brutal asymmetry."
+  },
+  {
+    id: "hv-8", type: "money-momentum", title: "The Emergency Fund Paradox",
+    hook: "3-6 months expenses saved = the #1 wealth accelerator. Here's why.",
+    content: "An emergency fund doesn't just protect you — it changes your decision-making. Without one, you accept bad deals: staying in underpaying jobs, taking predatory loans, panic-selling investments. Research shows people with 3+ months savings negotiate 15% higher salaries because they can afford to walk away. The fund isn't defensive — it's leverage.",
+    visual: "compare",
+    visualData: { before: "No emergency fund: accept first offer, can't negotiate, panic-sell in downturns", after: "6-month fund: negotiate from strength, invest during dips, choose opportunities selectively" },
+    category: "Cash Flow", difficulty: "beginner", xp: 50, tokens: 11,
+    wealthDomain: "cashflow",
+    leveragePoint: "Financial security creates negotiation power. The ability to walk away is the most underrated wealth tool.",
+    profitPathway: { scenario: "Build a 6-month emergency fund ($15K-$30K)", potentialOutcome: "15% salary increase at next negotiation + avoid forced selling during market downturns", timeframe: "6-12 months to build, lifetime benefit" },
+    profitProtocols: [
+      { action: "Automate 20% of income to a high-yield savings account until you hit 6 months expenses" },
+      { action: "Once funded, redirect that 20% into index funds — the habit is already built" },
+    ],
+    roiPotential: "high",
+    shareSnippet: "An emergency fund isn't defensive — it's leverage. People with 3+ months savings negotiate 15% higher salaries."
+  },
 ];
 
 // Track which cards the user has seen/completed
