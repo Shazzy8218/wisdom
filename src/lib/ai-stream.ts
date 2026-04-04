@@ -182,3 +182,20 @@ export async function generateFeedCard(params: {
   }
   return resp.json();
 }
+
+/** Generate multiple feed cards in parallel */
+export async function generateFeedCardBatch(params: {
+  mode?: string; learningStyle?: string; excludeIds?: string[];
+  count?: number;
+}): Promise<any[]> {
+  const count = params.count || 5;
+  const promises = Array.from({ length: count }, () =>
+    generateFeedCard({
+      mode: params.mode,
+      learningStyle: params.learningStyle,
+      excludeIds: params.excludeIds,
+    }).catch(() => null)
+  );
+  const results = await Promise.all(promises);
+  return results.filter(Boolean);
+}
