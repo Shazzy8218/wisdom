@@ -8,7 +8,7 @@ import {
 } from "@/lib/feed-cards";
 import { useProgress } from "@/hooks/useProgress";
 import { useUserProfile } from "@/hooks/useUserProfile";
-import { generateFeedCard } from "@/lib/ai-stream";
+import { generateFeedCardBatch } from "@/lib/ai-stream";
 import owlLogo from "@/assets/owl-logo.png";
 
 function shuffle<T>(arr: T[]): T[] {
@@ -20,62 +20,42 @@ function shuffle<T>(arr: T[]): T[] {
   return a;
 }
 
-/** Animated owl logo with heartbeat pulse */
+/** Living Wisdom Owl logo with heartbeat */
 function WisdomOwlLogo() {
   return (
     <div className="relative flex items-center justify-center">
-      {/* Outer aura rings */}
       <motion.div
-        className="absolute w-14 h-14 rounded-full border border-primary/10"
-        animate={{
-          scale: [1, 1.4, 1],
-          opacity: [0.3, 0, 0.3],
-        }}
+        className="absolute w-16 h-16 rounded-full border border-primary/10"
+        animate={{ scale: [1, 1.5, 1], opacity: [0.2, 0, 0.2] }}
         transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
       />
       <motion.div
-        className="absolute w-11 h-11 rounded-full border border-accent-gold/15"
-        animate={{
-          scale: [1, 1.25, 1],
-          opacity: [0.4, 0.1, 0.4],
-        }}
+        className="absolute w-12 h-12 rounded-full border border-accent-gold/15"
+        animate={{ scale: [1, 1.3, 1], opacity: [0.3, 0.05, 0.3] }}
         transition={{ duration: 3, repeat: Infinity, ease: "easeInOut", delay: 0.3 }}
       />
-      {/* Inner glow */}
       <motion.div
-        className="absolute w-9 h-9 rounded-full"
-        style={{
-          background: "radial-gradient(circle, hsl(45 90% 55% / 0.15) 0%, transparent 70%)",
-        }}
+        className="absolute w-10 h-10 rounded-full"
+        style={{ background: "radial-gradient(circle, hsl(45 90% 55% / 0.18) 0%, transparent 70%)" }}
         animate={{
           scale: [1, 1.15, 0.95, 1.1, 1],
-          opacity: [0.5, 0.8, 0.4, 0.7, 0.5],
+          opacity: [0.5, 0.9, 0.4, 0.8, 0.5],
         }}
-        transition={{
-          duration: 1.8,
-          repeat: Infinity,
-          ease: "easeInOut",
-          times: [0, 0.15, 0.4, 0.55, 1],
-        }}
+        transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut", times: [0, 0.15, 0.4, 0.55, 1] }}
       />
-      {/* Owl image with heartbeat */}
       <motion.img
         src={owlLogo}
         alt="Wisdom AI"
-        className="relative z-10 w-9 h-9 drop-shadow-[0_0_12px_hsl(45,90%,55%,0.4)]"
-        animate={{
-          scale: [1, 1.08, 0.97, 1.05, 1],
-        }}
-        transition={{
-          duration: 1.8,
-          repeat: Infinity,
-          ease: "easeInOut",
-          times: [0, 0.15, 0.4, 0.55, 1],
-        }}
+        className="relative z-10 w-10 h-10 drop-shadow-[0_0_14px_hsl(45,90%,55%,0.45)]"
+        animate={{ scale: [1, 1.08, 0.97, 1.05, 1] }}
+        transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut", times: [0, 0.15, 0.4, 0.55, 1] }}
       />
     </div>
   );
 }
+
+const BATCH_SIZE = 6; // parallel requests per batch
+const TARGET_BUFFER = 30; // always try to have this many unseen cards ready
 
 export default function LearnFeed() {
   const { progress, update } = useProgress();
@@ -83,10 +63,11 @@ export default function LearnFeed() {
   const [activeFilters, setActiveFilters] = useState<Set<FeedCategory>>(new Set(["phenomenon", "wealth"]));
   const [cards, setCards] = useState<FeedCardT[]>(() => shuffle(STARTER_FEED));
   const [generating, setGenerating] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
   const genLock = useRef(false);
   const allCardIds = useRef(new Set(STARTER_FEED.map(c => c.id)));
-  
+  const mountedRef = useRef(true);
 
   const filteredCards = cards.filter(c => activeFilters.has(getCardCategory(c.type)));
 
@@ -102,49 +83,68 @@ export default function LearnFeed() {
     });
   };
 
-  const generateNewCard = useCallback(async () => {
+  const generateBatch = useCallback(async (count = BATCH_SIZE) => {
     if (genLock.current) return;
     genLock.current = true;
     setGenerating(true);
     try {
-      // Determine mode based on active filters
       const modes = Array.from(activeFilters);
       const mode = modes.length === 1 && modes[0] === "wealth" ? "wealth" : "decoder";
-      
-      const card = await generateFeedCard({
+
+      const newCards = await generateFeedCardBatch({
         mode,
         learningStyle: profile.learningStyle,
         excludeIds: Array.from(allCardIds.current),
+        count,
       });
-      if (card?.id && !allCardIds.current.has(card.id)) {
-        allCardIds.current.add(card.id);
-        setCards(prev => [...prev, card]);
+
+      if (!mountedRef.current) return;
+
+      const unique = newCards.filter(c => c?.id && !allCardIds.current.has(c.id));
+      unique.forEach(c => allCardIds.current.add(c.id));
+      if (unique.length > 0) {
+        setCards(prev => [...prev, ...unique]);
       }
     } catch (err) {
-      console.error("Feed gen error:", err);
+      console.error("Feed batch gen error:", err);
     }
-    setGenerating(false);
+    if (mountedRef.current) {
+      setGenerating(false);
+      setInitialLoading(false);
+    }
     genLock.current = false;
   }, [profile.learningStyle, activeFilters]);
 
-  // Pre-generate one card on mount
+  // Generate a big initial batch on mount
   useEffect(() => {
-    generateNewCard();
+    mountedRef.current = true;
+    setInitialLoading(true);
+    // Fire multiple batches to reach 30+ cards quickly
+    const init = async () => {
+      // 5 parallel batches of 6 = 30 cards
+      await generateBatch(BATCH_SIZE);
+      if (mountedRef.current) generateBatch(BATCH_SIZE);
+      if (mountedRef.current) generateBatch(BATCH_SIZE);
+      if (mountedRef.current) generateBatch(BATCH_SIZE);
+      if (mountedRef.current) generateBatch(BATCH_SIZE);
+    };
+    init();
+    return () => { mountedRef.current = false; };
   }, []);
 
-  // Auto-generate when user scrolls near bottom
+  // Auto-generate more when user scrolls near bottom
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
     const handleScroll = () => {
-      const nearBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 600;
+      const nearBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 800;
       if (nearBottom && !genLock.current) {
-        generateNewCard();
+        generateBatch(BATCH_SIZE);
       }
     };
     el.addEventListener("scroll", handleScroll, { passive: true });
     return () => el.removeEventListener("scroll", handleScroll);
-  }, [generateNewCard]);
+  }, [generateBatch]);
 
   const handleComplete = useCallback((id: string, xp: number, tokens: number) => {
     markCardSeen(id);
@@ -156,14 +156,14 @@ export default function LearnFeed() {
     setCards(shuffled);
     allCardIds.current = new Set(STARTER_FEED.map(c => c.id));
     scrollRef.current?.scrollTo({ top: 0, behavior: "smooth" });
-    generateNewCard();
+    generateBatch(BATCH_SIZE);
   };
 
   return (
-    <div className="flex flex-col bg-background min-h-0" style={{ height: "calc(100vh - 7rem)" }}>
+    <div className="flex flex-col bg-background min-h-0" style={{ height: "calc(100vh - 3.5rem)" }}>
       {/* Premium Header */}
       <div className="flex-shrink-0 px-5 pt-5 pb-4 bg-background/95 backdrop-blur-2xl z-10 border-b border-border/30">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-3">
             <WisdomOwlLogo />
             <div>
@@ -208,24 +208,29 @@ export default function LearnFeed() {
         </div>
       </div>
 
-      {/* Feed */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto snap-y snap-mandatory hide-scrollbar">
-        <AnimatePresence initial={false}>
-          {filteredCards.map((card, i) => (
-            <motion.div
-              key={card.id}
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.35, delay: Math.min(i * 0.02, 0.15), ease: [0.25, 0.46, 0.45, 0.94] }}
-            >
-              <FeedCard card={card} onComplete={handleComplete} />
-            </motion.div>
-          ))}
-        </AnimatePresence>
+      {/* Feed - smooth scroll like Instagram/X */}
+      <div
+        ref={scrollRef}
+        className="flex-1 overflow-y-auto overscroll-y-contain hide-scrollbar"
+        style={{ WebkitOverflowScrolling: "touch", scrollBehavior: "smooth" }}
+      >
+        {filteredCards.map((card, i) => (
+          <motion.div
+            key={card.id}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{
+              duration: 0.3,
+              delay: Math.min(i * 0.015, 0.1),
+              ease: [0.25, 0.46, 0.45, 0.94],
+            }}
+          >
+            <FeedCard card={card} onComplete={handleComplete} />
+          </motion.div>
+        ))}
 
         {/* Empty state */}
-        {filteredCards.length === 0 && !generating && (
+        {filteredCards.length === 0 && !generating && !initialLoading && (
           <div className="flex flex-col items-center justify-center h-64 px-6">
             <p className="text-muted-foreground text-sm text-center">No cards match your filters.</p>
             <button onClick={() => setActiveFilters(new Set(["phenomenon", "wealth"]))}
@@ -233,21 +238,21 @@ export default function LearnFeed() {
           </div>
         )}
 
-        {/* Loading indicator at bottom */}
-        {generating && (
+        {/* Loading indicator */}
+        {(generating || initialLoading) && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="flex flex-col items-center justify-center py-12 gap-3"
+            className="flex flex-col items-center justify-center py-10 gap-3"
           >
             <motion.div
-              animate={{ scale: [1, 1.1, 1], opacity: [0.6, 1, 0.6] }}
-              transition={{ duration: 1.5, repeat: Infinity }}
+              animate={{ scale: [1, 1.12, 1], opacity: [0.5, 1, 0.5] }}
+              transition={{ duration: 1.2, repeat: Infinity }}
             >
               <img src={owlLogo} alt="" className="w-8 h-8 drop-shadow-[0_0_10px_hsl(45,90%,55%,0.3)]" />
             </motion.div>
             <span className="text-[11px] text-muted-foreground/60 tracking-wide">
-              Wisdom Owl is crafting fresh intelligence…
+              {initialLoading ? "Wisdom Owl is preparing your feed…" : "Loading more wisdom…"}
             </span>
           </motion.div>
         )}

@@ -7,17 +7,16 @@ import OwlIcon from "@/components/OwlIcon";
 const PRIMARY_NAV = [
   { to: "/", icon: null, label: "Chat", isOwl: true },
   { to: "/courses", icon: BookOpen, label: "Courses" },
-  { to: "/library", icon: BookMarked, label: "Library" },
+  { to: "/feed", icon: Newspaper, label: "Feed" },
+  { to: "/goals", icon: Target, label: "Goals" },
   { to: "/profile", icon: User, label: "Profile" },
 ];
 
 const MORE_NAV = [
   { to: "/games", icon: Gamepad2, label: "Games" },
   { to: "/drills", icon: Zap, label: "Live Drills" },
-  
-  { to: "/goals", icon: Target, label: "Goals" },
+  { to: "/library", icon: BookMarked, label: "Library" },
   { to: "/wallet", icon: Wallet, label: "Wallet" },
-  { to: "/feed", icon: Newspaper, label: "Feed" },
   { to: "/settings", icon: Settings, label: "Settings" },
   { to: "/support", icon: HelpCircle, label: "Support" },
 ];
