@@ -57,6 +57,10 @@ function isPhenomenonCard(type: string): boolean {
   return ["phenomenon-brief", "systemic-context", "strategic-impact", "opportunity-watch", "reality-compass"].includes(type);
 }
 
+function isDLECard(type: string): boolean {
+  return ["money-momentum", "leverage-point", "profit-pathway", "rich-mindset", "ethical-compass", "pitfall-alert"].includes(type);
+}
+
 function VisualBlock({ card }: { card: FeedCardType }) {
   if (card.visual === "trajectory") return <TrajectoryViz card={card} />;
   if (card.visual === "trend-map") return <TrendMapViz card={card} />;
