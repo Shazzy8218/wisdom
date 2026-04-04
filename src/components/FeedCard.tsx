@@ -215,9 +215,11 @@ export default function FeedCard({ card, onComplete }: Props) {
         <div className="p-5 pb-3">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2 flex-wrap">
-              {/* Domain icon for phenomenon cards */}
+              {/* Domain icon for phenomenon / DLE cards */}
               {isPhenomenon && card.phenomenonDomain && (
                 <span className="text-sm">{DOMAIN_ICONS[card.phenomenonDomain] || "📡"}</span>
+              )}
+              {isDLE && card.wealthDomain && <WealthDomainBadge card={card} />}
               )}
               <span className={`text-[9px] font-black uppercase tracking-[0.3em] rounded-md px-1.5 py-0.5 ${typeInfo.color}`}>
                 {typeInfo.label}
