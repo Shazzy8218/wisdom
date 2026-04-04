@@ -309,6 +309,13 @@ export default function FeedCard({ card, onComplete }: Props) {
                 {/* Adaptation Directives */}
                 <AdaptationDirectivesViz card={card} />
 
+                {/* Domain Leverage Engine blocks */}
+                <RichMindsetViz card={card} />
+                <LeveragePointViz card={card} />
+                <ProfitPathwayViz card={card} />
+                <FinancialPitfallViz card={card} />
+                <EthicalCompassViz card={card} />
+
                 {/* Legacy impact analysis */}
                 {card.impactAnalysis && !card.strategicImpactProjection && (
                   <div className="rounded-xl border border-primary/15 bg-primary/5 p-3">
