@@ -1,9 +1,11 @@
-// Feed card types and starter content for the Phenomenon Decoder — Reality Amplification Engine
+// Feed card types and starter content for the Phenomenon Decoder & Domain Leverage Engine
 
 export type FeedCardType =
   | "quick-fact" | "micro-lesson" | "news" | "challenge" | "myth-vs-truth" | "video"
   | "key-insight" | "reality-check" | "source-comparison" | "deep-pattern"
-  | "phenomenon-brief" | "systemic-context" | "strategic-impact" | "opportunity-watch" | "reality-compass";
+  | "phenomenon-brief" | "systemic-context" | "strategic-impact" | "opportunity-watch" | "reality-compass"
+  // Domain Leverage Engine types
+  | "money-momentum" | "leverage-point" | "profit-pathway" | "rich-mindset" | "ethical-compass" | "pitfall-alert";
 
 export type AnalyticalFlag =
   | "source-comparison" | "logical-chain" | "correlation-observation"
@@ -38,6 +40,24 @@ export interface OperationalArchetype {
   name: string;
   description: string;
   historicalExample?: string;
+}
+
+export interface EthicalFramework {
+  tradition: "jewish" | "islamic" | "stoic" | "utilitarian" | "virtue" | "esg";
+  principle: string;
+  application: string;
+}
+
+export interface ProfitPathway {
+  scenario: string;
+  potentialOutcome: string;
+  timeframe: string;
+}
+
+export interface FinancialPitfall {
+  name: string;
+  description: string;
+  avoidanceStrategy: string;
 }
 
 export interface FeedCard {
@@ -76,7 +96,7 @@ export interface FeedCard {
   decisionProtocols?: DecisionProtocol[];
   contrastingViews?: { viewA: string; viewB: string };
   // Phenomenon Decoder fields
-  phenomenonDomain?: "policy" | "market" | "technology" | "social" | "media";
+  phenomenonDomain?: "policy" | "market" | "technology" | "social" | "media" | "finance" | "legal";
   systemicContext?: string;
   strategicImpactProjection?: string;
   opportunitySignal?: { type: "erosion" | "amplification"; description: string };
@@ -86,6 +106,15 @@ export interface FeedCard {
   interconnections?: string[];
   underlyingDrivers?: string[];
   urgencyLevel?: "monitor" | "alert" | "critical";
+  // Domain Leverage Engine fields
+  leveragePoint?: string;
+  profitPathway?: ProfitPathway;
+  richMindsetContrast?: { commonBelief: string; wealthBuilder: string };
+  ethicalFrameworks?: EthicalFramework[];
+  financialPitfall?: FinancialPitfall;
+  roiPotential?: "low" | "medium" | "high" | "extreme";
+  wealthDomain?: "investing" | "tax-optimization" | "business-structure" | "cashflow" | "negotiation" | "asset-protection" | "behavioral-finance";
+  profitProtocols?: DecisionProtocol[];
 }
 
 // Analytical flags user storage
@@ -117,6 +146,16 @@ export const DOMAIN_ICONS: Record<string, string> = {
   technology: "⚙️",
   social: "🌐",
   media: "📡",
+  finance: "💰",
+  legal: "⚖️",
+  // Wealth domain icons
+  investing: "📊",
+  "tax-optimization": "🧾",
+  "business-structure": "🏗️",
+  cashflow: "💵",
+  negotiation: "🤝",
+  "asset-protection": "🛡️",
+  "behavioral-finance": "🧠",
 };
 
 // Starter cards — mix of original + phenomenon decoder cards
@@ -242,7 +281,139 @@ export const STARTER_FEED: FeedCard[] = [
     shareSnippet: "The debt ceiling has been 'resolved' 78 out of 78 times since 1960. It's a pattern, not a crisis. Learn the 5-stage cycle."
   },
 
-  // === CLASSIC CARDS (kept for variety) ===
+  // === DOMAIN LEVERAGE ENGINE CARDS ===
+  {
+    id: "dle-1", type: "money-momentum", title: "The Compound Interest Asymmetry",
+    hook: "Why $100/month at 22 beats $500/month at 35. The math is brutal.",
+    content: "A 22-year-old investing $100/month at 10% average return accumulates $632,000 by 60. A 35-year-old investing $500/month at the same rate? $566,000. The 22-year-old invested $45,600 total. The 35-year-old invested $150,000. Time leverage is the most underutilized wealth advantage available to anyone with income.",
+    visual: "trajectory",
+    visualData: {
+      trajectoryData: [
+        { label: "Start at 22 ($100/mo)", current: 15, projected: 85 },
+        { label: "Start at 35 ($500/mo)", current: 50, projected: 72 },
+        { label: "Time advantage", current: 10, projected: 95 },
+      ]
+    },
+    category: "Wealth Creation", difficulty: "beginner", xp: 55, tokens: 12,
+    wealthDomain: "investing",
+    leveragePoint: "Time in market beats timing the market. Every year of delay costs exponentially more to recover.",
+    profitPathway: { scenario: "Start automated $100/month index fund investment today", potentialOutcome: "Additional $200K+ by retirement vs. starting 5 years later", timeframe: "30+ years compound effect" },
+    ethicalFrameworks: [
+      { tradition: "jewish", principle: "Tzedakah — systematic charitable giving grows alongside wealth", application: "Set automated charity alongside investment: 10% giving rule" },
+      { tradition: "stoic", principle: "Discipline over desire — consistent small actions compound", application: "Automate investments to remove emotional decision-making" },
+    ],
+    profitProtocols: [
+      { action: "Open a low-cost index fund account and set up $100/month auto-invest today" },
+      { action: "Calculate your compound growth using the Rule of 72" },
+    ],
+    roiPotential: "extreme",
+    shareSnippet: "$100/mo at 22 = $632K by 60. $500/mo at 35 = $566K. The #1 wealth hack is starting NOW."
+  },
+  {
+    id: "dle-2", type: "leverage-point", title: "The LLC Shield Most People Ignore",
+    hook: "Why the wealthy separate assets into entities — and you can too.",
+    content: "Operating a business or holding investments through an LLC creates a legal separation between personal and business liability. Cost: $50-500 to form depending on state. Benefit: Creditor protection, tax flexibility (elect S-Corp status to save 15.3% self-employment tax on distributions), and professional credibility. Delaware, Wyoming, and Nevada offer the strongest protections.",
+    visual: "steps",
+    visualData: {
+      steps: [
+        "Step 1: Choose entity type (LLC for most beginners)",
+        "Step 2: File in asset-protection-friendly state (WY, NV, DE)",
+        "Step 3: Obtain EIN from IRS (free, 5 minutes online)",
+        "Step 4: Open business bank account — separation is key",
+        "Step 5: Elect S-Corp status at $40K+ net income to save on SE tax",
+      ]
+    },
+    category: "Legal & Tax Strategy", difficulty: "intermediate", xp: 65, tokens: 14,
+    wealthDomain: "business-structure",
+    leveragePoint: "The wealthy don't earn more — they structure better. Entity selection is the first leverage point.",
+    richMindsetContrast: {
+      commonBelief: "LLCs are only for big businesses with employees and offices.",
+      wealthBuilder: "Every income stream deserves its own legal entity. A $200 LLC can protect millions in personal assets and save thousands in taxes annually."
+    },
+    ethicalFrameworks: [
+      { tradition: "islamic", principle: "Halal earnings — income must come from permissible, transparent structures", application: "Ensure business entity operates with full transparency and lawful purpose" },
+      { tradition: "esg", principle: "Governance — proper legal structure ensures accountability", application: "Use entity structure for clear record-keeping, not opacity" },
+    ],
+    adaptationDirectives: [
+      { directive: "Research LLC formation costs in your state vs. Wyoming/Nevada", urgency: "medium", domain: "Legal" },
+      { directive: "Consult a CPA about S-Corp election if net income exceeds $40K", urgency: "high", domain: "Tax" },
+    ],
+    roiPotential: "high",
+    shareSnippet: "A $200 LLC can protect millions in personal assets. The wealthy don't earn more — they STRUCTURE better."
+  },
+  {
+    id: "dle-3", type: "rich-mindset", title: "Assets vs. Liabilities: The Only Rule",
+    hook: "Rich Dad was right. Most people buy liabilities thinking they're assets.",
+    content: "An asset puts money in your pocket. A liability takes money out. Your car, your big house, your new phone — liabilities. Rental property generating $500/month cash flow, a dividend portfolio, intellectual property earning royalties — assets. The wealthy accumulate assets. Everyone else accumulates liabilities disguised as status symbols.",
+    visual: "compare",
+    visualData: {
+      before: "Liability mindset: New car ($600/mo payment), bigger house ($3K/mo mortgage), latest gadgets → net cash outflow",
+      after: "Asset mindset: Rental property (+$500/mo), dividend stocks (+$300/mo), digital products (+$1K/mo) → net cash inflow"
+    },
+    category: "Behavioral Finance", difficulty: "beginner", xp: 50, tokens: 11,
+    wealthDomain: "behavioral-finance",
+    richMindsetContrast: {
+      commonBelief: "My house is my biggest asset. My car holds value. I deserve nice things because I work hard.",
+      wealthBuilder: "If it doesn't generate cash flow, it's a liability. Status symbols are the tax you pay on ego. Redirect that cash flow into actual income-producing assets."
+    },
+    ethicalFrameworks: [
+      { tradition: "stoic", principle: "Distinguish between needs and desires — excess consumption weakens resolve", application: "Before any purchase over $500, ask: does this produce income or consume it?" },
+      { tradition: "jewish", principle: "Bal tashchit — do not waste resources", application: "Allocate resources to productive use; avoid conspicuous consumption" },
+    ],
+    financialPitfall: { name: "Lifestyle Inflation Trap", description: "As income rises, spending rises proportionally, preventing wealth accumulation despite higher earnings.", avoidanceStrategy: "Save 100% of every raise for 12 months. Live on your previous salary." },
+    profitProtocols: [
+      { action: "List every monthly expense and classify as asset (income-producing) or liability (income-consuming)" },
+      { action: "Identify one liability to eliminate this month and redirect the cash flow to an asset" },
+    ],
+    roiPotential: "high",
+    shareSnippet: "An asset puts money IN your pocket. A liability takes money OUT. Most people buy liabilities thinking they're assets."
+  },
+  {
+    id: "dle-4", type: "ethical-compass", title: "Interest-Free Wealth: Islamic Finance Decoded",
+    hook: "A $3.5 trillion industry built on zero-interest principles. Here's how.",
+    content: "Islamic finance prohibits Riba (interest/usury) but has built sophisticated alternatives: Murabaha (cost-plus financing), Ijara (lease-to-own), Musharakah (equity partnership). These aren't just religious rules — they enforce risk-sharing between parties, which prevented Islamic banks from the worst of the 2008 crash. Sukuk (Islamic bonds) outperformed conventional bonds by 2.3% average from 2008-2015.",
+    visual: "diagram",
+    visualData: { labels: ["No Riba (Interest)", "→ Risk Sharing", "→ Real Asset Backing", "→ Ethical Returns"] },
+    category: "Ethical Finance", difficulty: "intermediate", xp: 60, tokens: 13,
+    wealthDomain: "investing",
+    ethicalFrameworks: [
+      { tradition: "islamic", principle: "Prohibition of Riba — money must not make money from money alone", application: "Invest in asset-backed, risk-sharing instruments like Sukuk or equity partnerships" },
+      { tradition: "islamic", principle: "No Gharar — avoid excessive uncertainty and speculation", application: "Every financial transaction must have clear terms, real assets, and shared risk" },
+      { tradition: "utilitarian", principle: "Greatest good — risk-sharing distributes economic shocks more evenly", application: "Consider whether your investments create systemic risk or distribute it" },
+    ],
+    leveragePoint: "Interest-free finance forces real asset backing — which creates more stable, crash-resistant portfolios. The constraint IS the advantage.",
+    profitProtocols: [
+      { action: "Research Sukuk ETFs and Islamic index funds for diversification" },
+      { action: "Apply the 'real asset backing' test to your current portfolio — how much is backed by tangible value?" },
+    ],
+    roiPotential: "medium",
+    shareSnippet: "Islamic banks survived 2008 better than conventional ones. Zero-interest finance isn't a limitation — it's an advantage."
+  },
+  {
+    id: "dle-5", type: "pitfall-alert", title: "The Subscription Hemorrhage",
+    hook: "The average person bleeds $219/month on forgotten subscriptions.",
+    content: "Americans spend an average of $219/month on subscriptions — but estimate they spend only $86. That's $1,596/year in invisible cash drain. The subscription model is designed to exploit inertia bias: you sign up easily but forget to cancel. Each $15/month subscription invested instead at 10% return = $30,727 over 20 years.",
+    visual: "trend-map",
+    visualData: {
+      trendData: [
+        { label: "2019", value: 120 },
+        { label: "2020", value: 145 },
+        { label: "2021", value: 175 },
+        { label: "2022", value: 195 },
+        { label: "2023", value: 210 },
+        { label: "2024", value: 219 },
+      ]
+    },
+    category: "Cash Flow Optimization", difficulty: "beginner", xp: 45, tokens: 10,
+    wealthDomain: "cashflow",
+    financialPitfall: { name: "Subscription Inertia Trap", description: "Businesses exploit cognitive inertia — signing up is easy, canceling requires effort, and monthly charges are small enough to ignore individually.", avoidanceStrategy: "Quarterly audit: export bank statement, highlight every recurring charge, cancel anything unused in 30 days." },
+    profitPathway: { scenario: "Cancel 5 unused subscriptions averaging $15/month each", potentialOutcome: "Save $900/year → $153,635 over 20 years if invested at 10%", timeframe: "Immediate savings, 20-year compound benefit" },
+    ethicalFrameworks: [
+      { tradition: "stoic", principle: "Audit your desires — distinguish essential from superfluous", application: "Apply Marcus Aurelius' test: 'Is this necessary?' to every recurring charge" },
+    ],
+    urgencyLevel: "alert",
+    shareSnippet: "You think you spend $86/mo on subscriptions. Reality: $219/mo. That's $153K in lost wealth over 20 years."
+  },
   {
     id: "ff-1", type: "quick-fact", title: "AI Doesn't \"Understand\" You",
     hook: "It predicts the next word. That's it.",

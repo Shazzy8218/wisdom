@@ -11,6 +11,10 @@ import {
   ContrastingViewsViz, RealityCompassViz, OpportunitySignalViz,
   AdaptationDirectivesViz, OperationalArchetypeViz, InterconnectionsViz,
 } from "@/components/feed/PatternVisualization";
+import {
+  EthicalCompassViz, RichMindsetViz, ProfitPathwayViz,
+  FinancialPitfallViz, LeveragePointViz, ROIBadge, WealthDomainBadge,
+} from "@/components/feed/WealthVisualization";
 import DecisionProtocols from "@/components/feed/DecisionProtocols";
 
 interface Props {
@@ -34,6 +38,13 @@ const TYPE_LABELS: Record<string, { label: string; color: string }> = {
   "strategic-impact": { label: "STRATEGIC IMPACT", color: "text-red-400 bg-red-400/10" },
   "opportunity-watch": { label: "OPPORTUNITY WATCH", color: "text-accent-green bg-accent-green/10" },
   "reality-compass": { label: "REALITY COMPASS", color: "text-purple-400 bg-purple-400/10" },
+  // Domain Leverage Engine types
+  "money-momentum": { label: "MONEY MOMENTUM", color: "text-accent-green bg-accent-green/10" },
+  "leverage-point": { label: "LEVERAGE POINT", color: "text-accent-gold bg-accent-gold/10" },
+  "profit-pathway": { label: "PROFIT PATHWAY", color: "text-accent-green bg-accent-green/10" },
+  "rich-mindset": { label: "RICH MINDSET", color: "text-primary bg-primary/10" },
+  "ethical-compass": { label: "ETHICAL COMPASS", color: "text-amber-400 bg-amber-400/10" },
+  "pitfall-alert": { label: "PITFALL ALERT", color: "text-destructive bg-destructive/10" },
 };
 
 const URGENCY_BADGES: Record<string, { label: string; color: string }> = {
@@ -44,6 +55,10 @@ const URGENCY_BADGES: Record<string, { label: string; color: string }> = {
 
 function isPhenomenonCard(type: string): boolean {
   return ["phenomenon-brief", "systemic-context", "strategic-impact", "opportunity-watch", "reality-compass"].includes(type);
+}
+
+function isDLECard(type: string): boolean {
+  return ["money-momentum", "leverage-point", "profit-pathway", "rich-mindset", "ethical-compass", "pitfall-alert"].includes(type);
 }
 
 function VisualBlock({ card }: { card: FeedCardType }) {
@@ -154,6 +169,7 @@ export default function FeedCard({ card, onComplete }: Props) {
 
   const typeInfo = TYPE_LABELS[card.type] || TYPE_LABELS["quick-fact"];
   const isPhenomenon = isPhenomenonCard(card.type);
+  const isDLE = isDLECard(card.type);
   const urgency = card.urgencyLevel ? URGENCY_BADGES[card.urgencyLevel] : null;
 
   const handleOptionSelect = (idx: number) => {
@@ -193,25 +209,28 @@ export default function FeedCard({ card, onComplete }: Props) {
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, amount: 0.3 }}
         transition={{ duration: 0.4 }}
-        className={`glass-card overflow-hidden film-grain max-w-lg mx-auto w-full ${isPhenomenon ? "border-primary/10" : ""}`}
+        className={`glass-card overflow-hidden film-grain max-w-lg mx-auto w-full ${isPhenomenon ? "border-primary/10" : ""} ${isDLE ? "border-accent-green/10" : ""}`}
       >
         {/* Header */}
         <div className="p-5 pb-3">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2 flex-wrap">
-              {/* Domain icon for phenomenon cards */}
+              {/* Domain icon for phenomenon / DLE cards */}
               {isPhenomenon && card.phenomenonDomain && (
                 <span className="text-sm">{DOMAIN_ICONS[card.phenomenonDomain] || "📡"}</span>
               )}
+              {isDLE && card.wealthDomain && <WealthDomainBadge card={card} />}
               <span className={`text-[9px] font-black uppercase tracking-[0.3em] rounded-md px-1.5 py-0.5 ${typeInfo.color}`}>
                 {typeInfo.label}
               </span>
-              {!isPhenomenon && (
+              {!isPhenomenon && !isDLE && (
                 <>
                   <span className="text-text-tertiary text-[9px]">·</span>
                   <span className="text-[9px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">{card.difficulty}</span>
                 </>
               )}
+              {/* ROI badge for DLE cards */}
+              {isDLE && card.roiPotential && <ROIBadge card={card} />}
               {/* Urgency badge */}
               {urgency && (
                 <span className={`text-[8px] font-black uppercase tracking-[0.15em] rounded-md px-1.5 py-0.5 flex items-center gap-1 ${urgency.color}`}>
@@ -290,6 +309,13 @@ export default function FeedCard({ card, onComplete }: Props) {
                 {/* Adaptation Directives */}
                 <AdaptationDirectivesViz card={card} />
 
+                {/* Domain Leverage Engine blocks */}
+                <RichMindsetViz card={card} />
+                <LeveragePointViz card={card} />
+                <ProfitPathwayViz card={card} />
+                <FinancialPitfallViz card={card} />
+                <EthicalCompassViz card={card} />
+
                 {/* Legacy impact analysis */}
                 {card.impactAnalysis && !card.strategicImpactProjection && (
                   <div className="rounded-xl border border-primary/15 bg-primary/5 p-3">
@@ -331,6 +357,7 @@ export default function FeedCard({ card, onComplete }: Props) {
 
                 {/* Decision protocols */}
                 {card.decisionProtocols && <DecisionProtocols protocols={card.decisionProtocols} />}
+                {card.profitProtocols && <DecisionProtocols protocols={card.profitProtocols} />}
 
                 {/* Try it prompt */}
                 {card.tryPrompt && (
