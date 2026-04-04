@@ -42,6 +42,24 @@ export interface OperationalArchetype {
   historicalExample?: string;
 }
 
+export interface EthicalFramework {
+  tradition: "jewish" | "islamic" | "stoic" | "utilitarian" | "virtue" | "esg";
+  principle: string;
+  application: string;
+}
+
+export interface ProfitPathway {
+  scenario: string;
+  potentialOutcome: string;
+  timeframe: string;
+}
+
+export interface FinancialPitfall {
+  name: string;
+  description: string;
+  avoidanceStrategy: string;
+}
+
 export interface FeedCard {
   id: string;
   type: FeedCardType;
@@ -78,7 +96,7 @@ export interface FeedCard {
   decisionProtocols?: DecisionProtocol[];
   contrastingViews?: { viewA: string; viewB: string };
   // Phenomenon Decoder fields
-  phenomenonDomain?: "policy" | "market" | "technology" | "social" | "media";
+  phenomenonDomain?: "policy" | "market" | "technology" | "social" | "media" | "finance" | "legal";
   systemicContext?: string;
   strategicImpactProjection?: string;
   opportunitySignal?: { type: "erosion" | "amplification"; description: string };
@@ -88,6 +106,15 @@ export interface FeedCard {
   interconnections?: string[];
   underlyingDrivers?: string[];
   urgencyLevel?: "monitor" | "alert" | "critical";
+  // Domain Leverage Engine fields
+  leveragePoint?: string;
+  profitPathway?: ProfitPathway;
+  richMindsetContrast?: { commonBelief: string; wealthBuilder: string };
+  ethicalFrameworks?: EthicalFramework[];
+  financialPitfall?: FinancialPitfall;
+  roiPotential?: "low" | "medium" | "high" | "extreme";
+  wealthDomain?: "investing" | "tax-optimization" | "business-structure" | "cashflow" | "negotiation" | "asset-protection" | "behavioral-finance";
+  profitProtocols?: DecisionProtocol[];
 }
 
 // Analytical flags user storage
