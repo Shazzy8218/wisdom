@@ -11,6 +11,10 @@ import {
   ContrastingViewsViz, RealityCompassViz, OpportunitySignalViz,
   AdaptationDirectivesViz, OperationalArchetypeViz, InterconnectionsViz,
 } from "@/components/feed/PatternVisualization";
+import {
+  EthicalCompassViz, RichMindsetViz, ProfitPathwayViz,
+  FinancialPitfallViz, LeveragePointViz, ROIBadge, WealthDomainBadge,
+} from "@/components/feed/WealthVisualization";
 import DecisionProtocols from "@/components/feed/DecisionProtocols";
 
 interface Props {
