@@ -29,7 +29,7 @@ const MAIN_NAV = [
 const SECONDARY_NAV = [
   { title: "Goals", url: "/goals", icon: Target },
   { title: "Wallet", url: "/wallet", icon: Wallet },
-  { title: "Feed", url: "/feed", icon: BookOpen },
+  { title: "Library", url: "/library", icon: BookMarked },
 ];
 
 const BOTTOM_NAV = [

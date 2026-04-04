@@ -154,6 +154,7 @@ export default function Profile() {
       {/* Menu */}
       <div className="px-5 space-y-1.5">
         {[
+          { icon: BookMarked, label: "Library", subtitle: "Saved lessons & notes", to: "/library" },
           { icon: Wallet, label: "Wisdom Wallet", subtitle: `${progress.tokens} tokens`, to: "/wallet" },
           { icon: Sparkles, label: "Token Store", subtitle: "Unlock content", to: "/store" },
           { icon: Crown, label: "Your Plan", subtitle: "Full access active", to: "/upgrade", accent: false },
