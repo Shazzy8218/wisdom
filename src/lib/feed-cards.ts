@@ -1,11 +1,22 @@
 // Feed card types and starter content for the Phenomenon Decoder & Domain Leverage Engine
 
 export type FeedCardType =
-  | "quick-fact" | "micro-lesson" | "news" | "challenge" | "myth-vs-truth" | "video"
-  | "key-insight" | "reality-check" | "source-comparison" | "deep-pattern"
   | "phenomenon-brief" | "systemic-context" | "strategic-impact" | "opportunity-watch" | "reality-compass"
+  | "reality-check" | "source-comparison" | "deep-pattern"
   // Domain Leverage Engine types
   | "money-momentum" | "leverage-point" | "profit-pathway" | "rich-mindset" | "ethical-compass" | "pitfall-alert";
+
+export type FeedCategory = "phenomenon" | "wealth";
+
+export const FEED_CATEGORIES: Record<FeedCategory, { label: string; icon: string; description: string }> = {
+  phenomenon: { label: "Phenomenon Decoder", icon: "📡", description: "Strategic pattern recognition" },
+  wealth: { label: "Wealth Engine", icon: "💎", description: "Financial intelligence & leverage" },
+};
+
+export function getCardCategory(type: FeedCardType): FeedCategory {
+  if (["money-momentum", "leverage-point", "profit-pathway", "rich-mindset", "ethical-compass", "pitfall-alert"].includes(type)) return "wealth";
+  return "phenomenon";
+}
 
 export type AnalyticalFlag =
   | "source-comparison" | "logical-chain" | "correlation-observation"
@@ -87,8 +98,6 @@ export interface FeedCard {
   shareSnippet: string;
   source?: string;
   confidence?: number;
-  mythStatement?: string;
-  truthStatement?: string;
   // Cognitive augmentation fields
   analyticalFlags?: AnalyticalFlag[];
   impactAnalysis?: string;
@@ -148,7 +157,6 @@ export const DOMAIN_ICONS: Record<string, string> = {
   media: "📡",
   finance: "💰",
   legal: "⚖️",
-  // Wealth domain icons
   investing: "📊",
   "tax-optimization": "🧾",
   "business-structure": "🏗️",
@@ -158,7 +166,7 @@ export const DOMAIN_ICONS: Record<string, string> = {
   "behavioral-finance": "🧠",
 };
 
-// Starter cards — mix of original + phenomenon decoder cards
+// Starter cards — Phenomenon Decoder + Domain Leverage Engine only
 export const STARTER_FEED: FeedCard[] = [
   // === PHENOMENON DECODER CARDS ===
   {
@@ -415,86 +423,6 @@ export const STARTER_FEED: FeedCard[] = [
     shareSnippet: "You think you spend $86/mo on subscriptions. Reality: $219/mo. That's $153K in lost wealth over 20 years."
   },
   {
-    id: "ff-1", type: "quick-fact", title: "AI Doesn't \"Understand\" You",
-    hook: "It predicts the next word. That's it.",
-    content: "Large Language Models are pattern-matching machines. They don't comprehend meaning — they calculate the statistically most likely next token based on training data. This is why they can write poetry but can't tell you if it's raining outside.",
-    visual: "diagram", visualData: { labels: ["Your Prompt", "→ Pattern Match", "→ Probability Calc", "→ Output Token"] },
-    category: "Computer & math", difficulty: "beginner", xp: 30, tokens: 6,
-    interaction: "tap-reveal", shareSnippet: "AI doesn't understand you — it predicts the next word. Knowing this changes how you prompt."
-  },
-  {
-    id: "ff-2", type: "quick-fact", title: "The 80/20 Rule of Prompting",
-    hook: "80% of your AI output quality comes from 20% of your prompt.",
-    content: "The most impactful parts of any prompt: 1) Role assignment ('You are a senior editor'), 2) Output format ('Return as a numbered list'), 3) One concrete example. Everything else is refinement.",
-    visual: "chart", visualData: { labels: ["Role", "Format", "Example", "Everything Else"] },
-    category: "Computer & math", difficulty: "beginner", xp: 35, tokens: 7,
-    interaction: "choice", options: ["Role + Format + Example", "Length of prompt", "Using big words", "Asking politely"], correctAnswer: 0,
-    shareSnippet: "80% of AI output quality comes from just 3 things: Role, Format, and one Example."
-  },
-  {
-    id: "ff-5", type: "micro-lesson", title: "Before/After: Email Prompts",
-    hook: "Watch a vague prompt become a precision tool.",
-    content: "BEFORE: 'Write me an email'\nAFTER: 'Write a 3-sentence follow-up email to a client who missed a deadline. Tone: firm but friendly. End with a specific new deadline suggestion.'\n\nThe difference? Constraints. Every constraint you add eliminates 100 bad outputs.",
-    visual: "compare", visualData: { before: "Write me an email", after: "Write a 3-sentence follow-up to a client who missed a deadline. Tone: firm but friendly. End with a new deadline." },
-    category: "Office & admin", difficulty: "beginner", xp: 50, tokens: 10,
-    tryPrompt: "Take an email you sent last week. Rewrite the prompt with Role + Tone + Length + Format constraints.",
-    shareSnippet: "Every constraint you add to an AI prompt eliminates 100 bad outputs."
-  },
-  {
-    id: "ff-6", type: "micro-lesson", title: "The Verification Habit",
-    hook: "Trust AI? Fine. But verify like a journalist.",
-    content: "The 3-Source Rule: For any AI-generated fact, verify with at least 2 independent sources before using it professionally. AI confidently generates fake statistics, nonexistent research papers, and plausible-sounding but wrong legal advice. The cost of one wrong fact > the time to verify.",
-    visual: "steps", visualData: { steps: ["1. AI generates claim", "2. Check Source A (official site)", "3. Check Source B (independent)", "4. Cross-reference dates/numbers", "5. Use with confidence"] },
-    category: "Protective service", difficulty: "beginner", xp: 55, tokens: 11,
-    interaction: "choice", options: ["Verify with 2+ independent sources", "Trust if it sounds confident", "Only verify numbers", "AI is always accurate"], correctAnswer: 0,
-    tryPrompt: "Ask AI for 3 statistics about your industry. Then verify each one.",
-    shareSnippet: "AI lies confidently. The 3-Source Rule: verify every fact with 2 independent sources."
-  },
-  {
-    id: "ff-9", type: "challenge", title: "Spot the Hallucination",
-    hook: "One of these AI 'facts' is completely made up.",
-    content: "AI generated these statements. Which one is a hallucination?",
-    visual: "icon", category: "Protective service", difficulty: "intermediate", xp: 50, tokens: 10,
-    interaction: "choice",
-    options: [
-      "Python was created by Guido van Rossum in 1991",
-      "The Stanford AI Transparency Report 2024 found that 73% of AI models lack adequate documentation",
-      "Machine learning is a subset of artificial intelligence",
-      "Neural networks are inspired by biological brain structures"
-    ], correctAnswer: 1,
-    shareSnippet: "AI invents fake studies with real-sounding names. Always verify citations."
-  },
-  {
-    id: "ff-11", type: "myth-vs-truth", title: "AI Will Take All Jobs",
-    hook: "The most repeated AI myth — debunked with data.",
-    mythStatement: "AI will replace most human jobs within 5 years.",
-    truthStatement: "AI will transform jobs, not eliminate them. Historical pattern: ATMs didn't kill bank teller jobs — they shifted them to advisory roles. AI automates tasks, not entire jobs. The World Economic Forum estimates AI will create 97M new roles by 2025 while displacing 85M.",
-    content: "Every technology wave creates this fear. The printing press didn't kill scribes — it created publishers, editors, and journalists. The key: workers who learn to use AI tools will replace workers who don't.",
-    visual: "compare", visualData: { before: "MYTH: AI replaces all jobs", after: "TRUTH: AI replaces tasks, creates new roles" },
-    category: "Management", difficulty: "beginner", xp: 35, tokens: 7,
-    shareSnippet: "AI won't take your job. A person using AI will take your job."
-  },
-  {
-    id: "ff-13", type: "myth-vs-truth", title: "AI Is Always Neutral",
-    hook: "AI has biases. Here's why and what to do about it.",
-    mythStatement: "AI is objective and unbiased because it's a machine.",
-    truthStatement: "AI inherits biases from its training data, which reflects human biases. It may favor certain perspectives, demographics, or viewpoints. Always cross-reference sensitive topics and explicitly ask AI to consider multiple perspectives.",
-    content: "Training data = internet text written by humans with biases. AI amplifies patterns in data, including stereotypes. Mitigation: ask for 'multiple perspectives', specify 'consider counterarguments', and never use AI alone for hiring, legal, or medical decisions.",
-    visual: "diagram", visualData: { labels: ["Human Data (biased)", "→ AI Training", "→ Biased Patterns", "→ Your Output"] },
-    category: "Social services", difficulty: "intermediate", xp: 45, tokens: 9,
-    shareSnippet: "AI isn't neutral. It inherits biases from training data. Always ask for multiple perspectives."
-  },
-  {
-    id: "ff-20", type: "micro-lesson", title: "The Anti-Fluff Filter",
-    hook: "Kill AI waffle with this one prompt addition.",
-    content: "Add to any prompt: 'No filler. No generic advice. Every sentence must contain a specific, actionable insight or a concrete example. If you can't be specific, say so.' This eliminates 'In today's fast-paced world...' and 'It's important to remember...' garbage.",
-    visual: "compare", visualData: { before: "In today's fast-paced world, marketing is more important than ever...", after: "Allocate 60% of budget to the channel with highest 30-day ROAS. Cut channels under 2x return." },
-    category: "Computer & math", difficulty: "beginner", xp: 45, tokens: 9,
-    tryPrompt: "Add the anti-fluff filter to your next prompt. Compare before and after.",
-    shareSnippet: "'No filler. Every sentence must contain a specific insight or concrete example.' — The anti-fluff filter."
-  },
-  // === ADDITIONAL HIGH-VALUE CARDS ===
-  {
     id: "hv-1", type: "money-momentum", title: "The Tax-Loss Harvesting Edge",
     hook: "The IRS lets you write off investment losses against gains. Most people don't.",
     content: "Tax-loss harvesting means selling losing investments to offset capital gains taxes. If you made $10K in stock gains and lost $4K elsewhere, you pay tax on $6K instead of $10K. You can even deduct up to $3K/year against regular income. Robo-advisors automate this, saving investors 1-2% annually in taxes.",
@@ -616,19 +544,6 @@ export const STARTER_FEED: FeedCard[] = [
     ],
     urgencyLevel: "alert",
     shareSnippet: "$50K in a savings account loses $2,250/year in purchasing power to inflation. 'Safe' savings are a guaranteed loss."
-  },
-  {
-    id: "hv-7", type: "quick-fact", title: "The 1% Daily Improvement Math",
-    hook: "1% better daily = 37x better in a year. Here's the real math.",
-    content: "1.01^365 = 37.78. Getting 1% better each day for a year makes you nearly 38x better. But 0.99^365 = 0.03. Getting 1% worse each day leaves you at 3% of where you started. Tiny habits compound in both directions — the asymmetry is brutal.",
-    visual: "trajectory",
-    visualData: { trajectoryData: [
-      { label: "+1% daily", current: 1, projected: 38 },
-      { label: "No change", current: 1, projected: 1 },
-      { label: "-1% daily", current: 1, projected: 0 },
-    ]},
-    category: "Performance", difficulty: "beginner", xp: 35, tokens: 7,
-    shareSnippet: "1% better daily = 37x better in a year. 1% worse daily = 97% decline. Small habits have brutal asymmetry."
   },
   {
     id: "hv-8", type: "money-momentum", title: "The Emergency Fund Paradox",
