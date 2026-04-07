@@ -58,7 +58,7 @@ export default function LearnFeed() {
   const genLock = useRef(false);
   const allCardIds = useRef(new Set<string>());
   const mountedRef = useRef(true);
-  const queueRef = useRef<number>(0); // sequential queue counter
+  
 
   const filteredCards = cards.filter(c => activeFilters.has(getCardCategory(c.type)));
 
