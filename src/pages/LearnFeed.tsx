@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { RefreshCw } from "lucide-react";
 import FeedCard from "@/components/FeedCard";
 import {
-  STARTER_FEED, markCardSeen, type FeedCard as FeedCardT,
+  markCardSeen, type FeedCard as FeedCardT,
   type FeedCategory, FEED_CATEGORIES, getCardCategory,
 } from "@/lib/feed-cards";
 import { useProgress } from "@/hooks/useProgress";
