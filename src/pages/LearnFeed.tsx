@@ -54,20 +54,20 @@ function WisdomOwlLogo() {
   );
 }
 
-const BATCH_SIZE = 6; // parallel requests per batch
-const TARGET_BUFFER = 30; // always try to have this many unseen cards ready
+const BATCH_SIZE = 6;
 
 export default function LearnFeed() {
   const { progress, update } = useProgress();
   const { profile } = useUserProfile();
-  const [activeFilters, setActiveFilters] = useState<Set<FeedCategory>>(new Set(["phenomenon", "wealth"]));
-  const [cards, setCards] = useState<FeedCardT[]>(() => shuffle(STARTER_FEED));
+  const [activeFilters, setActiveFilters] = useState<Set<FeedCategory>>(new Set(["phenomenon", "wealth", "survival"]));
+  const [cards, setCards] = useState<FeedCardT[]>([]);
   const [generating, setGenerating] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
   const genLock = useRef(false);
-  const allCardIds = useRef(new Set(STARTER_FEED.map(c => c.id)));
+  const allCardIds = useRef(new Set<string>());
   const mountedRef = useRef(true);
+  const queueRef = useRef<number>(0); // sequential queue counter
 
   const filteredCards = cards.filter(c => activeFilters.has(getCardCategory(c.type)));
 
@@ -83,16 +83,22 @@ export default function LearnFeed() {
     });
   };
 
+  // Resolve mode from active filters
+  const getMode = useCallback(() => {
+    const modes = Array.from(activeFilters);
+    if (modes.length === 1 && modes[0] === "wealth") return "wealth";
+    if (modes.length === 1 && modes[0] === "survival") return "survival";
+    // mixed or phenomenon-only: use "mixed" which sends all types
+    return "mixed";
+  }, [activeFilters]);
+
   const generateBatch = useCallback(async (count = BATCH_SIZE) => {
     if (genLock.current) return;
     genLock.current = true;
     setGenerating(true);
     try {
-      const modes = Array.from(activeFilters);
-      const mode = modes.length === 1 && modes[0] === "wealth" ? "wealth" : "decoder";
-
       const newCards = await generateFeedCardBatch({
-        mode,
+        mode: getMode(),
         learningStyle: profile.learningStyle,
         excludeIds: Array.from(allCardIds.current),
         count,
@@ -113,22 +119,26 @@ export default function LearnFeed() {
       setInitialLoading(false);
     }
     genLock.current = false;
-  }, [profile.learningStyle, activeFilters]);
+  }, [profile.learningStyle, getMode]);
 
-  // Generate a big initial batch on mount
+  // Sequential batch loader — fires batches one after another to avoid overwhelming the API
+  const loadBatchesSequentially = useCallback(async (totalBatches: number) => {
+    for (let i = 0; i < totalBatches; i++) {
+      if (!mountedRef.current) break;
+      await generateBatch(BATCH_SIZE);
+      // Small delay between batches to avoid rate limits
+      if (i < totalBatches - 1) await new Promise(r => setTimeout(r, 300));
+    }
+  }, [generateBatch]);
+
+  // Always start fresh on mount — never show stale cards
   useEffect(() => {
     mountedRef.current = true;
+    setCards([]);
+    allCardIds.current = new Set();
     setInitialLoading(true);
-    // Fire multiple batches to reach 30+ cards quickly
-    const init = async () => {
-      // 5 parallel batches of 6 = 30 cards
-      await generateBatch(BATCH_SIZE);
-      if (mountedRef.current) generateBatch(BATCH_SIZE);
-      if (mountedRef.current) generateBatch(BATCH_SIZE);
-      if (mountedRef.current) generateBatch(BATCH_SIZE);
-      if (mountedRef.current) generateBatch(BATCH_SIZE);
-    };
-    init();
+    // Load 5 sequential batches = ~30 cards
+    loadBatchesSequentially(5);
     return () => { mountedRef.current = false; };
   }, []);
 
