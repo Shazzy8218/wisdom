@@ -131,6 +131,7 @@ export default function LearnFeed() {
     // Load 5 sequential batches = ~30 cards
     loadBatchesSequentially(5);
     return () => { mountedRef.current = false; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Auto-generate more when user scrolls near bottom
