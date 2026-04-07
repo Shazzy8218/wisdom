@@ -67,6 +67,7 @@ serve(async (req) => {
     if (mode === "nerd" || mode === "decoder") modeInstruction = "Maximum analytical depth. Include systemic context, interconnections, underlying drivers, and operational archetypes. Every claim must be evidence-grounded.";
     if (mode === "quick") modeInstruction = "Ultra-concise strategic signal. Max 3 sentences for content. Lead with the actionable insight.";
     if (mode === "wealth") modeInstruction = "Focus on wealth creation, financial optimization, and ethical finance. Every insight must include concrete dollar amounts, percentages, or actionable financial steps. Include ethical framework considerations.";
+    if (mode === "survival" || mode === "mixed") modeInstruction += " Include Canadian-specific tax benefits, government programs, CRA provisions, and legal financial advantages that everyday people can use. Focus on practical survival strategies — how to claim what's yours, save money legally, and navigate the system. Cover both business owners and regular employees.";
 
     let styleInstruction = "";
     if (learningStyle === "visual") styleInstruction = "Emphasize trajectory projections, trend data, and influence webs for visual impact.";
