@@ -137,6 +137,48 @@ serve(async (req) => {
 - Use visual "trend-map"`,
     };
 
+    const survivalInstructions: Record<string, string> = {
+      "tax-hack": `Generate a TAX HACK card — a specific, legal tax optimization strategy. Focus on Canadian tax law (CRA). Include:
+- wealthDomain: "tax-optimization"
+- leveragePoint: the specific CRA provision, deduction, or credit being used
+- profitPathwayScenario, profitPathwayOutcome, profitPathwayTimeframe: concrete savings example with dollar amounts
+- 2-3 profitProtocols with exact steps to claim this benefit
+- Compare business owner vs employee approach where relevant
+- roiPotential
+- Use visual "steps" with actionable implementation steps
+- MUST include specific CRA form numbers, line numbers, or program names where applicable`,
+
+      "legal-advantage": `Generate a LEGAL ADVANTAGE card — expose a legal provision or structure that most people don't know about. Focus on Canadian law. Include:
+- wealthDomain: one of "business-structure", "asset-protection", "tax-optimization"
+- leveragePoint: the specific legal mechanism
+- richMindsetCommonBelief and richMindsetWealthBuilder: what most people believe vs what's actually available
+- profitPathwayScenario, profitPathwayOutcome, profitPathwayTimeframe
+- 2-3 profitProtocols
+- roiPotential
+- Use visual "compare" showing before/after of using this legal advantage`,
+
+      "benefit-claim": `Generate a BENEFIT CLAIM card — a government benefit, credit, or program that many Canadians don't claim. Include:
+- wealthDomain: "tax-optimization" or "cashflow"
+- leveragePoint: the specific benefit or credit
+- profitPathwayScenario, profitPathwayOutcome, profitPathwayTimeframe with exact dollar amounts
+- financialPitfallName: what happens if you DON'T claim this
+- financialPitfallDescription, financialPitfallAvoidance
+- 2-3 profitProtocols: exact steps to apply/claim
+- roiPotential
+- Use visual "steps"
+- Cover: GST/HST credits, Canada Child Benefit, disability credits, medical expenses, moving expenses, tuition credits, RRSP, TFSA, FHSA, etc.`,
+
+      "government-program": `Generate a GOVERNMENT PROGRAM card — a federal or provincial Canadian program that provides financial assistance, grants, or subsidies. Include:
+- wealthDomain: relevant domain
+- leveragePoint: the specific program and its benefit
+- profitPathwayScenario, profitPathwayOutcome, profitPathwayTimeframe
+- 2-3 adaptationDirectives with urgency and domain
+- 2-3 profitProtocols: how to apply
+- roiPotential
+- Use visual "trajectory" or "steps"
+- Cover: CEBA, SRED, apprenticeship grants, small business grants, EI benefits, CPP optimization, OAS strategies, provincial programs, startup grants, export grants, etc.`,
+    };
+
     const classicInstructions: Record<string, string> = {
       "key-insight": `Generate a KEY INSIGHT card with impactAnalysis, 1-2 decisionProtocols, and analyticalFlags.`,
       "reality-check": `Generate a REALITY CHECK card with contrastingViewA, contrastingViewB, impactAnalysis, and decisionProtocols.`,
@@ -147,7 +189,7 @@ serve(async (req) => {
       "myth-vs-truth": `Generate MYTH VS TRUTH with mythStatement and truthStatement. Use compare visual.`,
     };
 
-    const typeSpecific = phenomenonInstructions[cardType] || wealthInstructions[cardType] || classicInstructions[cardType] || "";
+    const typeSpecific = phenomenonInstructions[cardType] || wealthInstructions[cardType] || survivalInstructions[cardType] || classicInstructions[cardType] || "";
 
     const systemPrompt = `You are the Domain Leverage Engine — an advanced reality amplification and wealth optimization engine for Wisdom Owl, a premium strategic intelligence app. You serve dual purposes:
 
