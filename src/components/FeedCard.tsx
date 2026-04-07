@@ -37,6 +37,10 @@ const TYPE_LABELS: Record<string, { label: string; color: string }> = {
   "rich-mindset": { label: "RICH MINDSET", color: "text-primary bg-primary/10" },
   "ethical-compass": { label: "ETHICAL COMPASS", color: "text-amber-400 bg-amber-400/10" },
   "pitfall-alert": { label: "PITFALL ALERT", color: "text-destructive bg-destructive/10" },
+  "tax-hack": { label: "TAX HACK", color: "text-emerald-400 bg-emerald-400/10" },
+  "legal-advantage": { label: "LEGAL ADVANTAGE", color: "text-sky-400 bg-sky-400/10" },
+  "benefit-claim": { label: "BENEFIT CLAIM", color: "text-lime-400 bg-lime-400/10" },
+  "government-program": { label: "GOV PROGRAM", color: "text-violet-400 bg-violet-400/10" },
 };
 
 const URGENCY_BADGES: Record<string, { label: string; color: string }> = {

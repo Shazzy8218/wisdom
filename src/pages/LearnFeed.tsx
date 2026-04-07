@@ -162,11 +162,11 @@ export default function LearnFeed() {
   }, [update]);
 
   const handleRefresh = () => {
-    const shuffled = shuffle(STARTER_FEED);
-    setCards(shuffled);
-    allCardIds.current = new Set(STARTER_FEED.map(c => c.id));
+    setCards([]);
+    allCardIds.current = new Set();
+    setInitialLoading(true);
     scrollRef.current?.scrollTo({ top: 0, behavior: "smooth" });
-    generateBatch(BATCH_SIZE);
+    loadBatchesSequentially(5);
   };
 
   return (

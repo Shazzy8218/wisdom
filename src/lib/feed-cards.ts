@@ -1,20 +1,24 @@
-// Feed card types and starter content for the Phenomenon Decoder & Domain Leverage Engine
+// Feed card types and starter content for the Phenomenon Decoder, Domain Leverage Engine & Survival Engine
 
 export type FeedCardType =
   | "phenomenon-brief" | "systemic-context" | "strategic-impact" | "opportunity-watch" | "reality-compass"
   | "reality-check" | "source-comparison" | "deep-pattern"
   // Domain Leverage Engine types
-  | "money-momentum" | "leverage-point" | "profit-pathway" | "rich-mindset" | "ethical-compass" | "pitfall-alert";
+  | "money-momentum" | "leverage-point" | "profit-pathway" | "rich-mindset" | "ethical-compass" | "pitfall-alert"
+  // Survival Engine types
+  | "tax-hack" | "legal-advantage" | "benefit-claim" | "government-program";
 
-export type FeedCategory = "phenomenon" | "wealth";
+export type FeedCategory = "phenomenon" | "wealth" | "survival";
 
 export const FEED_CATEGORIES: Record<FeedCategory, { label: string; icon: string; description: string }> = {
   phenomenon: { label: "Phenomenon Decoder", icon: "📡", description: "Strategic pattern recognition" },
   wealth: { label: "Wealth Engine", icon: "💎", description: "Financial intelligence & leverage" },
+  survival: { label: "Survival Guide", icon: "🛡️", description: "Tax, benefits & legal advantages" },
 };
 
 export function getCardCategory(type: FeedCardType): FeedCategory {
   if (["money-momentum", "leverage-point", "profit-pathway", "rich-mindset", "ethical-compass", "pitfall-alert"].includes(type)) return "wealth";
+  if (["tax-hack", "legal-advantage", "benefit-claim", "government-program"].includes(type)) return "survival";
   return "phenomenon";
 }
 
