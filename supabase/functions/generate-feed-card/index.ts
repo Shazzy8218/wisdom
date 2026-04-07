@@ -29,6 +29,12 @@ serve(async (req) => {
       "ethical-compass",
       "pitfall-alert",
     ];
+    const survivalTypes = [
+      "tax-hack", "tax-hack",
+      "legal-advantage", "legal-advantage",
+      "benefit-claim", "benefit-claim",
+      "government-program", "government-program",
+    ];
     const classicTypes = [
       "key-insight", "reality-check", "deep-pattern",
       "quick-fact", "micro-lesson", "challenge", "myth-vs-truth",
@@ -38,11 +44,21 @@ serve(async (req) => {
     let pool: string[];
     if (mode === "wealth") {
       pool = Math.random() < 0.85 ? wealthTypes : classicTypes;
-    } else {
-      // decoder/nerd/quick: 50% phenomenon, 30% wealth, 20% classic
+    } else if (mode === "survival") {
+      pool = Math.random() < 0.85 ? survivalTypes : wealthTypes;
+    } else if (mode === "mixed") {
+      // Mixed mode: 30% phenomenon, 25% wealth, 30% survival, 15% classic
       const r = Math.random();
-      if (r < 0.5) pool = phenomenonTypes;
-      else if (r < 0.8) pool = wealthTypes;
+      if (r < 0.30) pool = phenomenonTypes;
+      else if (r < 0.55) pool = wealthTypes;
+      else if (r < 0.85) pool = survivalTypes;
+      else pool = classicTypes;
+    } else {
+      // decoder/nerd/quick: 40% phenomenon, 25% wealth, 25% survival, 10% classic
+      const r = Math.random();
+      if (r < 0.4) pool = phenomenonTypes;
+      else if (r < 0.65) pool = wealthTypes;
+      else if (r < 0.9) pool = survivalTypes;
       else pool = classicTypes;
     }
     const cardType = pool[Math.floor(Math.random() * pool.length)];
