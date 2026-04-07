@@ -29,6 +29,12 @@ serve(async (req) => {
       "ethical-compass",
       "pitfall-alert",
     ];
+    const survivalTypes = [
+      "tax-hack", "tax-hack",
+      "legal-advantage", "legal-advantage",
+      "benefit-claim", "benefit-claim",
+      "government-program", "government-program",
+    ];
     const classicTypes = [
       "key-insight", "reality-check", "deep-pattern",
       "quick-fact", "micro-lesson", "challenge", "myth-vs-truth",
@@ -38,11 +44,21 @@ serve(async (req) => {
     let pool: string[];
     if (mode === "wealth") {
       pool = Math.random() < 0.85 ? wealthTypes : classicTypes;
-    } else {
-      // decoder/nerd/quick: 50% phenomenon, 30% wealth, 20% classic
+    } else if (mode === "survival") {
+      pool = Math.random() < 0.85 ? survivalTypes : wealthTypes;
+    } else if (mode === "mixed") {
+      // Mixed mode: 30% phenomenon, 25% wealth, 30% survival, 15% classic
       const r = Math.random();
-      if (r < 0.5) pool = phenomenonTypes;
-      else if (r < 0.8) pool = wealthTypes;
+      if (r < 0.30) pool = phenomenonTypes;
+      else if (r < 0.55) pool = wealthTypes;
+      else if (r < 0.85) pool = survivalTypes;
+      else pool = classicTypes;
+    } else {
+      // decoder/nerd/quick: 40% phenomenon, 25% wealth, 25% survival, 10% classic
+      const r = Math.random();
+      if (r < 0.4) pool = phenomenonTypes;
+      else if (r < 0.65) pool = wealthTypes;
+      else if (r < 0.9) pool = survivalTypes;
       else pool = classicTypes;
     }
     const cardType = pool[Math.floor(Math.random() * pool.length)];
@@ -51,6 +67,7 @@ serve(async (req) => {
     if (mode === "nerd" || mode === "decoder") modeInstruction = "Maximum analytical depth. Include systemic context, interconnections, underlying drivers, and operational archetypes. Every claim must be evidence-grounded.";
     if (mode === "quick") modeInstruction = "Ultra-concise strategic signal. Max 3 sentences for content. Lead with the actionable insight.";
     if (mode === "wealth") modeInstruction = "Focus on wealth creation, financial optimization, and ethical finance. Every insight must include concrete dollar amounts, percentages, or actionable financial steps. Include ethical framework considerations.";
+    if (mode === "survival" || mode === "mixed") modeInstruction += " Include Canadian-specific tax benefits, government programs, CRA provisions, and legal financial advantages that everyday people can use. Focus on practical survival strategies — how to claim what's yours, save money legally, and navigate the system. Cover both business owners and regular employees.";
 
     let styleInstruction = "";
     if (learningStyle === "visual") styleInstruction = "Emphasize trajectory projections, trend data, and influence webs for visual impact.";
@@ -120,6 +137,48 @@ serve(async (req) => {
 - Use visual "trend-map"`,
     };
 
+    const survivalInstructions: Record<string, string> = {
+      "tax-hack": `Generate a TAX HACK card — a specific, legal tax optimization strategy. Focus on Canadian tax law (CRA). Include:
+- wealthDomain: "tax-optimization"
+- leveragePoint: the specific CRA provision, deduction, or credit being used
+- profitPathwayScenario, profitPathwayOutcome, profitPathwayTimeframe: concrete savings example with dollar amounts
+- 2-3 profitProtocols with exact steps to claim this benefit
+- Compare business owner vs employee approach where relevant
+- roiPotential
+- Use visual "steps" with actionable implementation steps
+- MUST include specific CRA form numbers, line numbers, or program names where applicable`,
+
+      "legal-advantage": `Generate a LEGAL ADVANTAGE card — expose a legal provision or structure that most people don't know about. Focus on Canadian law. Include:
+- wealthDomain: one of "business-structure", "asset-protection", "tax-optimization"
+- leveragePoint: the specific legal mechanism
+- richMindsetCommonBelief and richMindsetWealthBuilder: what most people believe vs what's actually available
+- profitPathwayScenario, profitPathwayOutcome, profitPathwayTimeframe
+- 2-3 profitProtocols
+- roiPotential
+- Use visual "compare" showing before/after of using this legal advantage`,
+
+      "benefit-claim": `Generate a BENEFIT CLAIM card — a government benefit, credit, or program that many Canadians don't claim. Include:
+- wealthDomain: "tax-optimization" or "cashflow"
+- leveragePoint: the specific benefit or credit
+- profitPathwayScenario, profitPathwayOutcome, profitPathwayTimeframe with exact dollar amounts
+- financialPitfallName: what happens if you DON'T claim this
+- financialPitfallDescription, financialPitfallAvoidance
+- 2-3 profitProtocols: exact steps to apply/claim
+- roiPotential
+- Use visual "steps"
+- Cover: GST/HST credits, Canada Child Benefit, disability credits, medical expenses, moving expenses, tuition credits, RRSP, TFSA, FHSA, etc.`,
+
+      "government-program": `Generate a GOVERNMENT PROGRAM card — a federal or provincial Canadian program that provides financial assistance, grants, or subsidies. Include:
+- wealthDomain: relevant domain
+- leveragePoint: the specific program and its benefit
+- profitPathwayScenario, profitPathwayOutcome, profitPathwayTimeframe
+- 2-3 adaptationDirectives with urgency and domain
+- 2-3 profitProtocols: how to apply
+- roiPotential
+- Use visual "trajectory" or "steps"
+- Cover: CEBA, SRED, apprenticeship grants, small business grants, EI benefits, CPP optimization, OAS strategies, provincial programs, startup grants, export grants, etc.`,
+    };
+
     const classicInstructions: Record<string, string> = {
       "key-insight": `Generate a KEY INSIGHT card with impactAnalysis, 1-2 decisionProtocols, and analyticalFlags.`,
       "reality-check": `Generate a REALITY CHECK card with contrastingViewA, contrastingViewB, impactAnalysis, and decisionProtocols.`,
@@ -130,12 +189,13 @@ serve(async (req) => {
       "myth-vs-truth": `Generate MYTH VS TRUTH with mythStatement and truthStatement. Use compare visual.`,
     };
 
-    const typeSpecific = phenomenonInstructions[cardType] || wealthInstructions[cardType] || classicInstructions[cardType] || "";
+    const typeSpecific = phenomenonInstructions[cardType] || wealthInstructions[cardType] || survivalInstructions[cardType] || classicInstructions[cardType] || "";
 
-    const systemPrompt = `You are the Domain Leverage Engine — an advanced reality amplification and wealth optimization engine for Wisdom Owl, a premium strategic intelligence app. You serve dual purposes:
+    const systemPrompt = `You are the Domain Leverage Engine — an advanced reality amplification, wealth optimization, and survival intelligence engine for Wisdom Owl, a premium strategic intelligence app. You serve three purposes:
 
 1. PHENOMENON DECODER: Rapidly surface, dissect, and contextualize observable phenomena impacting user autonomy and strategic advantage.
 2. WEALTH ENGINE: Deliver highly condensed, actionable intelligence for wealth creation, resource optimization, and ethical financial mastery.
+3. SURVIVAL ENGINE: Teach users how to legally maximize their financial position through tax optimization, government programs, legal structures, and benefit claims — with a strong focus on CANADIAN law, CRA provisions, and government programs. This is about SURVIVAL — helping regular people and small business owners claim what's rightfully theirs, reduce their tax burden legally, and navigate the system. Every survival card must include specific program names, CRA references, dollar amounts, and step-by-step instructions.
 
 CORE PRINCIPLES:
 - Impact-First: Every insight must explain DIRECT impact on user's finances, goals, or strategic position

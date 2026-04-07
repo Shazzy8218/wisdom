@@ -1,24 +1,15 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { RefreshCw } from "lucide-react";
 import FeedCard from "@/components/FeedCard";
 import {
-  STARTER_FEED, markCardSeen, type FeedCard as FeedCardT,
+  markCardSeen, type FeedCard as FeedCardT,
   type FeedCategory, FEED_CATEGORIES, getCardCategory,
 } from "@/lib/feed-cards";
 import { useProgress } from "@/hooks/useProgress";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { generateFeedCardBatch } from "@/lib/ai-stream";
 import owlLogo from "@/assets/owl-logo.png";
-
-function shuffle<T>(arr: T[]): T[] {
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
 
 /** Living Wisdom Owl logo with heartbeat */
 function WisdomOwlLogo() {
@@ -54,20 +45,20 @@ function WisdomOwlLogo() {
   );
 }
 
-const BATCH_SIZE = 6; // parallel requests per batch
-const TARGET_BUFFER = 30; // always try to have this many unseen cards ready
+const BATCH_SIZE = 6;
 
 export default function LearnFeed() {
   const { progress, update } = useProgress();
   const { profile } = useUserProfile();
-  const [activeFilters, setActiveFilters] = useState<Set<FeedCategory>>(new Set(["phenomenon", "wealth"]));
-  const [cards, setCards] = useState<FeedCardT[]>(() => shuffle(STARTER_FEED));
+  const [activeFilters, setActiveFilters] = useState<Set<FeedCategory>>(new Set(["phenomenon", "wealth", "survival"]));
+  const [cards, setCards] = useState<FeedCardT[]>([]);
   const [generating, setGenerating] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
   const genLock = useRef(false);
-  const allCardIds = useRef(new Set(STARTER_FEED.map(c => c.id)));
+  const allCardIds = useRef(new Set<string>());
   const mountedRef = useRef(true);
+  
 
   const filteredCards = cards.filter(c => activeFilters.has(getCardCategory(c.type)));
 
@@ -83,16 +74,22 @@ export default function LearnFeed() {
     });
   };
 
+  // Resolve mode from active filters
+  const getMode = useCallback(() => {
+    const modes = Array.from(activeFilters);
+    if (modes.length === 1 && modes[0] === "wealth") return "wealth";
+    if (modes.length === 1 && modes[0] === "survival") return "survival";
+    // mixed or phenomenon-only: use "mixed" which sends all types
+    return "mixed";
+  }, [activeFilters]);
+
   const generateBatch = useCallback(async (count = BATCH_SIZE) => {
     if (genLock.current) return;
     genLock.current = true;
     setGenerating(true);
     try {
-      const modes = Array.from(activeFilters);
-      const mode = modes.length === 1 && modes[0] === "wealth" ? "wealth" : "decoder";
-
       const newCards = await generateFeedCardBatch({
-        mode,
+        mode: getMode(),
         learningStyle: profile.learningStyle,
         excludeIds: Array.from(allCardIds.current),
         count,
@@ -113,23 +110,28 @@ export default function LearnFeed() {
       setInitialLoading(false);
     }
     genLock.current = false;
-  }, [profile.learningStyle, activeFilters]);
+  }, [profile.learningStyle, getMode]);
 
-  // Generate a big initial batch on mount
+  // Sequential batch loader — fires batches one after another to avoid overwhelming the API
+  const loadBatchesSequentially = useCallback(async (totalBatches: number) => {
+    for (let i = 0; i < totalBatches; i++) {
+      if (!mountedRef.current) break;
+      await generateBatch(BATCH_SIZE);
+      // Small delay between batches to avoid rate limits
+      if (i < totalBatches - 1) await new Promise(r => setTimeout(r, 300));
+    }
+  }, [generateBatch]);
+
+  // Always start fresh on mount — never show stale cards
   useEffect(() => {
     mountedRef.current = true;
+    setCards([]);
+    allCardIds.current = new Set();
     setInitialLoading(true);
-    // Fire multiple batches to reach 30+ cards quickly
-    const init = async () => {
-      // 5 parallel batches of 6 = 30 cards
-      await generateBatch(BATCH_SIZE);
-      if (mountedRef.current) generateBatch(BATCH_SIZE);
-      if (mountedRef.current) generateBatch(BATCH_SIZE);
-      if (mountedRef.current) generateBatch(BATCH_SIZE);
-      if (mountedRef.current) generateBatch(BATCH_SIZE);
-    };
-    init();
+    // Load 5 sequential batches = ~30 cards
+    loadBatchesSequentially(5);
     return () => { mountedRef.current = false; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Auto-generate more when user scrolls near bottom
@@ -152,11 +154,11 @@ export default function LearnFeed() {
   }, [update]);
 
   const handleRefresh = () => {
-    const shuffled = shuffle(STARTER_FEED);
-    setCards(shuffled);
-    allCardIds.current = new Set(STARTER_FEED.map(c => c.id));
+    setCards([]);
+    allCardIds.current = new Set();
+    setInitialLoading(true);
     scrollRef.current?.scrollTo({ top: 0, behavior: "smooth" });
-    generateBatch(BATCH_SIZE);
+    loadBatchesSequentially(5);
   };
 
   return (
