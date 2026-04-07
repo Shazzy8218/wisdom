@@ -11,15 +11,6 @@ import { useUserProfile } from "@/hooks/useUserProfile";
 import { generateFeedCardBatch } from "@/lib/ai-stream";
 import owlLogo from "@/assets/owl-logo.png";
 
-function shuffle<T>(arr: T[]): T[] {
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
-
 /** Living Wisdom Owl logo with heartbeat */
 function WisdomOwlLogo() {
   return (
