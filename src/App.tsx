@@ -13,7 +13,7 @@ import { useCloudSync } from "@/hooks/useCloudSync";
 import CalibrationModal from "@/components/CalibrationModal";
 import Chat from "./pages/Chat";
 import Courses from "./pages/Courses";
-
+import LearnFeed from "./pages/LearnFeed";
 import Games from "./pages/Games";
 import Profile from "./pages/Profile";
 import Dashboard from "./pages/Index";
