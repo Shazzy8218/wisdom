@@ -17,58 +17,41 @@ function pickType(mode: string): string {
   return pool[Math.floor(Math.random() * pool.length)];
 }
 
-function buildSystemPrompt(mode: string, cardType: string): string {
-  const base = `You are the Wisdom Owl — a world-class intelligence analyst and financial strategist. Generate a single feed card with UNIQUE, never-before-seen content. Every card must be 100% original with specific, actionable intelligence. Never repeat topics.`;
-
+function buildPrompt(mode: string, cardType: string): string {
+  let context = "";
   if (mode === "survival" || SURVIVAL_TYPES.includes(cardType)) {
-    return `${base}
-
-SURVIVAL ENGINE — Canadian Tax & Legal Intelligence:
-Generate actionable Canadian-specific strategies covering:
-- CRA tax provisions, deductions, credits (medical, childcare, home office, moving, union dues)
-- RRSP vs TFSA optimization, pension splitting, spousal RRSP strategies
-- CCB (Canada Child Benefit), GST/HST credits, OAS/GIS, disability tax credit
-- Small business incorporation advantages, SR&ED tax credits
-- Legal advantages: employment law rights, tenant rights, consumer protection
-- Government programs: EI, CPP optimization, provincial benefits
-- Real estate tax strategies, capital gains exemptions, principal residence rules
-Each card must reference specific CRA forms, sections, or program names.`;
+    context = `Canadian Tax & Legal Survival: CRA provisions, RRSP/TFSA, CCB, GST/HST credits, disability tax credit, incorporation, SR&ED, employment law, tenant rights, EI, CPP optimization. Reference specific CRA forms or program names.`;
+  } else if (mode === "phenomenon" || PHENOMENON_TYPES.includes(cardType)) {
+    context = `Systemic Pattern Recognition: technology shifts, behavioral economics, power structures, information asymmetries, historical parallels, emerging trends. Reveal non-obvious connections.`;
+  } else {
+    context = `Financial Intelligence: wealth-building mental models, investment psychology, business model analysis, ethical frameworks, financial pitfalls. Include concrete actionable takeaway.`;
   }
 
-  if (mode === "phenomenon" || PHENOMENON_TYPES.includes(cardType)) {
-    return `${base}
+  return `You are the Wisdom Owl. Generate a ${cardType} feed card about: ${context}
 
-PHENOMENON DECODER — Strategic Pattern Recognition:
-Generate cards that decode hidden systemic patterns in:
-- Technology shifts, market dynamics, geopolitical movements
-- Behavioral economics, cognitive biases in real-world systems
-- Power structures, information asymmetries, network effects
-- Historical pattern parallels, emerging trend analysis
-Each card must reveal a non-obvious connection or pattern.`;
-  }
+Return ONLY valid JSON with these fields:
+{"title":"bold title max 60 chars","hook":"urgency hook max 120 chars","content":"main content 100-200 words","visual":"steps","visualData":{"steps":["step1","step2","step3"]},"confidence":85,"difficulty":"beginner","urgencyLevel":"medium"}
 
-  return `${base}
+visual must be one of: before-after, steps, chips, flow, comparison
+For steps: visualData={steps:[...]}
+For chips: visualData={chips:[...]}
+For before-after: visualData={before:"...",after:"..."}
+difficulty: beginner/intermediate/advanced
+urgencyLevel: low/medium/high/critical
+confidence: number 70-99
 
-WEALTH ENGINE — Financial Intelligence:
-Generate cards covering:
-- Wealth-building mental models, compound leverage strategies
-- Investment psychology, market microstructure insights
-- Business model analysis, revenue architecture patterns
-- Ethical frameworks (Stoic, ESG, long-term value creation)
-- Common financial pitfalls and how to avoid them
-Each card must include a concrete, actionable takeaway.`;
+ONLY output the JSON object. No markdown, no backticks.`;
 }
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { mode = "survival", excludeIds = [] } = await req.json();
+    const { mode = "survival" } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
     const cardType = pickType(mode);
-    const systemPrompt = buildSystemPrompt(mode, cardType);
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -79,62 +62,28 @@ serve(async (req) => {
       body: JSON.stringify({
         model: "google/gemini-2.5-flash-lite",
         messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: `Generate a ${cardType} feed card. Focus on real-world, actionable intelligence that is completely unique. ${excludeIds?.length ? `Avoid topics related to: ${excludeIds.slice(-10).join(",")}` : ""}` }
+          { role: "user", content: buildPrompt(mode, cardType) }
         ],
-        tools: [{
-          type: "function",
-          function: {
-            name: "create_feed_card",
-            description: "Create a structured feed card",
-            parameters: {
-              type: "object",
-              properties: {
-                title: { type: "string", description: "Bold, attention-grabbing title (max 60 chars)" },
-                hook: { type: "string", description: "One-line hook that creates urgency (max 120 chars)" },
-                content: { type: "string", description: "Main educational content (150-300 words)" },
-                visual: { type: "string", enum: ["before-after", "steps", "chips", "flow", "comparison"], description: "Visual format" },
-                visualData: { type: "object", description: "Data for the visual (steps: {steps:string[]}, chips: {chips:string[]}, before-after: {before:string, after:string})" },
-                interaction: { type: "string", enum: ["choice", "reveal", "rate"], description: "Interaction type" },
-                options: { type: "array", items: { type: "string" }, description: "Options for choice interaction (2-4 items)" },
-                correctAnswer: { type: "number", description: "Index of correct answer (0-based)" },
-                tryPrompt: { type: "string", description: "Actionable prompt for the user to try (max 100 chars)" },
-                confidence: { type: "number", description: "Confidence score 70-99" },
-                source: { type: "string", description: "Source attribution" },
-                shareSnippet: { type: "string", description: "Shareable one-liner" },
-                difficulty: { type: "string", enum: ["beginner", "intermediate", "advanced"] },
-                urgencyLevel: { type: "string", enum: ["low", "medium", "high", "critical"] },
-              },
-              required: ["title", "hook", "content", "visual", "visualData", "confidence", "difficulty", "urgencyLevel"],
-              additionalProperties: false,
-            }
-          }
-        }],
-        tool_choice: { type: "function", function: { name: "create_feed_card" } },
+        temperature: 1.0,
       }),
     });
 
     if (!response.ok) {
-      if (response.status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limited, please try again later." }), {
-          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "Credits exhausted." }), {
-          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
+      const status = response.status;
       const t = await response.text();
-      console.error("AI error:", response.status, t);
+      console.error("AI error:", status, t);
+      if (status === 429) return new Response(JSON.stringify({ error: "Rate limited" }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      if (status === 402) return new Response(JSON.stringify({ error: "Credits exhausted" }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       throw new Error("AI gateway error");
     }
 
     const data = await response.json();
-    const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
-    if (!toolCall) throw new Error("No tool call in response");
+    const raw = data.choices?.[0]?.message?.content || "";
+    
+    // Parse JSON from response, stripping markdown fences if present
+    const cleaned = raw.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
+    const args = JSON.parse(cleaned);
 
-    const args = JSON.parse(toolCall.function.arguments);
     const card = {
       id: crypto.randomUUID(),
       type: cardType,
