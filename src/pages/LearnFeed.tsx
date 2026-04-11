@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, memo } from "react";
 import { motion } from "framer-motion";
 import { RefreshCw } from "lucide-react";
 import FeedCard from "@/components/FeedCard";
@@ -7,71 +7,63 @@ import {
   type FeedCategory, FEED_CATEGORIES, getCardCategory,
 } from "@/lib/feed-cards";
 import { useProgress } from "@/hooks/useProgress";
-import { useUserProfile } from "@/hooks/useUserProfile";
 import { generateFeedCard } from "@/lib/ai-stream";
 import owlLogo from "@/assets/owl-logo.png";
 
-const BATCH = 6;
 const SCROLL_THRESHOLD = 1200;
 
 export default function LearnFeed() {
   const { progress, update } = useProgress();
-  const { profile } = useUserProfile();
   const [filters, setFilters] = useState<Set<FeedCategory>>(new Set(["survival"]));
   const [cards, setCards] = useState<FeedCardT[]>([]);
   const [loading, setLoading] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
   const lock = useRef(false);
   const seen = useRef(new Set<string>());
-  const mountId = useRef(0);
+  const alive = useRef(true);
 
   const filtered = cards.filter(c => filters.has(getCardCategory(c.type)));
 
   const mode = useCallback(() => {
     const f = Array.from(filters);
-    if (f.length === 1) return f[0];
-    return "mixed";
+    return f.length === 1 ? f[0] : "mixed";
   }, [filters]);
 
-  const gen = useCallback(async (currentMount: number) => {
+  // Generate one card at a time, sequentially
+  const genOne = useCallback(async (): Promise<FeedCardT | null> => {
+    try {
+      const card = await generateFeedCard({ mode: mode() });
+      if (card?.id && !seen.current.has(card.id)) {
+        seen.current.add(card.id);
+        return card;
+      }
+    } catch (e) {
+      console.error("Feed card error:", e);
+    }
+    return null;
+  }, [mode]);
+
+  // Load N cards sequentially, appending each as it arrives
+  const loadCards = useCallback(async (count: number) => {
     if (lock.current) return;
     lock.current = true;
     setLoading(true);
-    try {
-      const promises = Array.from({ length: BATCH }, () =>
-        generateFeedCard({
-          mode: mode(),
-          learningStyle: profile.learningStyle,
-          excludeIds: Array.from(seen.current),
-        }).catch(() => null)
-      );
-      const results = await Promise.all(promises);
-      if (mountId.current !== currentMount) return;
-      const fresh = results.filter((c): c is FeedCardT => !!c?.id && !seen.current.has(c.id));
-      fresh.forEach(c => seen.current.add(c.id));
-      if (fresh.length) setCards(prev => [...prev, ...fresh]);
-    } catch (e) {
-      console.error("Feed gen:", e);
+    for (let i = 0; i < count; i++) {
+      if (!alive.current) break;
+      const card = await genOne();
+      if (card) setCards(prev => [...prev, card]);
     }
-    if (mountId.current === currentMount) setLoading(false);
+    if (alive.current) setLoading(false);
     lock.current = false;
-  }, [profile.learningStyle, mode]);
+  }, [genOne]);
 
-  const loadBatches = useCallback(async (n: number, currentMount: number) => {
-    for (let i = 0; i < n; i++) {
-      if (mountId.current !== currentMount) break;
-      await gen(currentMount);
-      if (i < n - 1) await new Promise(r => setTimeout(r, 300));
-    }
-  }, [gen]);
-
-  // Fresh on every mount
+  // Initial load
   useEffect(() => {
-    const id = ++mountId.current;
+    alive.current = true;
     setCards([]);
     seen.current.clear();
-    loadBatches(5, id);
-    return () => { mountId.current++; };
+    loadCards(6);
+    return () => { alive.current = false; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -81,12 +73,12 @@ export default function LearnFeed() {
     if (!el) return;
     const onScroll = () => {
       if (el.scrollTop + el.clientHeight >= el.scrollHeight - SCROLL_THRESHOLD && !lock.current) {
-        gen(mountId.current);
+        loadCards(3);
       }
     };
     el.addEventListener("scroll", onScroll, { passive: true });
     return () => el.removeEventListener("scroll", onScroll);
-  }, [gen]);
+  }, [loadCards]);
 
   const complete = useCallback((id: string, xp: number, tokens: number) => {
     markCardSeen(id);
@@ -94,12 +86,12 @@ export default function LearnFeed() {
   }, [update]);
 
   const refresh = () => {
-    const id = ++mountId.current;
+    alive.current = true;
     setCards([]);
     seen.current.clear();
     setLoading(true);
     scrollRef.current?.scrollTo({ top: 0 });
-    loadBatches(5, id);
+    loadCards(6);
   };
 
   const toggle = (cat: FeedCategory) => {
@@ -112,7 +104,6 @@ export default function LearnFeed() {
 
   return (
     <div className="flex flex-col bg-background min-h-0" style={{ height: "calc(100vh - 3.5rem)" }}>
-      {/* Header */}
       <div className="flex-shrink-0 px-5 pt-5 pb-4 bg-background/95 backdrop-blur-2xl z-10 border-b border-border/30">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-3">
@@ -145,7 +136,6 @@ export default function LearnFeed() {
         </div>
       </div>
 
-      {/* Feed scroll */}
       <div ref={scrollRef}
         className="flex-1 overflow-y-auto overscroll-y-contain hide-scrollbar"
         style={{ scrollSnapType: "y mandatory", WebkitOverflowScrolling: "touch" }}>
@@ -180,30 +170,19 @@ export default function LearnFeed() {
   );
 }
 
-/* Living Owl Logo — heartbeat pulse with radiating aura rings */
 function LivingOwlLogo() {
   return (
     <div className="relative flex items-center justify-center w-12 h-12">
-      {/* Outer aura ring */}
       <motion.div
         className="absolute w-12 h-12 rounded-full border border-[hsl(45_90%_55%/0.12)]"
         animate={{ scale: [1, 1.6, 1], opacity: [0.15, 0, 0.15] }}
         transition={{ duration: 2.8, repeat: Infinity, ease: "easeInOut" }}
       />
-      {/* Mid aura ring */}
       <motion.div
         className="absolute w-10 h-10 rounded-full border border-[hsl(45_90%_55%/0.18)]"
         animate={{ scale: [1, 1.35, 1], opacity: [0.2, 0, 0.2] }}
         transition={{ duration: 2.8, repeat: Infinity, ease: "easeInOut", delay: 0.15 }}
       />
-      {/* Inner glow */}
-      <motion.div
-        className="absolute w-8 h-8 rounded-full"
-        style={{ background: "radial-gradient(circle, hsl(45 90% 55% / 0.2) 0%, transparent 70%)" }}
-        animate={{ scale: [1, 1.15, 0.95, 1.1, 1], opacity: [0.5, 1, 0.4, 0.9, 0.5] }}
-        transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut", times: [0, 0.15, 0.4, 0.6, 1] }}
-      />
-      {/* Owl icon with heartbeat */}
       <motion.img
         src={owlLogo}
         alt="Wisdom AI"
