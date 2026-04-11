@@ -165,3 +165,20 @@ export async function generateGameQuestion(params: {
   return resp.json();
 }
 
+export async function generateFeedCard(params: {
+  mode?: string; learningStyle?: string; excludeIds?: string[];
+}) {
+  const resp = await fetch(GENERATE_FEED_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+    },
+    body: JSON.stringify(params),
+  });
+  if (!resp.ok) {
+    const data = await resp.json().catch(() => ({}));
+    throw new Error(data.error || "Failed to generate feed card");
+  }
+  return resp.json();
+}
