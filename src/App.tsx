@@ -123,7 +123,7 @@ function AppRoutes() {
           {/* Chat is now the default home */}
           <Route path="/" element={<Chat />} />
           <Route path="/courses" element={<Courses />} />
-          <Route path="/feed" element={<Navigate to="/" replace />} />
+          <Route path="/feed" element={<LearnFeed />} />
           {/* Redirects for old routes */}
           <Route path="/learn" element={<Navigate to="/courses" replace />} />
           <Route path="/paths" element={<Navigate to="/courses" replace />} />
