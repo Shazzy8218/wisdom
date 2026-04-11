@@ -1,4 +1,4 @@
-import { BookOpen, BookMarked, User, MoreHorizontal, Gamepad2, Target, Wallet, Settings, Trophy, Zap, HelpCircle, Newspaper, X } from "lucide-react";
+import { BookOpen, BookMarked, User, MoreHorizontal, Gamepad2, Target, Wallet, Settings, Trophy, Zap, HelpCircle, X } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -7,7 +7,6 @@ import OwlIcon from "@/components/OwlIcon";
 const PRIMARY_NAV = [
   { to: "/", icon: null, label: "Chat", isOwl: true },
   { to: "/courses", icon: BookOpen, label: "Courses" },
-  { to: "/feed", icon: Newspaper, label: "Feed" },
   { to: "/goals", icon: Target, label: "Goals" },
   { to: "/profile", icon: User, label: "Profile" },
 ];

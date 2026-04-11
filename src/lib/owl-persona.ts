@@ -22,7 +22,7 @@ const SCREEN_PERSONA_MAP: Record<string, Partial<PersonaConfig>> = {
   "/courses": { state: "mentor", intensity: "medium", verbosity: "normal" },
   "/learn": { state: "mentor", intensity: "medium", verbosity: "normal" },
   "/lesson": { state: "mentor", intensity: "medium", verbosity: "detailed" },
-  "/feed": { state: "mentor", intensity: "low", verbosity: "normal" },
+  
   // Game screens → Guide with energy
   "/games": { state: "guide", intensity: "medium", verbosity: "concise" },
   // Profile/settings → calm guide
