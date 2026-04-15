@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Timer, Radio, Activity, Send, ChevronDown, ChevronUp, Shield, Mail, MessageSquare, Phone, Bell, AlertTriangle } from "lucide-react";
 import type { ArenaScenario, SituationUpdate, CommMessage, COMPLEXITY_CONFIG } from "@/lib/mastery-arena";
 import ReactMarkdown from "react-markdown";
+import DecisionRipple from "@/components/DecisionRipple";
+import CountUpNumber from "@/components/CountUpNumber";
 
 interface ArenaHUDProps {
   scenario: ArenaScenario;
@@ -81,11 +83,13 @@ export default function ArenaHUD({
                   <p className="text-[9px] text-muted-foreground font-medium tracking-wider">{m.label}</p>
                   {isDanger && <AlertTriangle className="h-2.5 w-2.5 text-primary" />}
                 </div>
-                <div className="h-1.5 bg-surface-2 rounded-full overflow-hidden">
+                <div className={`h-1.5 bg-surface-2 rounded-full overflow-hidden ${isDanger ? "metric-danger-glow" : ""}`}>
                   <motion.div className={`h-full rounded-full ${isDanger ? "bg-primary" : m.color}`}
-                    animate={{ width: `${val}%` }} transition={{ duration: 0.5 }} />
+                    animate={{ width: `${val}%` }} transition={{ duration: 0.5, type: "spring", damping: 20 }} />
                 </div>
-                <p className="text-[8px] text-muted-foreground text-right font-mono">{val}%</p>
+                <p className="text-[8px] text-muted-foreground text-right font-mono">
+                  <CountUpNumber value={val} suffix="%" className="tabular-nums" />
+                </p>
               </div>
             );
           })}
@@ -194,13 +198,15 @@ export default function ArenaHUD({
             rows={2}
             className="w-full bg-surface-2 border border-border rounded-2xl px-4 py-3 pr-12 text-caption text-foreground placeholder:text-muted-foreground outline-none focus:border-primary/40 resize-none disabled:opacity-40"
           />
-          <button
-            onClick={handleSubmit}
-            disabled={!actionText.trim() || isProcessing}
-            className="absolute right-2 bottom-2 p-2 rounded-xl bg-primary text-primary-foreground disabled:opacity-30 transition-opacity"
-          >
-            <Send className="h-4 w-4" />
-          </button>
+          <DecisionRipple className="rounded-2xl">
+            <button
+              onClick={handleSubmit}
+              disabled={!actionText.trim() || isProcessing}
+              className="absolute right-2 bottom-2 p-2 rounded-xl bg-primary text-primary-foreground disabled:opacity-30 transition-all hover:scale-105 active:scale-95"
+            >
+              <Send className="h-4 w-4" />
+            </button>
+          </DecisionRipple>
         </div>
       </div>
     </div>
