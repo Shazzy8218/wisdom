@@ -367,8 +367,8 @@ export default function FeedCard({ card, onComplete }: Props) {
             )}
           </div>
           <div className="flex items-center gap-1">
-            <button onClick={handleAskAI} className="rounded-lg p-2 text-primary hover:bg-primary/10 transition-colors flex items-center gap-1">
-              <OwlIcon size={16} /><span className="text-[10px] font-semibold">Decode</span>
+            <button onClick={handleAskAI} className="rounded-lg px-2.5 py-1.5 bg-primary/10 border border-primary/20 text-primary hover:bg-primary/20 transition-colors flex items-center gap-1.5">
+              <OwlIcon size={14} /><span className="text-[10px] font-bold tracking-wide">Deep Dive</span>
             </button>
             <AnalyticalFlagBar cardId={card.id} />
             <button onClick={handleSave} className="rounded-lg p-2 text-muted-foreground hover:text-foreground hover:bg-surface-hover transition-colors">
