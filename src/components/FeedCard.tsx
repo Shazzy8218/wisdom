@@ -187,9 +187,10 @@ export default function FeedCard({ card, onComplete }: Props) {
   return (
     <div className="min-h-[calc(100vh-8rem)] snap-start flex flex-col justify-center px-4 py-6">
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
+        initial={{ opacity: 0, y: 40, scale: 0.92, filter: "blur(8px)" }}
+        whileInView={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
+        viewport={{ once: true, margin: "-10%" }}
+        transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
         className={`glass-card overflow-hidden film-grain max-w-lg mx-auto w-full ${isPhenomenon ? "border-primary/10" : ""} ${isDLE ? "border-accent-green/10" : ""}`}
       >
         {/* Header */}
@@ -233,8 +234,20 @@ export default function FeedCard({ card, onComplete }: Props) {
             )}
           </div>
 
-          <h2 className="font-display text-xl font-bold text-foreground leading-tight mb-2">{card.title}</h2>
-          <p className="text-body text-muted-foreground">{card.hook}</p>
+          <motion.h2
+            initial={{ opacity: 0, x: -12 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.15, duration: 0.4, ease: "easeOut" }}
+            className="font-display text-xl font-bold text-foreground leading-tight mb-2"
+          >{card.title}</motion.h2>
+          <motion.p
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.25, duration: 0.4 }}
+            className="text-body text-muted-foreground"
+          >{card.hook}</motion.p>
         </div>
 
         <div className="editorial-divider mx-5" />
