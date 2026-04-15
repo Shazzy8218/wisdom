@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { BookOpen, MessageCircle, Search, Sparkles, Copy, Play, Star, Quote, Brain, Layers, Trash2, Zap, X, ExternalLink, ChevronRight, BarChart3, Download, ShoppingBag, FolderOpen, Loader2 } from "lucide-react";
+import { BookOpen, MessageCircle, Search, Sparkles, Copy, Play, Star, Quote, Brain, Layers, Trash2, Zap, X, ExternalLink, ChevronRight, BarChart3, Download, ShoppingBag, FolderOpen, Loader2, Bookmark } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { loadChatThreads, type ChatThread } from "@/lib/chat-history";
 import { loadSnapshots, type WisdomSnapshot } from "@/lib/wisdom-snapshots";
@@ -12,8 +12,9 @@ import { useProgress } from "@/hooks/useProgress";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import HiddenOwl from "@/components/HiddenOwl";
+import { getSavedCardObjects, toggleSaveCard, type FeedCard as FeedCardT } from "@/lib/feed-cards";
 
-type Tab = "courses" | "snapshots" | "prompts" | "drills" | "threads" | "quotes" | "charts" | "assets";
+type Tab = "saved" | "courses" | "snapshots" | "prompts" | "drills" | "threads" | "quotes" | "charts" | "assets";
 
 const PROMPT_PACKS = [
   { id: "w1", title: "Email Response Template", category: "Work", prompt: "Write a professional email to [recipient] about [topic]. Keep it concise, polite, and actionable. Include a clear subject line.", tags: ["email", "professional"] },
@@ -53,7 +54,12 @@ function getAssetEmoji(type: string) {
 export default function Library() {
   const { progress } = useProgress();
   const [searchParams] = useSearchParams();
-  const [tab, setTab] = useState<Tab>(() => searchParams.get("tab") === "assets" ? "assets" : "courses");
+  const [tab, setTab] = useState<Tab>(() => {
+    const p = searchParams.get("tab");
+    if (p === "assets") return "assets";
+    if (p === "saved") return "saved";
+    return "saved";
+  });
   const [editedPrompts, setEditedPrompts] = useState<Record<string, string>>({});
   const [editingPromptId, setEditingPromptId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
@@ -144,7 +150,16 @@ export default function Library() {
     !search || p.title.toLowerCase().includes(search.toLowerCase()) || p.category.toLowerCase().includes(search.toLowerCase())
   );
 
+  const [savedCards, setSavedCards] = useState<FeedCardT[]>(() => getSavedCardObjects());
+
+  const handleUnsaveCard = (id: string) => {
+    toggleSaveCard(id);
+    setSavedCards(prev => prev.filter(c => c.id !== id));
+    toast({ title: "Card removed from library" });
+  };
+
   const tabs: { id: Tab; label: string; icon: typeof BookOpen }[] = [
+    { id: "saved", label: "Saved Cards", icon: Bookmark },
     { id: "courses", label: "My Courses", icon: ShoppingBag },
     { id: "snapshots", label: "Wisdom Packs", icon: Brain },
     { id: "prompts", label: "Prompts", icon: Sparkles },
