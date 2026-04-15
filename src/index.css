@@ -138,6 +138,108 @@
     mix-blend-mode: overlay;
   }
 
+  /* Cognitive Orchestrator — Thought Aura */
+  .owl-aura {
+    position: relative;
+  }
+  .owl-aura::before {
+    content: '';
+    position: absolute;
+    inset: -6px;
+    border-radius: 50%;
+    background: radial-gradient(circle, hsl(var(--accent-gold) / 0.25), hsl(var(--primary) / 0.08), transparent 70%);
+    animation: aura-breathe 3s ease-in-out infinite;
+    pointer-events: none;
+  }
+  .owl-aura--thinking::before {
+    background: radial-gradient(circle, hsl(var(--primary) / 0.35), hsl(var(--accent-gold) / 0.12), transparent 70%);
+    animation: aura-think 1.2s ease-in-out infinite;
+  }
+  .owl-aura--speaking::before {
+    background: radial-gradient(circle, hsl(var(--accent-gold) / 0.4), hsl(var(--primary) / 0.15), transparent 70%);
+    animation: aura-speak 0.6s ease-in-out infinite;
+  }
+
+  @keyframes aura-breathe {
+    0%, 100% { transform: scale(1); opacity: 0.6; }
+    50% { transform: scale(1.15); opacity: 1; }
+  }
+  @keyframes aura-think {
+    0%, 100% { transform: scale(1); opacity: 0.5; }
+    25% { transform: scale(1.2); opacity: 0.9; }
+    75% { transform: scale(0.95); opacity: 0.7; }
+  }
+  @keyframes aura-speak {
+    0%, 100% { transform: scale(1); opacity: 0.7; }
+    50% { transform: scale(1.25); opacity: 1; }
+  }
+
+  /* Decision ripple effect */
+  .decision-ripple {
+    position: relative;
+    overflow: hidden;
+  }
+  .decision-ripple::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: radial-gradient(circle at var(--ripple-x, 50%) var(--ripple-y, 50%), hsl(var(--primary) / 0.3), transparent 70%);
+    opacity: 0;
+    animation: ripple-burst 0.6s ease-out forwards;
+    pointer-events: none;
+  }
+  @keyframes ripple-burst {
+    0% { opacity: 1; transform: scale(0.3); }
+    100% { opacity: 0; transform: scale(2.5); }
+  }
+
+  /* Critical path light tunnel */
+  .light-tunnel {
+    position: relative;
+  }
+  .light-tunnel::before {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: inherit;
+    background: linear-gradient(90deg, transparent, hsl(var(--primary) / 0.15), hsl(var(--accent-gold) / 0.2), hsl(var(--primary) / 0.15), transparent);
+    background-size: 200% 100%;
+    animation: tunnel-sweep 2.5s ease-in-out infinite;
+    pointer-events: none;
+  }
+  @keyframes tunnel-sweep {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+
+  /* Cognitive card entrance */
+  .cognitive-reveal {
+    animation: cognitive-enter 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+  @keyframes cognitive-enter {
+    0% { opacity: 0; transform: translateY(40px) scale(0.92); filter: blur(8px); }
+    60% { filter: blur(0px); }
+    100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0px); }
+  }
+
+  /* Perspective flip for contrasting views */
+  .perspective-flip {
+    perspective: 1200px;
+  }
+  .perspective-flip-inner {
+    transition: transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+    transform-style: preserve-3d;
+  }
+  .perspective-flip-inner.flipped {
+    transform: rotateY(180deg);
+  }
+
+  /* Metric bar glow for danger states */
+  .metric-danger-glow {
+    box-shadow: 0 0 12px hsl(var(--primary) / 0.4), 0 0 4px hsl(var(--primary) / 0.2);
+  }
+
   /* Desktop layout adjustments - remove bottom padding when sidebar is present */
   @media (min-width: 768px) {
     .min-h-screen.pb-24 {
