@@ -215,6 +215,56 @@ export default function Library() {
       <div className="editorial-divider mx-5 mb-6" />
 
       <div className="px-5 space-y-2">
+        {/* Saved Cards Tab */}
+        {tab === "saved" && (
+          <>
+            {savedCards.length > 0 ? (
+              <div className="space-y-3">
+                <p className="text-caption text-muted-foreground">{savedCards.length} saved card{savedCards.length !== 1 ? "s" : ""}</p>
+                {savedCards.map((card, i) => (
+                  <motion.div key={card.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}>
+                    <div className="glass-card p-5 hover:border-primary/20 transition-all">
+                      <div className="flex items-start justify-between mb-2">
+                        <span className="text-[9px] font-black uppercase tracking-[0.2em] text-primary bg-primary/10 rounded-md px-1.5 py-0.5">
+                          {card.type.replace(/-/g, " ")}
+                        </span>
+                        <button onClick={() => handleUnsaveCard(card.id)}
+                          className="p-1 rounded-lg hover:bg-destructive/10 transition-colors">
+                          <Trash2 className="h-3 w-3 text-text-tertiary" />
+                        </button>
+                      </div>
+                      <h3 className="font-display text-base font-bold text-foreground mb-1">{card.title}</h3>
+                      <p className="text-caption text-muted-foreground line-clamp-3">{card.content}</p>
+                      {card.tryPrompt && (
+                        <div className="mt-3 rounded-xl border border-primary/15 bg-primary/5 p-2.5">
+                          <p className="text-[10px] font-bold uppercase tracking-widest text-primary mb-0.5">Try It</p>
+                          <p className="text-caption text-muted-foreground">{card.tryPrompt}</p>
+                        </div>
+                      )}
+                      <div className="flex gap-2 mt-3">
+                        <button onClick={() => navigate(`/chat?context=${encodeURIComponent(`Explain this in depth: ${card.title}. ${card.content}`)}`)}
+                          className="flex items-center gap-1 rounded-lg bg-primary/10 px-2.5 py-1.5 text-micro font-medium text-primary hover:bg-primary/20 transition-colors">
+                          <MessageCircle className="h-3 w-3" /> Deep Dive
+                        </button>
+                        <button onClick={() => copyToClipboard(`${card.title}\n\n${card.content}`)}
+                          className="flex items-center gap-1 rounded-lg bg-surface-2 px-2.5 py-1.5 text-micro font-medium text-muted-foreground hover:bg-surface-hover transition-colors">
+                          <Copy className="h-3 w-3" /> Copy
+                        </button>
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <Bookmark className="h-8 w-8 text-muted-foreground/30 mx-auto mb-3" />
+                <p className="text-sm text-muted-foreground">No saved cards yet.</p>
+                <p className="text-xs text-muted-foreground/70 mt-1">Save cards from the Wisdom Feed to find them here.</p>
+              </div>
+            )}
+          </>
+        )}
+
         {/* My Courses Tab */}
         {tab === "courses" && (
           <>
