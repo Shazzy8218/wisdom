@@ -187,10 +187,9 @@ export default function FeedCard({ card, onComplete }: Props) {
   return (
     <div className="min-h-[calc(100vh-8rem)] snap-start flex flex-col justify-center px-4 py-6">
       <motion.div
-        initial={{ opacity: 0, y: 30 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, amount: 0.3 }}
-        transition={{ duration: 0.4 }}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
         className={`glass-card overflow-hidden film-grain max-w-lg mx-auto w-full ${isPhenomenon ? "border-primary/10" : ""} ${isDLE ? "border-accent-green/10" : ""}`}
       >
         {/* Header */}
