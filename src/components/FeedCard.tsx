@@ -169,7 +169,7 @@ export default function FeedCard({ card, onComplete }: Props) {
     }
   };
 
-  const handleSave = () => { const nowSaved = toggleSaveCard(card.id); setSaved(nowSaved); };
+  const handleSave = () => { const nowSaved = toggleSaveCard(card.id, card); setSaved(nowSaved); };
 
   const handleAskAI = () => {
     const q = encodeURIComponent(`Analyze this phenomenon deeper: ${card.title}. Context: ${card.content}`);

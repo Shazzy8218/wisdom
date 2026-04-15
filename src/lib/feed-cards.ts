@@ -571,6 +571,7 @@ export const STARTER_FEED: FeedCard[] = [
 // Track which cards the user has seen/completed
 const SEEN_KEY = "wisdom-feed-seen";
 const SAVED_KEY = "wisdom-feed-saved";
+const SAVED_CARDS_KEY = "wisdom-feed-saved-cards";
 
 export function getSeenCardIds(): string[] {
   try { return JSON.parse(localStorage.getItem(SEEN_KEY) || "[]"); } catch { return []; }
@@ -581,15 +582,31 @@ export function markCardSeen(id: string) {
   if (!seen.includes(id)) { seen.push(id); localStorage.setItem(SEEN_KEY, JSON.stringify(seen)); }
 }
 
-export function getSavedCards(): string[] {
+export function getSavedCardIds(): string[] {
   try { return JSON.parse(localStorage.getItem(SAVED_KEY) || "[]"); } catch { return []; }
 }
 
-export function toggleSaveCard(id: string): boolean {
-  const saved = getSavedCards();
-  const idx = saved.indexOf(id);
-  if (idx >= 0) { saved.splice(idx, 1); } else { saved.push(id); }
-  localStorage.setItem(SAVED_KEY, JSON.stringify(saved));
+/** Keep backward compat — alias */
+export const getSavedCards = getSavedCardIds;
+
+export function getSavedCardObjects(): FeedCard[] {
+  try { return JSON.parse(localStorage.getItem(SAVED_CARDS_KEY) || "[]"); } catch { return []; }
+}
+
+export function toggleSaveCard(id: string, card?: FeedCard): boolean {
+  const ids = getSavedCardIds();
+  const cards = getSavedCardObjects();
+  const idx = ids.indexOf(id);
+  if (idx >= 0) {
+    ids.splice(idx, 1);
+    const cardIdx = cards.findIndex(c => c.id === id);
+    if (cardIdx >= 0) cards.splice(cardIdx, 1);
+  } else {
+    ids.push(id);
+    if (card) cards.push(card);
+  }
+  localStorage.setItem(SAVED_KEY, JSON.stringify(ids));
+  localStorage.setItem(SAVED_CARDS_KEY, JSON.stringify(cards));
   return idx < 0;
 }
 
