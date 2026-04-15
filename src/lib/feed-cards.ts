@@ -573,6 +573,15 @@ const SEEN_KEY = "wisdom-feed-seen";
 const SAVED_KEY = "wisdom-feed-saved";
 const SAVED_CARDS_KEY = "wisdom-feed-saved-cards";
 
+export function getSeenCardIds(): string[] {
+  try { return JSON.parse(localStorage.getItem(SEEN_KEY) || "[]"); } catch { return []; }
+}
+
+export function markCardSeen(id: string) {
+  const seen = getSeenCardIds();
+  if (!seen.includes(id)) { seen.push(id); localStorage.setItem(SEEN_KEY, JSON.stringify(seen)); }
+}
+
 export function getSavedCardIds(): string[] {
   try { return JSON.parse(localStorage.getItem(SAVED_KEY) || "[]"); } catch { return []; }
 }
