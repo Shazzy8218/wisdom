@@ -11,9 +11,9 @@ export type FeedCardType =
 export type FeedCategory = "phenomenon" | "wealth" | "survival";
 
 export const FEED_CATEGORIES: Record<FeedCategory, { label: string; icon: string; description: string }> = {
+  survival: { label: "Canadian Sovereignty", icon: "🇨🇦", description: "Tax hacks, benefits & legal advantages" },
+  wealth: { label: "Wealth Dynamics", icon: "💎", description: "Ethical wealth creation & financial mastery" },
   phenomenon: { label: "Phenomenon Decoder", icon: "📡", description: "Strategic pattern recognition" },
-  wealth: { label: "Wealth Engine", icon: "💎", description: "Financial intelligence & leverage" },
-  survival: { label: "Survival Guide", icon: "🛡️", description: "Tax, benefits & legal advantages" },
 };
 
 export function getCardCategory(type: FeedCardType): FeedCategory {
