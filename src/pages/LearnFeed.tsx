@@ -93,12 +93,14 @@ export default function LearnFeed() {
     }
   }, [gen]);
 
-  /* Fresh cards on every mount */
+  /* Load cards only once on mount — no auto-refresh */
+  const initialized = useRef(false);
   useEffect(() => {
     alive.current = true;
-    setCards([]);
-    seen.current.clear();
-    load(5);
+    if (!initialized.current) {
+      initialized.current = true;
+      load(5);
+    }
     return () => { alive.current = false; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
