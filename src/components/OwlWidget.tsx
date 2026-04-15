@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { MessageCircle, X, Send, Mic, MicOff, Loader2, Sparkles, ThumbsUp, ThumbsDown } from "lucide-react";
+import ThoughtAura from "@/components/ThoughtAura";
+import FeedbackBurst from "@/components/FeedbackBurst";
 import { useLocation, useNavigate } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import { streamChat, type Msg } from "@/lib/ai-stream";
@@ -17,6 +19,7 @@ interface WidgetMessage {
   role: "user" | "assistant";
   content: string;
   feedback?: "up" | "down";
+  feedbackAnim?: "positive" | "negative" | null;
 }
 
 export default function OwlWidget() {
@@ -37,9 +40,13 @@ export default function OwlWidget() {
 
   const handleFeedback = useCallback((messageId: string, rating: "up" | "down") => {
     setMessages(prev => prev.map(m =>
-      m.id === messageId ? { ...m, feedback: rating } : m
+      m.id === messageId ? { ...m, feedback: rating, feedbackAnim: rating === "up" ? "positive" : "negative" } : m
     ));
     saveFeedback({ messageId, rating, timestamp: Date.now() });
+    // Clear anim after burst
+    setTimeout(() => {
+      setMessages(prev => prev.map(m => m.id === messageId ? { ...m, feedbackAnim: null } : m));
+    }, 1000);
   }, []);
 
   const toggleMic = useCallback(() => {
@@ -148,8 +155,9 @@ export default function OwlWidget() {
                 </motion.button>
               )}
               <button onClick={handleOpen}
-                className="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg hover:shadow-xl transition-all hover:scale-105 active:scale-95">
-                <OwlIcon size={24} />
+                className="relative flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg hover:shadow-xl transition-all hover:scale-105 active:scale-95">
+                <ThoughtAura state={isListening ? "listening" : "idle"} size={56} className="absolute inset-0" />
+                <OwlIcon size={24} className="relative z-10" />
               </button>
               {nudge && <span className="absolute top-0 right-0 h-3 w-3 rounded-full bg-destructive border-2 border-background animate-pulse" />}
             </div>
@@ -165,7 +173,10 @@ export default function OwlWidget() {
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-border/50">
               <div className="flex items-center gap-2">
-                <OwlIcon size={18} />
+                <div className="relative flex h-6 w-6 items-center justify-center">
+                  <ThoughtAura state={isStreaming ? "thinking" : isListening ? "listening" : "idle"} size={28} className="absolute -inset-0.5" />
+                  <OwlIcon size={18} className="relative z-10" />
+                </div>
                 <span className="font-display text-sm font-bold text-foreground">Owl</span>
                 <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">
                   {location.pathname.slice(1) || "home"}
@@ -196,8 +207,9 @@ export default function OwlWidget() {
                       <OwlIcon size={12} />
                     </div>
                   )}
-                  <div className="flex flex-col gap-1 max-w-[85%]">
-                    <div className={`rounded-xl px-3 py-2 text-xs leading-relaxed ${
+                    <div className="relative flex flex-col gap-1 max-w-[85%]">
+                     <FeedbackBurst type={msg.feedbackAnim ?? null} />
+                     <div className={`rounded-xl px-3 py-2 text-xs leading-relaxed ${
                       msg.role === "user" ? "bg-primary text-primary-foreground" : "bg-card border border-border/50 text-foreground"
                     }`}>
                       {msg.role === "assistant" ? (
