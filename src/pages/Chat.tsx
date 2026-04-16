@@ -787,7 +787,13 @@ export default function Chat() {
     ? `${clock.greeting}, ${profile.displayName}`
     : clock.greeting;
 
-  useEffect(() => { setThreads(loadChatThreads()); }, []);
+  useEffect(() => {
+    setThreads(loadChatThreads());
+    // Sync from cloud to restore all threads
+    syncChatHistoryToCloud().then(synced => {
+      if (synced.length > 0) setThreads(synced);
+    }).catch(() => {});
+  }, []);
   useEffect(() => { scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" }); }, [messages]);
 
   // Paste handler for images
