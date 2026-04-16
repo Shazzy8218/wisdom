@@ -1896,16 +1896,12 @@ export default function Chat() {
       {/* Input */}
       <div className="border-t border-border/50 px-5 py-3 pb-24 md:pb-4 bg-background relative">
         <div className="flex items-center gap-2 rounded-2xl border border-border bg-card px-3 py-2.5">
-          <input type="file" ref={fileInputRef} accept="image/*,.pdf,.doc,.docx,.txt,.csv,.md,.json,.xml" multiple className="hidden" onChange={handleFileSelect} />
-          <button onClick={() => fileInputRef.current?.click()}
+          <input type="file" ref={fileInputRef} accept=".pdf,.doc,.docx,.txt,.csv,.md,.json,.xml" multiple className="hidden" onChange={handleFileSelect} />
+          <input type="file" ref={photoInputRef} accept="image/*" multiple className="hidden" onChange={handleFileSelect} />
+          <input type="file" ref={cameraInputRef} accept="image/*" capture="environment" className="hidden" onChange={handleFileSelect} />
+          <button onClick={() => setShowAttachmentPicker(true)}
             className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl hover:bg-muted/50 transition-colors" title="Attach">
-            <Paperclip className="h-4 w-4 text-muted-foreground" />
-          </button>
-          <button onClick={() => setShowStylePicker(!showStylePicker)}
-            className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl transition-colors ${
-              showStylePicker || selectedStyle ? "bg-primary/10 text-primary" : "hover:bg-muted/50 text-muted-foreground"}`}
-            title="Generate image">
-            <Wand2 className="h-4 w-4" />
+            <Plus className="h-5 w-5 text-muted-foreground" />
           </button>
           <textarea ref={inputRef} value={input}
             onChange={(e) => { setInput(e.target.value); e.target.style.height = 'auto'; e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px'; }}
@@ -1925,6 +1921,17 @@ export default function Chat() {
           </button>
         </div>
       </div>
+
+      {/* Attachment Picker Bottom Sheet */}
+      <AttachmentPicker
+        open={showAttachmentPicker}
+        onClose={() => setShowAttachmentPicker(false)}
+        onCamera={() => cameraInputRef.current?.click()}
+        onPhotos={() => photoInputRef.current?.click()}
+        onFiles={() => fileInputRef.current?.click()}
+        onCreateImage={() => { setShowStylePicker(true); inputRef.current?.focus(); }}
+        onWebSearch={() => { setInput("Search the web for "); inputRef.current?.focus(); }}
+      />
 
       {/* Fullscreen Image Viewer */}
       {viewerImage && (
