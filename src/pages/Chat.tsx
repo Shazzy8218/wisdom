@@ -11,7 +11,7 @@ import { toast } from "@/hooks/use-toast";
 import { useSearchParams } from "react-router-dom";
 import {
   loadChatThreads, createThread, addMessageToThread, renameThread, deleteThread,
-  type ChatThread,
+  syncChatHistoryToCloud, type ChatThread,
 } from "@/lib/chat-history";
 import { buildOwlContext, detectToolsUsed } from "@/lib/owl-context";
 import { getRecommendationContext } from "@/lib/analytics-engine";
@@ -787,7 +787,13 @@ export default function Chat() {
     ? `${clock.greeting}, ${profile.displayName}`
     : clock.greeting;
 
-  useEffect(() => { setThreads(loadChatThreads()); }, []);
+  useEffect(() => {
+    setThreads(loadChatThreads());
+    // Sync from cloud to restore all threads
+    syncChatHistoryToCloud().then(synced => {
+      if (synced.length > 0) setThreads(synced);
+    }).catch(() => {});
+  }, []);
   useEffect(() => { scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" }); }, [messages]);
 
   // Paste handler for images
