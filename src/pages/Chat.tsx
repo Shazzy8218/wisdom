@@ -769,10 +769,13 @@ export default function Chat() {
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [lastUploadDebug, setLastUploadDebug] = useState<UploadDebugInfo | null>(null);
   const [viewerImage, setViewerImage] = useState<{ src: string; prompt?: string; style?: string } | null>(null);
+  const [showAttachmentPicker, setShowAttachmentPicker] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const autoSentRef = useRef(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const photoInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   const clock = useLiveClock();
