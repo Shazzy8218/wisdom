@@ -11,7 +11,7 @@ import { toast } from "@/hooks/use-toast";
 import { useSearchParams } from "react-router-dom";
 import {
   loadChatThreads, createThread, addMessageToThread, renameThread, deleteThread,
-  type ChatThread,
+  syncChatHistoryToCloud, type ChatThread,
 } from "@/lib/chat-history";
 import { buildOwlContext, detectToolsUsed } from "@/lib/owl-context";
 import { getRecommendationContext } from "@/lib/analytics-engine";
