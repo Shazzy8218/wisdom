@@ -80,7 +80,82 @@ export function useUserProfile() {
     return () => clearInterval(id);
   }, []);
 
-  return { profile, updateProfile };
+  // Hydrate displayName + email from the authenticated user / cloud profile.
+  // Priority: existing local name > profiles.display_name > auth metadata > email-derived.
+  useEffect(() => {
+    let cancelled = false;
+
+    const hydrate = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user || cancelled) return;
+
+        const email = user.email || "";
+        const metaName = (user.user_metadata?.display_name as string | undefined) || "";
+
+        let cloudName = "";
+        try {
+          const { data: row } = await supabase
+            .from("profiles")
+            .select("display_name")
+            .eq("id", user.id)
+            .maybeSingle();
+          cloudName = (row?.display_name || "").trim();
+        } catch {}
+
+        const fallback = deriveNameFromEmail(email);
+        const resolved = cloudName || metaName.trim() || fallback;
+
+        setProfile((prev) => {
+          const nextName = (prev.displayName && prev.displayName.trim())
+            ? prev.displayName
+            : resolved;
+          const next = { ...prev, displayName: nextName, email: email || prev.email };
+          saveProfile(next);
+
+          // If cloud profile has no name yet, write the resolved one back so it persists.
+          if (!cloudName && resolved) {
+            void supabase
+              .from("profiles")
+              .update({ display_name: resolved })
+              .eq("id", user.id);
+          }
+          return next;
+        });
+      } catch {}
+    };
+
+    void hydrate();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) void hydrate();
+    });
+
+    return () => {
+      cancelled = true;
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  // Wrap updateProfile so changes to displayName also persist to the cloud profile.
+  const updateProfileWithSync = useCallback((updates: Partial<UserProfile>) => {
+    updateProfile(updates);
+    if (typeof updates.displayName === "string") {
+      const newName = updates.displayName.trim();
+      void (async () => {
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (!user) return;
+          await supabase
+            .from("profiles")
+            .update({ display_name: newName })
+            .eq("id", user.id);
+        } catch {}
+      })();
+    }
+  }, [updateProfile]);
+
+  return { profile, updateProfile: updateProfileWithSync };
 }
 
 export function getUserProfileForAI(): Record<string, string> {
