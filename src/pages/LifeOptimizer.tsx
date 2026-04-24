@@ -1,14 +1,13 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { ChevronLeft, Send, Loader2, Brain, Zap, Target, Sparkles } from "lucide-react";
+import { ChevronLeft, Send, Loader2, Brain, Target, Sparkles, RotateCcw, Play } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { supabase } from "@/integrations/supabase/client";
 import { useProgress } from "@/hooks/useProgress";
 import { useGoals } from "@/hooks/useGoals";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { toast } from "@/hooks/use-toast";
-import { createThread, addMessageToThread } from "@/lib/chat-history";
 import { hasLoaGoalPayload, persistLoaGoalsFromMessage } from "@/lib/loa-goals";
 
 interface ChatMsg {
@@ -18,6 +17,41 @@ interface ChatMsg {
 
 const LOA_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/loa-interview`;
 const AUTH_SESSION_LOOKUP_TIMEOUT_MS = 8000;
+const LOA_STORAGE_KEY = "wisdom-loa-session";
+
+interface LoaSession {
+  messages: ChatMsg[];
+  completed: boolean;
+  updatedAt: number;
+}
+
+function loadLoaSession(): LoaSession | null {
+  try {
+    const raw = localStorage.getItem(LOA_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || !Array.isArray(parsed.messages)) return null;
+    return parsed as LoaSession;
+  } catch {
+    return null;
+  }
+}
+
+function saveLoaSession(session: LoaSession): void {
+  try {
+    localStorage.setItem(LOA_STORAGE_KEY, JSON.stringify(session));
+  } catch {
+    // ignore quota errors
+  }
+}
+
+function clearLoaSession(): void {
+  try {
+    localStorage.removeItem(LOA_STORAGE_KEY);
+  } catch {
+    // ignore
+  }
+}
 
 const INTRO_MESSAGE = `**I am the Life Optimization Advisor.**
 
@@ -102,21 +136,56 @@ export default function LifeOptimizer() {
   const { progress } = useProgress();
   const { goals } = useGoals();
   const { profile } = useUserProfile();
+  // Resume gate — show choice screen if there's an in-progress session
+  const [resumeChoice, setResumeChoice] = useState<"pending" | "started">("pending");
+  const [hasExistingSession, setHasExistingSession] = useState(false);
   const [messages, setMessages] = useState<ChatMsg[]>([
     { role: "assistant", content: INTRO_MESSAGE },
   ]);
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
   const [goalsExtracted, setGoalsExtracted] = useState(false);
-  const [threadId, setThreadId] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  // Create a chat thread on mount to persist the conversation
+  // On mount: detect existing local session
   useEffect(() => {
-    const thread = createThread("Life Optimization Session", "loa-session");
-    setThreadId(thread.id);
-    addMessageToThread(thread.id, "assistant", INTRO_MESSAGE);
+    const existing = loadLoaSession();
+    if (existing && existing.messages.length > 1 && !existing.completed) {
+      setHasExistingSession(true);
+      setResumeChoice("pending");
+    } else if (existing && existing.completed) {
+      // Completed previously — start fresh by default
+      setResumeChoice("started");
+    } else {
+      setResumeChoice("started");
+    }
+  }, []);
+
+  // Persist session locally (NOT to chat history) on every message change
+  useEffect(() => {
+    if (resumeChoice !== "started") return;
+    saveLoaSession({
+      messages,
+      completed: goalsExtracted,
+      updatedAt: Date.now(),
+    });
+  }, [messages, goalsExtracted, resumeChoice]);
+
+  const handleResume = useCallback(() => {
+    const existing = loadLoaSession();
+    if (existing && existing.messages.length > 0) {
+      setMessages(existing.messages);
+      setGoalsExtracted(existing.completed);
+    }
+    setResumeChoice("started");
+  }, []);
+
+  const handleStartOver = useCallback(() => {
+    clearLoaSession();
+    setMessages([{ role: "assistant", content: INTRO_MESSAGE }]);
+    setGoalsExtracted(false);
+    setResumeChoice("started");
   }, []);
 
   const scrollToBottom = useCallback(() => {
@@ -137,7 +206,7 @@ export default function LifeOptimizer() {
       const { createdCount } = await persistLoaGoalsFromMessage(
         content,
         accessToken,
-        threadId ?? "loa-session",
+        "loa-session",
       );
 
       if (createdCount === 0) {
@@ -145,6 +214,12 @@ export default function LifeOptimizer() {
       }
 
       setGoalsExtracted(true);
+      // Mark as completed locally; user can start over next time
+      const existing = loadLoaSession();
+      if (existing) {
+        saveLoaSession({ ...existing, completed: true, updatedAt: Date.now() });
+      }
+
       toast({
         title: `🎯 ${createdCount} goal${createdCount > 1 ? "s" : ""} created!`,
         description: "Navigating to Mission Control...",
@@ -160,7 +235,7 @@ export default function LifeOptimizer() {
       console.error("[LOA] activateMissionControl error:", err);
       throw err;
     }
-  }, [navigate, threadId]);
+  }, [navigate]);
 
   const sendMessage = useCallback(async () => {
     const trimmedInput = input.trim();
@@ -183,8 +258,6 @@ export default function LifeOptimizer() {
       setMessages(newMessages);
       setInput("");
       setStreaming(true);
-
-      if (threadId) addMessageToThread(threadId, "user", userMsg.content);
 
       const rawProgress = progress as any;
       const masteryScores = rawProgress?.masteryScores ?? {};
@@ -260,10 +333,6 @@ export default function LifeOptimizer() {
         }
       }
 
-      if (threadId && assistantContent) {
-        addMessageToThread(threadId, "assistant", assistantContent);
-      }
-
       if (hasLoaGoalPayload(assistantContent)) {
         try {
           await activateMissionControl(assistantContent);
@@ -286,7 +355,7 @@ export default function LifeOptimizer() {
       setStreaming(false);
       inputRef.current?.focus();
     }
-  }, [activateMissionControl, goals, input, messages, navigate, profile, progress, scrollToBottom, streaming, threadId]);
+  }, [activateMissionControl, goals, input, messages, navigate, profile, progress, scrollToBottom, streaming]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -298,6 +367,69 @@ export default function LifeOptimizer() {
   const phase = messages.filter(m => m.role === "user").length;
   const phaseLabel = phase < 2 ? "Vision" : phase < 5 ? "Reality Check" : phase < 8 ? "Deep Dive" : phase < 10 ? "Truth Confrontation" : "Action Plan";
   const phaseProgress = Math.min(100, (phase / 10) * 100);
+
+  // Resume choice screen
+  if (resumeChoice === "pending" && hasExistingSession) {
+    const existing = loadLoaSession();
+    const lastUpdated = existing?.updatedAt
+      ? new Date(existing.updatedAt).toLocaleDateString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })
+      : "";
+    const userTurns = existing?.messages.filter((m) => m.role === "user").length ?? 0;
+
+    return (
+      <div className="min-h-screen flex flex-col bg-background">
+        <div className="sticky top-0 z-20 border-b border-border bg-card/95 backdrop-blur-lg">
+          <div className="px-4 py-3 flex items-center gap-3">
+            <button onClick={() => navigate("/goals")} className="p-2 rounded-xl hover:bg-muted/50 transition-colors">
+              <ChevronLeft className="h-5 w-5 text-muted-foreground" />
+            </button>
+            <div className="flex items-center gap-2">
+              <Brain className="h-4 w-4 text-primary" />
+              <h1 className="font-display text-sm font-bold text-foreground">Life Optimization Advisor</h1>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex-1 flex items-center justify-center px-6">
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="w-full max-w-md rounded-3xl border border-border bg-card p-6 shadow-lg"
+          >
+            <div className="flex items-center justify-center mb-4">
+              <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center">
+                <Brain className="h-7 w-7 text-primary" />
+              </div>
+            </div>
+            <h2 className="text-center text-lg font-bold text-foreground mb-2">Resume your session?</h2>
+            <p className="text-center text-sm text-muted-foreground mb-1">
+              You have an in-progress diagnostic.
+            </p>
+            <p className="text-center text-xs text-muted-foreground/70 mb-6">
+              {userTurns} response{userTurns === 1 ? "" : "s"} · last activity {lastUpdated}
+            </p>
+
+            <div className="space-y-3">
+              <button
+                onClick={handleResume}
+                className="w-full flex items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
+              >
+                <Play className="h-4 w-4" />
+                Continue where I left off
+              </button>
+              <button
+                onClick={handleStartOver}
+                className="w-full flex items-center justify-center gap-2 rounded-2xl border border-border bg-background px-4 py-3 text-sm font-semibold text-foreground hover:bg-muted/50 transition-colors"
+              >
+                <RotateCcw className="h-4 w-4" />
+                Start over
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -324,6 +456,15 @@ export default function LifeOptimizer() {
               </div>
             </div>
           </div>
+          {messages.length > 1 && !goalsExtracted && (
+            <button
+              onClick={handleStartOver}
+              title="Start over"
+              className="p-2 rounded-xl hover:bg-muted/50 transition-colors"
+            >
+              <RotateCcw className="h-4 w-4 text-muted-foreground" />
+            </button>
+          )}
           {goalsExtracted && (
             <button
               onClick={() => navigate("/goals")}
