@@ -1,4 +1,19 @@
 import { useState, useEffect, useCallback } from "react";
+import { supabase } from "@/integrations/supabase/client";
+
+// Derive a friendly display name from an email address.
+// "jane.doe@example.com" -> "Jane Doe"
+function deriveNameFromEmail(email: string | null | undefined): string {
+  const raw = (email || "").split("@")[0]?.trim() || "";
+  if (!raw) return "";
+  return raw
+    .replace(/[._-]+/g, " ")
+    .replace(/\d+/g, "")
+    .trim()
+    .split(/\s+/)
+    .map((p) => (p ? p[0].toUpperCase() + p.slice(1).toLowerCase() : ""))
+    .join(" ");
+}
 
 export interface UserProfile {
   displayName: string;
