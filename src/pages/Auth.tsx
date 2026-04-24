@@ -121,7 +121,12 @@ export default function Auth() {
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
             {mode === "signup" && (
-              <Input placeholder="Display name" value={displayName} onChange={(e) => setDisplayName(e.target.value)} required className="bg-surface-2 border-border" />
+              <Input
+                placeholder="Display name (optional — we'll use your email if blank)"
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                className="bg-surface-2 border-border"
+              />
             )}
             <Input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} required className="bg-surface-2 border-border" />
             {mode !== "forgot" && (

@@ -48,11 +48,26 @@ export function useAuth() {
   }, []);
 
   const signUp = useCallback(async (email: string, password: string, displayName: string) => {
+    // Auto-derive a friendly default name from the email if the user didn't provide one.
+    // E.g. "jane.doe@example.com" -> "Jane Doe"
+    const fallbackFromEmail = (() => {
+      const raw = (email.split("@")[0] || "").trim();
+      if (!raw) return "";
+      return raw
+        .replace(/[._-]+/g, " ")
+        .replace(/\d+/g, "")
+        .trim()
+        .split(/\s+/)
+        .map((p) => (p ? p[0].toUpperCase() + p.slice(1).toLowerCase() : ""))
+        .join(" ");
+    })();
+    const finalName = (displayName || "").trim() || fallbackFromEmail;
+
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        data: { display_name: displayName },
+        data: { display_name: finalName },
       },
     });
     if (error) throw error;
