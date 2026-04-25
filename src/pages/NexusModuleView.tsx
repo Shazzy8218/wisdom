@@ -2,13 +2,14 @@
 // Full-depth display of a hand-crafted Wisdom God Core module:
 // hook, doctrines, sections + operator moves, case study, arena tie-in.
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { motion } from "framer-motion";
-import { ArrowLeft, Crown, CheckCircle2, Target, BookOpen, Hexagon, Sparkles } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { ArrowLeft, Crown, CheckCircle2, Target, BookOpen, Hexagon, Sparkles, Zap } from "lucide-react";
 import { getFlagshipModule, PILLAR_META } from "@/lib/nexus-flagship";
 import { useProgress } from "@/hooks/useProgress";
 import { toast } from "@/hooks/use-toast";
+import WisdomSpark from "@/components/WisdomSpark";
 
 export default function NexusModuleView() {
   const { moduleId } = useParams<{ moduleId: string }>();
