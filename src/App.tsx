@@ -57,6 +57,7 @@ import ResetPassword from "./pages/ResetPassword";
 import LifeOptimizer from "./pages/LifeOptimizer";
 import KnowledgeNexus from "./pages/KnowledgeNexus";
 import NexusModuleView from "./pages/NexusModuleView";
+import { useLastRoute } from "@/hooks/useLastRoute";
 
 const queryClient = new QueryClient();
 
@@ -64,6 +65,8 @@ function AppRoutes() {
   const { user, loading } = useAuth();
   const { calibration, loading: calLoading, completeCalibration } = useCalibration(user, !loading);
   useCloudSync(user, !loading);
+  // Restore the last open route so chats/pages stay open across sessions
+  useLastRoute(!!user && !loading);
   const [splashDismissed, setSplashDismissed] = useState(false);
   const [calibrationSkipped, setCalibrationSkipped] = useState(() => {
     return localStorage.getItem("wisdom-calibration-skipped") === "true";

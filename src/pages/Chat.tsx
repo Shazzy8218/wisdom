@@ -788,12 +788,40 @@ export default function Chat() {
     : clock.greeting;
 
   useEffect(() => {
-    setThreads(loadChatThreads());
+    const local = loadChatThreads();
+    setThreads(local);
+    // Restore the last-open thread so the user resumes where they left off
+    const lastId = localStorage.getItem("wisdom-last-thread-id");
+    if (lastId && !contextParam) {
+      const t = local.find(x => x.id === lastId);
+      if (t) {
+        setCurrentThreadId(t.id);
+        setMessages(t.messages.map(m => parseThreadMessage(m)));
+      }
+    }
     // Sync from cloud to restore all threads
     syncChatHistoryToCloud().then(synced => {
-      if (synced.length > 0) setThreads(synced);
+      if (synced.length > 0) {
+        setThreads(synced);
+        if (lastId && !contextParam) {
+          const t = synced.find(x => x.id === lastId);
+          if (t) {
+            setCurrentThreadId(t.id);
+            setMessages(prev => prev.length === 0 ? t.messages.map(m => parseThreadMessage(m)) : prev);
+          }
+        }
+      }
     }).catch(() => {});
   }, []);
+
+  // Persist current thread id whenever it changes
+  useEffect(() => {
+    if (currentThreadId) {
+      localStorage.setItem("wisdom-last-thread-id", currentThreadId);
+    } else {
+      localStorage.removeItem("wisdom-last-thread-id");
+    }
+  }, [currentThreadId]);
   useEffect(() => { scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" }); }, [messages]);
 
   // Paste handler for images
