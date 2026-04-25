@@ -76,20 +76,19 @@ export default function WisdomSpark({ context, onClose, onComplete }: Props) {
   // Realtime scribe
   const scribe = useScribe({
     modelId: "scribe_v2_realtime",
-    commitStrategy: "vad",
-    onPartialTranscript: (data) => {
+    commitStrategy: "vad" as never,
+    onPartialTranscript: (data: { text: string }) => {
       setAnswer(data.text);
     },
-    onCommittedTranscript: (data) => {
+    onCommittedTranscript: (data: { text: string }) => {
       setAnswer(prev => {
-        // Replace partial with committed; if there's already content, append
         const trimmed = (prev || "").trim();
         if (!trimmed) return data.text;
         if (trimmed.endsWith(data.text.trim())) return trimmed;
         return `${trimmed} ${data.text}`.trim();
       });
     },
-  });
+  } as never);
 
   /* Generate the Spark on mount */
   useEffect(() => {
@@ -127,7 +126,7 @@ export default function WisdomSpark({ context, onClose, onComplete }: Props) {
 
     return () => {
       // Disconnect on unmount
-      scribe.disconnect().catch(() => {});
+      try { (scribe.disconnect() as unknown as Promise<void>)?.catch?.(() => {}); } catch { /* ignore */ }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -159,7 +158,8 @@ export default function WisdomSpark({ context, onClose, onComplete }: Props) {
 
   const stopRecording = useCallback(async () => {
     try {
-      await scribe.disconnect();
+      const r = scribe.disconnect() as unknown;
+      if (r && typeof (r as Promise<void>).then === "function") await (r as Promise<void>);
     } catch { /* ignore */ }
     setIsRecording(false);
   }, [scribe]);
