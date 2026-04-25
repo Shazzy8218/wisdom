@@ -55,6 +55,8 @@ import Support from "./pages/Support";
 import MasteryArena from "./pages/MasteryArena";
 import ResetPassword from "./pages/ResetPassword";
 import LifeOptimizer from "./pages/LifeOptimizer";
+import KnowledgeNexus from "./pages/KnowledgeNexus";
+import NexusModuleView from "./pages/NexusModuleView";
 
 const queryClient = new QueryClient();
 
@@ -123,6 +125,8 @@ function AppRoutes() {
           {/* Chat is now the default home */}
           <Route path="/" element={<Chat />} />
           <Route path="/courses" element={<Courses />} />
+          <Route path="/nexus" element={<KnowledgeNexus />} />
+          <Route path="/nexus/module/:moduleId" element={<NexusModuleView />} />
           <Route path="/feed" element={<LearnFeed />} />
           {/* Redirects for old routes */}
           <Route path="/learn" element={<Navigate to="/courses" replace />} />

@@ -1,4 +1,4 @@
-import { BookOpen, BookMarked, Newspaper, User, Gamepad2, Target, Wallet, Settings, Zap, HelpCircle } from "lucide-react";
+import { BookOpen, BookMarked, Newspaper, User, Gamepad2, Target, Wallet, Settings, Zap, HelpCircle, Hexagon } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import { NavLink } from "@/components/NavLink";
 import OwlIcon from "@/components/OwlIcon";
@@ -20,6 +20,7 @@ import {
 
 const MAIN_NAV = [
   { title: "Chat", url: "/", icon: null, isOwl: true },
+  { title: "Nexus", url: "/nexus", icon: Hexagon },
   { title: "Courses", url: "/courses", icon: BookOpen },
   { title: "Feed", url: "/feed", icon: Newspaper },
   { title: "Games", url: "/games", icon: Gamepad2 },
