@@ -137,8 +137,46 @@ export default function KnowledgeNexus() {
         </div>
       </div>
 
+      {/* PRIME DIRECTIVE — Cognitive Traction Engine hero */}
+      {(() => {
+        const pd = getFlagshipModule(PRIME_DIRECTIVE_ID);
+        if (!pd) return null;
+        const meta = PILLAR_META[pd.pillar];
+        return (
+          <div className="px-5 pt-6">
+            <Link to={`/nexus/module/${pd.id}`} className="block glass-card p-5 border-2 border-accent-gold/40 bg-gradient-to-br from-accent-gold/[0.08] via-card to-primary/[0.05] relative overflow-hidden group">
+              <div className="absolute -top-10 -right-10 h-32 w-32 rounded-full bg-accent-gold/15 blur-3xl" />
+              <div className="relative">
+                <div className="flex items-center gap-2 mb-2">
+                  <Crown className="h-3 w-3 text-accent-gold" />
+                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-accent-gold">Prime Directive · Hero Flagship</p>
+                </div>
+                <p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground mb-1">{meta.icon} {meta.name}</p>
+                <h3 className="font-display text-xl font-black text-foreground leading-tight">{pd.title}</h3>
+                <p className="text-xs text-muted-foreground italic mt-1.5">{pd.hook}</p>
+                <div className="flex items-center gap-3 mt-3 text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">
+                  <span>{pd.duration}</span><span>·</span>
+                  <span className="text-accent-gold">{pd.difficulty}</span><span>·</span>
+                  <span className="text-primary">+ Wisdom Spark verification</span>
+                </div>
+                <div className="flex items-center gap-1 mt-3 text-[11px] uppercase tracking-wider font-bold text-primary group-hover:translate-x-0.5 transition-transform">
+                  Begin trajectory <ArrowRight className="h-3 w-3" />
+                </div>
+              </div>
+            </Link>
+          </div>
+        );
+      })()}
+
+      <div className="editorial-divider mx-5 my-8" />
+
+      {/* STRATEGIC SERENDIPITY DEEP-DIVE */}
+      <SerendipityDeepDive />
+
+      <div className="editorial-divider mx-5 my-8" />
+
       {/* NEURAL PATHFINDING */}
-      <div className="px-5 pt-8 pb-2">
+      <div className="px-5 pt-2 pb-2">
         <div className="flex items-center justify-between mb-1">
           <div className="flex items-center gap-2">
             <Brain className="h-3.5 w-3.5 text-primary" />
