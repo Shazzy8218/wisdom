@@ -26,6 +26,14 @@ export interface UserProfile {
 }
 
 const STORAGE_KEY = "wisdom-user-profile";
+const NAME_LOCK_KEY = "wisdom-user-name-locked";
+
+function isNameLocked(): boolean {
+  try { return localStorage.getItem(NAME_LOCK_KEY) === "1"; } catch { return false; }
+}
+function setNameLocked() {
+  try { localStorage.setItem(NAME_LOCK_KEY, "1"); } catch {}
+}
 
 const DEFAULT_PROFILE: UserProfile = {
   displayName: "",
