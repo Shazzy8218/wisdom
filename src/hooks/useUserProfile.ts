@@ -26,6 +26,14 @@ export interface UserProfile {
 }
 
 const STORAGE_KEY = "wisdom-user-profile";
+const NAME_LOCK_KEY = "wisdom-user-name-locked";
+
+function isNameLocked(): boolean {
+  try { return localStorage.getItem(NAME_LOCK_KEY) === "1"; } catch { return false; }
+}
+function setNameLocked() {
+  try { localStorage.setItem(NAME_LOCK_KEY, "1"); } catch {}
+}
 
 const DEFAULT_PROFILE: UserProfile = {
   displayName: "",
@@ -107,9 +115,24 @@ export function useUserProfile() {
         const resolved = cloudName || metaName.trim() || fallback;
 
         setProfile((prev) => {
-          const nextName = (prev.displayName && prev.displayName.trim())
-            ? prev.displayName
-            : resolved;
+          const locked = isNameLocked();
+          const localName = (prev.displayName || "").trim();
+
+          // If user has locked their name, ALWAYS keep the local name and
+          // push it to cloud if cloud differs. Never overwrite from cloud.
+          if (locked && localName) {
+            if (cloudName !== localName) {
+              void supabase
+                .from("profiles")
+                .update({ display_name: localName })
+                .eq("id", user.id);
+            }
+            const next = { ...prev, displayName: localName, email: email || prev.email };
+            saveProfile(next);
+            return next;
+          }
+
+          const nextName = localName || resolved;
           const next = { ...prev, displayName: nextName, email: email || prev.email };
           saveProfile(next);
 
@@ -142,6 +165,7 @@ export function useUserProfile() {
     updateProfile(updates);
     if (typeof updates.displayName === "string") {
       const newName = updates.displayName.trim();
+      if (newName) setNameLocked();
       void (async () => {
         try {
           const { data: { user } } = await supabase.auth.getUser();
@@ -150,6 +174,8 @@ export function useUserProfile() {
             .from("profiles")
             .update({ display_name: newName })
             .eq("id", user.id);
+          // Also store in auth metadata so it survives across devices.
+          await supabase.auth.updateUser({ data: { display_name: newName } });
         } catch {}
       })();
     }
