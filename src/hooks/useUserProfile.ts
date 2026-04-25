@@ -115,9 +115,24 @@ export function useUserProfile() {
         const resolved = cloudName || metaName.trim() || fallback;
 
         setProfile((prev) => {
-          const nextName = (prev.displayName && prev.displayName.trim())
-            ? prev.displayName
-            : resolved;
+          const locked = isNameLocked();
+          const localName = (prev.displayName || "").trim();
+
+          // If user has locked their name, ALWAYS keep the local name and
+          // push it to cloud if cloud differs. Never overwrite from cloud.
+          if (locked && localName) {
+            if (cloudName !== localName) {
+              void supabase
+                .from("profiles")
+                .update({ display_name: localName })
+                .eq("id", user.id);
+            }
+            const next = { ...prev, displayName: localName, email: email || prev.email };
+            saveProfile(next);
+            return next;
+          }
+
+          const nextName = localName || resolved;
           const next = { ...prev, displayName: nextName, email: email || prev.email };
           saveProfile(next);
 
