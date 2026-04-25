@@ -165,6 +165,7 @@ export function useUserProfile() {
     updateProfile(updates);
     if (typeof updates.displayName === "string") {
       const newName = updates.displayName.trim();
+      if (newName) setNameLocked();
       void (async () => {
         try {
           const { data: { user } } = await supabase.auth.getUser();
@@ -173,6 +174,8 @@ export function useUserProfile() {
             .from("profiles")
             .update({ display_name: newName })
             .eq("id", user.id);
+          // Also store in auth metadata so it survives across devices.
+          await supabase.auth.updateUser({ data: { display_name: newName } });
         } catch {}
       })();
     }
