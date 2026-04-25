@@ -57,6 +57,7 @@ import ResetPassword from "./pages/ResetPassword";
 import LifeOptimizer from "./pages/LifeOptimizer";
 import KnowledgeNexus from "./pages/KnowledgeNexus";
 import NexusModuleView from "./pages/NexusModuleView";
+import { useLastRoute } from "@/hooks/useLastRoute";
 
 const queryClient = new QueryClient();
 
