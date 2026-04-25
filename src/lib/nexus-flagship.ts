@@ -41,7 +41,10 @@ export interface FlagshipModule {
   arenaDrillId?: string;     // optional Mastery Arena scenario tie-in
   feedTriggers?: string[];   // Phenomenon Decoder topics this re-syncs to
   tags: string[];
+  isPrimeDirective?: boolean; // Cognitive Traction Engine Alpha — hero module
 }
+
+export const PRIME_DIRECTIVE_ID = "ef-01-multi-jurisdictional-tax-architecture";
 
 export const FLAGSHIP_MODULES: FlagshipModule[] = [
   {
@@ -107,6 +110,7 @@ export const FLAGSHIP_MODULES: FlagshipModule[] = [
     arenaDrillId: "tax-architecture-decision",
     feedTriggers: ["Pillar Two updates", "ATAD 3 substance rulings", "Canadian budget changes"],
     tags: ["tax", "structure", "ethics", "cross-border", "2026"],
+    isPrimeDirective: true,
   },
   {
     id: "ef-02-debt-as-an-asset-class",
