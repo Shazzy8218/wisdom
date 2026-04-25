@@ -157,10 +157,32 @@ export default function NexusModuleView() {
                   <p className="text-xs text-foreground/90 leading-relaxed">{s.operatorMove}</p>
                 </div>
               )}
+              <button
+                onClick={() => setSparkSection(i)}
+                className="mt-3 w-full flex items-center justify-center gap-1.5 rounded-xl border border-accent-gold/30 bg-accent-gold/[0.06] hover:bg-accent-gold/[0.12] py-2 text-[11px] font-bold uppercase tracking-wider text-accent-gold transition-all"
+              >
+                <Zap className="h-3 w-3" /> Wisdom Spark · 60-sec challenge
+              </button>
             </motion.section>
           ))}
         </div>
       </div>
+
+      <AnimatePresence>
+        {sparkSection !== null && mod.sections[sparkSection] && (
+          <WisdomSpark
+            context={{
+              moduleId: mod.id,
+              moduleTitle: mod.title,
+              sectionHeading: mod.sections[sparkSection].heading,
+              sectionBody: mod.sections[sparkSection].body,
+              operatorMove: mod.sections[sparkSection].operatorMove,
+              doctrineHint: mod.doctrines?.[0]?.name,
+            }}
+            onClose={() => setSparkSection(null)}
+          />
+        )}
+      </AnimatePresence>
 
       {/* CASE STUDY */}
       <div className="px-5 pt-7">
