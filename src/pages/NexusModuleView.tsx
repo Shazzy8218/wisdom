@@ -16,6 +16,7 @@ export default function NexusModuleView() {
   const navigate = useNavigate();
   const { progress, update } = useProgress();
   const mod = moduleId ? getFlagshipModule(moduleId) : undefined;
+  const [sparkSection, setSparkSection] = useState<number | null>(null);
 
   useEffect(() => {
     if (moduleId && !mod) {
