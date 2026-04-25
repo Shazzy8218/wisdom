@@ -38,7 +38,7 @@ export default function NexusModuleView() {
       xp: (p.xp || 0) + 25,
       tokenHistory: [
         ...(p.tokenHistory || []),
-        { amount: 15, reason: `Flagship: ${mod.title}`, timestamp: Date.now() },
+        { action: `Flagship: ${mod.title}`, amount: 15, date: new Date().toISOString() },
       ],
     }));
     toast({ title: "Flagship complete.", description: "+15 Wisdom Tokens · Mastery deposited." });
