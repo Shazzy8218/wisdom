@@ -13,7 +13,7 @@ import { toast } from "@/hooks/use-toast";
 export default function NexusModuleView() {
   const { moduleId } = useParams<{ moduleId: string }>();
   const navigate = useNavigate();
-  const { progress, completeLesson, awardTokens } = useProgress();
+  const { progress, update } = useProgress();
   const mod = moduleId ? getFlagshipModule(moduleId) : undefined;
 
   useEffect(() => {
@@ -30,8 +30,17 @@ export default function NexusModuleView() {
 
   const markComplete = () => {
     if (flagshipCompleted) return;
-    completeLesson(`nexus:${mod.id}`);
-    awardTokens?.(15, `Completed flagship: ${mod.title}`);
+    const lessonId = `nexus:${mod.id}`;
+    update(p => ({
+      ...p,
+      completedLessons: [...(p.completedLessons || []), lessonId],
+      tokens: (p.tokens || 0) + 15,
+      xp: (p.xp || 0) + 25,
+      tokenHistory: [
+        ...(p.tokenHistory || []),
+        { amount: 15, reason: `Flagship: ${mod.title}`, timestamp: Date.now() },
+      ],
+    }));
     toast({ title: "Flagship complete.", description: "+15 Wisdom Tokens · Mastery deposited." });
   };
 
