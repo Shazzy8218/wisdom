@@ -11,13 +11,14 @@ import {
   Sparkles, Crown, Compass, Zap, ArrowRight, Loader2,
   Brain, Shield, Target, ChevronRight, Hexagon, Plus,
 } from "lucide-react";
-import { FLAGSHIP_MODULES, PILLAR_META, FlagshipPillar } from "@/lib/nexus-flagship";
+import { FLAGSHIP_MODULES, PILLAR_META, FlagshipPillar, PRIME_DIRECTIVE_ID, getFlagshipModule } from "@/lib/nexus-flagship";
 import { CORE_TRACKS, MONEY_TRACK_IDS } from "@/lib/core-tracks";
 import { MASTERY_TRACKS } from "@/lib/mastery-tracks";
 import { useAuth } from "@/hooks/useAuth";
 import { useGoals } from "@/hooks/useGoals";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { SerendipityDeepDive } from "@/components/StrategicSerendipity";
 
 interface PathStep {
   moduleId: string;
