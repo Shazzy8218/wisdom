@@ -75,8 +75,9 @@ export default function Profile() {
             <div className="flex items-center gap-2">
               <h2 className="font-display text-h3 text-foreground">{profile.displayName || "Learner"}</h2>
               <button onClick={() => { setNameValue(profile.displayName); setEditing(true); }}
-                className="p-1 rounded-lg hover:bg-surface-hover transition-colors">
-                <Pencil className="h-3 w-3 text-muted-foreground" />
+                className="p-1 rounded-lg hover:bg-surface-hover transition-colors inline-flex items-center gap-1 text-muted-foreground/70 hover:text-muted-foreground">
+                <Pencil className="h-3 w-3" />
+                <span className="text-[10px] font-light tracking-wide italic">Edit user name</span>
               </button>
             </div>
           )}
