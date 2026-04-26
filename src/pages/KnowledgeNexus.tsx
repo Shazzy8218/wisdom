@@ -22,6 +22,8 @@ import { SerendipityDeepDive } from "@/components/StrategicSerendipity";
 import AdaptiveWelcome from "@/components/nexus/AdaptiveWelcome";
 import KnowledgeGrid from "@/components/nexus/KnowledgeGrid";
 import NexusSearch from "@/components/nexus/NexusSearch";
+import CognitiveStateCalibrator from "@/components/nexus/CognitiveStateCalibrator";
+import ManifestationOrb from "@/components/nexus/ManifestationOrb";
 
 interface PathStep {
   moduleId: string;
@@ -139,6 +141,18 @@ export default function KnowledgeNexus() {
           </div>
         </div>
       </div>
+
+      {/* COGNITIVE STATE CALIBRATION — Pillar I entry routing */}
+      <div className="mt-6">
+        <CognitiveStateCalibrator />
+      </div>
+
+      {/* GOAL MANIFESTATION ORB — Pillar I central goal visualization */}
+      <div className="mt-5">
+        <ManifestationOrb />
+      </div>
+
+      <div className="editorial-divider mx-5 my-7" />
 
       {/* ADAPTIVE WELCOME — Intuitive Intelligence Portal */}
       <AdaptiveWelcome />

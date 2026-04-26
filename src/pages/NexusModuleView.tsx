@@ -10,13 +10,19 @@ import { getFlagshipModule, PILLAR_META } from "@/lib/nexus-flagship";
 import { useProgress } from "@/hooks/useProgress";
 import { toast } from "@/hooks/use-toast";
 import WisdomSpark from "@/components/WisdomSpark";
+import ImpactProjectionMatrix from "@/components/nexus/ImpactProjectionMatrix";
+import RealityShiftIndicator from "@/components/nexus/RealityShiftIndicator";
+import { computeImpactProjection } from "@/lib/impact-projection";
+import { useGoals } from "@/hooks/useGoals";
 
 export default function NexusModuleView() {
   const { moduleId } = useParams<{ moduleId: string }>();
   const navigate = useNavigate();
   const { progress, update } = useProgress();
+  const { primaryGoal } = useGoals();
   const mod = moduleId ? getFlagshipModule(moduleId) : undefined;
   const [sparkSection, setSparkSection] = useState<number | null>(null);
+  const [shiftOpen, setShiftOpen] = useState(false);
 
   useEffect(() => {
     if (moduleId && !mod) {
@@ -44,7 +50,10 @@ export default function NexusModuleView() {
       ],
     }));
     toast({ title: "Flagship complete.", description: "+15 Wisdom Tokens · Mastery deposited." });
+    setShiftOpen(true);
   };
+
+  const projectedLift = computeImpactProjection({ module: mod, goal: primaryGoal }).goalContributionPct;
 
   return (
     <div className="min-h-screen pb-24">
@@ -75,6 +84,11 @@ export default function NexusModuleView() {
           <span>·</span>
           <span className="text-accent-gold">{mod.difficulty}</span>
         </div>
+      </div>
+
+      {/* IMPACT PROJECTION MATRIX — Predictive Manifestation Engine */}
+      <div className="px-5 pt-6">
+        <ImpactProjectionMatrix module={mod} />
       </div>
 
       {/* HOOK */}
@@ -251,6 +265,13 @@ export default function NexusModuleView() {
           </div>
         )}
       </div>
+
+      <RealityShiftIndicator
+        open={shiftOpen}
+        moduleTitle={mod.title}
+        goalContributionPct={projectedLift}
+        onClose={() => setShiftOpen(false)}
+      />
     </div>
   );
 }
