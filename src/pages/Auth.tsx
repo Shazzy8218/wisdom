@@ -20,6 +20,26 @@ export default function Auth() {
   const [submitting, setSubmitting] = useState(false);
   const { signIn, signUp } = useAuth();
   const navigate = useNavigate();
+  const inApp = useMemo(() => detectInAppBrowser(), []);
+
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      toast({ title: "Link copied", description: "Paste it in Safari or Chrome to sign in with Google." });
+    } catch {
+      toast({ title: "Copy failed", description: "Long-press the address bar to copy the URL.", variant: "destructive" });
+    }
+  };
+
+  const handleOpenInBrowser = () => {
+    // Best-effort: try to break out of the in-app webview.
+    const url = window.location.href;
+    try {
+      window.open(url, "_blank", "noopener,noreferrer");
+    } catch {
+      // Fallback handled by Copy button.
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
