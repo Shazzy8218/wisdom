@@ -86,6 +86,11 @@ export default function NexusModuleView() {
         </div>
       </div>
 
+      {/* IMPACT PROJECTION MATRIX — Predictive Manifestation Engine */}
+      <div className="px-5 pt-6">
+        <ImpactProjectionMatrix module={mod} />
+      </div>
+
       {/* HOOK */}
       <div className="px-5 pt-6">
         <div className="glass-card p-4 border border-primary/20 bg-gradient-to-br from-primary/[0.04] to-transparent">
