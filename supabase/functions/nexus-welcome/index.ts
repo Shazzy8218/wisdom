@@ -51,9 +51,9 @@ Deno.serve(async (req) => {
       supabase.from("user_goals").select("title,target_metric,current_value,baseline_value,target_value,deadline").eq("user_id", user.id).eq("completed", false).order("updated_at", { ascending: false }).limit(3),
     ]);
 
-    const profile = profileR.data || {};
-    const progress = progressR.data || {};
-    const goals = goalsR.data || [];
+    const profile: any = profileR.data || {};
+    const progress: any = progressR.data || {};
+    const goals: any[] = goalsR.data || [];
 
     const masteryScores = (progress.mastery_scores as Record<string, number>) || {};
     const masteryEntries = Object.entries(masteryScores);
