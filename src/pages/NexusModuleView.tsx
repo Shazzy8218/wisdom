@@ -265,6 +265,13 @@ export default function NexusModuleView() {
           </div>
         )}
       </div>
+
+      <RealityShiftIndicator
+        open={shiftOpen}
+        moduleTitle={mod.title}
+        goalContributionPct={projectedLift}
+        onClose={() => setShiftOpen(false)}
+      />
     </div>
   );
 }
