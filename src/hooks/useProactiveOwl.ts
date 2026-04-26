@@ -6,10 +6,11 @@ import { CATEGORY_TRACKS } from "@/lib/categories";
 
 export interface ProactiveNudge {
   id: string;
-  type: "mastery-gap" | "streak" | "goal-drift" | "idle" | "milestone" | "momentum";
+  type: "mastery-gap" | "streak" | "goal-drift" | "idle" | "milestone" | "momentum" | "nexus-injection";
   message: string;
   prompt: string; // What to send to Owl if user taps it
   priority: number; // 1 = highest
+  deepLink?: string; // optional route to navigate to instead of opening chat
 }
 
 const IDLE_THRESHOLD_MS = 90_000; // 90 seconds
