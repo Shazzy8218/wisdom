@@ -125,17 +125,35 @@ export function SerendipityDashboardCard({ delay = 0.25 }: { delay?: number }) {
   );
 }
 
-/* ─────────── Deep-dive (Nexus page) ─────────── */
+/* ─────────── Deep-dive (Nexus page) — Strategic Serendipity Console ─────────── */
+
+const CLAIMED_KEY = "nexus-serendipity-claimed-v1";
+function isClaimedToday(): boolean {
+  try { return localStorage.getItem(CLAIMED_KEY) === todayStr(); } catch { return false; }
+}
 
 export function SerendipityDeepDive() {
   const { card, loading, err, refresh } = useSerendipityCard();
+  const [claimed, setClaimed] = useState<boolean>(() => isClaimedToday());
+  const [biasOpen, setBiasOpen] = useState(false);
+
+  const handleClaim = () => {
+    if (claimed) return;
+    try { localStorage.setItem(CLAIMED_KEY, todayStr()); } catch {}
+    setClaimed(true);
+    // Award tokens via existing progress hook would require import; keep lightweight here
+    try {
+      const ev = new CustomEvent("wisdom:award-tokens", { detail: { tokens: 5, reason: "serendipity-claim" } });
+      window.dispatchEvent(ev);
+    } catch {}
+  };
 
   return (
     <section id="serendipity" className="px-5 scroll-mt-20">
       <div className="flex items-center justify-between mb-1">
         <div className="flex items-center gap-2">
           <Compass className="h-3.5 w-3.5 text-accent-gold" />
-          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-accent-gold">Strategic Serendipity</p>
+          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-accent-gold">Strategic Serendipity Console</p>
         </div>
         <button
           onClick={refresh}
@@ -163,9 +181,29 @@ export function SerendipityDeepDive() {
         <motion.article
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          className="glass-card p-5 border border-accent-gold/20 bg-gradient-to-br from-accent-gold/[0.04] via-transparent to-primary/[0.04] relative overflow-hidden"
+          className="glass-card p-5 border border-accent-gold/25 bg-gradient-to-br from-accent-gold/[0.05] via-transparent to-primary/[0.05] relative overflow-hidden"
         >
-          <div className="absolute -top-12 -right-10 h-32 w-32 rounded-full bg-accent-gold/10 blur-3xl" />
+          {/* Animated data-stream background */}
+          <div className="absolute inset-0 pointer-events-none opacity-50">
+            <motion.div
+              className="absolute -top-20 -left-20 h-48 w-48 rounded-full bg-accent-gold/20 blur-3xl"
+              animate={{ x: [0, 60, 0], y: [0, 30, 0] }}
+              transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
+            />
+            <motion.div
+              className="absolute -bottom-16 -right-16 h-40 w-40 rounded-full bg-primary/15 blur-3xl"
+              animate={{ x: [0, -40, 0], y: [0, -20, 0] }}
+              transition={{ duration: 22, repeat: Infinity, ease: "easeInOut" }}
+            />
+            {/* Subtle scan line */}
+            <motion.div
+              className="absolute left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-accent-gold/40 to-transparent"
+              initial={{ top: "0%" }}
+              animate={{ top: ["0%", "100%", "0%"] }}
+              transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+            />
+          </div>
+
           <div className="relative">
             <div className="flex items-center gap-2 mb-2">
               <Sparkles className="h-3 w-3 text-accent-gold" />
@@ -194,6 +232,37 @@ export function SerendipityDeepDive() {
                 </ul>
               </div>
             )}
+
+            {/* Cognitive Bias Interrupt */}
+            <button
+              onClick={() => setBiasOpen(v => !v)}
+              className="mt-4 w-full text-left rounded-xl border border-primary/25 bg-primary/[0.05] hover:bg-primary/[0.08] transition-colors p-3"
+            >
+              <p className="text-[9px] uppercase tracking-wider font-bold text-primary mb-1">Cognitive bias interrupt</p>
+              <p className="text-xs text-foreground/90 italic leading-snug">
+                Did you ever consider {card.sourceDomain.toLowerCase()} principles could apply to your current strategy?
+              </p>
+              {biasOpen && (
+                <p className="text-[11px] text-muted-foreground mt-2 leading-relaxed">
+                  Hold this question for 30 seconds before dismissing. Most operator blind spots dissolve under deliberate cross-domain pressure.
+                </p>
+              )}
+            </button>
+
+            {/* Claim for tokens (gamified discovery) */}
+            <div className="mt-3 flex items-center gap-2">
+              <button
+                onClick={handleClaim}
+                disabled={claimed}
+                className={`flex-1 rounded-xl py-2.5 text-[11px] font-bold uppercase tracking-wider transition-all ${
+                  claimed
+                    ? "bg-accent-green/15 text-accent-green cursor-default"
+                    : "bg-accent-gold text-background hover:bg-accent-gold/90"
+                }`}
+              >
+                {claimed ? "✓ Claimed today" : "Claim insight · +5 tokens"}
+              </button>
+            </div>
 
             {card.relatedNexusTags && card.relatedNexusTags.length > 0 && (
               <div className="flex flex-wrap gap-1.5 mt-4">
