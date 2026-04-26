@@ -22,6 +22,8 @@ import { SerendipityDeepDive } from "@/components/StrategicSerendipity";
 import AdaptiveWelcome from "@/components/nexus/AdaptiveWelcome";
 import KnowledgeGrid from "@/components/nexus/KnowledgeGrid";
 import NexusSearch from "@/components/nexus/NexusSearch";
+import CognitiveStateCalibrator from "@/components/nexus/CognitiveStateCalibrator";
+import ManifestationOrb from "@/components/nexus/ManifestationOrb";
 
 interface PathStep {
   moduleId: string;
