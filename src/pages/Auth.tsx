@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+import { ExternalLink, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
@@ -9,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
 import owlLogo from "@/assets/owl-logo.png";
 import { toast } from "@/hooks/use-toast";
+import { detectInAppBrowser } from "@/lib/in-app-browser";
 
 export default function Auth() {
   const [mode, setMode] = useState<"login" | "signup" | "forgot">("login");
