@@ -142,6 +142,18 @@ export default function KnowledgeNexus() {
         </div>
       </div>
 
+      {/* COGNITIVE STATE CALIBRATION — Pillar I entry routing */}
+      <div className="mt-6">
+        <CognitiveStateCalibrator />
+      </div>
+
+      {/* GOAL MANIFESTATION ORB — Pillar I central goal visualization */}
+      <div className="mt-5">
+        <ManifestationOrb />
+      </div>
+
+      <div className="editorial-divider mx-5 my-7" />
+
       {/* ADAPTIVE WELCOME — Intuitive Intelligence Portal */}
       <AdaptiveWelcome />
 
