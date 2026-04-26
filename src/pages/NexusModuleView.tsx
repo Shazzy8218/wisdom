@@ -10,13 +10,19 @@ import { getFlagshipModule, PILLAR_META } from "@/lib/nexus-flagship";
 import { useProgress } from "@/hooks/useProgress";
 import { toast } from "@/hooks/use-toast";
 import WisdomSpark from "@/components/WisdomSpark";
+import ImpactProjectionMatrix from "@/components/nexus/ImpactProjectionMatrix";
+import RealityShiftIndicator from "@/components/nexus/RealityShiftIndicator";
+import { computeImpactProjection } from "@/lib/impact-projection";
+import { useGoals } from "@/hooks/useGoals";
 
 export default function NexusModuleView() {
   const { moduleId } = useParams<{ moduleId: string }>();
   const navigate = useNavigate();
   const { progress, update } = useProgress();
+  const { primaryGoal } = useGoals();
   const mod = moduleId ? getFlagshipModule(moduleId) : undefined;
   const [sparkSection, setSparkSection] = useState<number | null>(null);
+  const [shiftOpen, setShiftOpen] = useState(false);
 
   useEffect(() => {
     if (moduleId && !mod) {
