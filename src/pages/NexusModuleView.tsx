@@ -50,7 +50,10 @@ export default function NexusModuleView() {
       ],
     }));
     toast({ title: "Flagship complete.", description: "+15 Wisdom Tokens · Mastery deposited." });
+    setShiftOpen(true);
   };
+
+  const projectedLift = computeImpactProjection({ module: mod, goal: primaryGoal }).goalContributionPct;
 
   return (
     <div className="min-h-screen pb-24">
