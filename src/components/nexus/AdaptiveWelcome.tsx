@@ -83,15 +83,22 @@ export default function AdaptiveWelcome() {
     setSpeaking(true);
     try {
       const text = `${payload.welcomeLine} ${payload.question}`;
-      const { data, error } = await supabase.functions.invoke("elevenlabs-tts", {
-        body: { text, voiceId: "kPtEHAvRnjUJFv7SK9WI" },
+      const { data: { session } } = await supabase.auth.getSession();
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/elevenlabs-tts`;
+      const resp = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: JSON.stringify({ text, voiceId: "kPtEHAvRnjUJFv7SK9WI" }),
       });
-      if (error) throw error;
-      const audioContent = data?.audioContent;
-      if (!audioContent) throw new Error("No audio returned");
-      const audio = new Audio(`data:audio/mpeg;base64,${audioContent}`);
-      audio.onended = () => setSpeaking(false);
-      audio.onerror = () => setSpeaking(false);
+      if (!resp.ok) throw new Error(`TTS failed: ${resp.status}`);
+      const blob = await resp.blob();
+      const audioUrl = URL.createObjectURL(blob);
+      const audio = new Audio(audioUrl);
+      audio.onended = () => { setSpeaking(false); URL.revokeObjectURL(audioUrl); };
+      audio.onerror = () => { setSpeaking(false); URL.revokeObjectURL(audioUrl); };
       await audio.play();
     } catch (err) {
       console.error("[Welcome TTS]", err);
