@@ -53,11 +53,12 @@ Deno.serve(async (req) => {
       supabase.from("profiles").select("primary_desire,goal_mode").eq("id", user.id).maybeSingle(),
       supabase.from("user_goals").select("title,target_metric").eq("user_id", user.id).eq("completed", false).limit(2),
     ]);
-    const goal = goalsR.data?.[0] as any;
+    const goal: any = goalsR.data?.[0];
+    const profileData: any = profileR.data || {};
     const userCtx = {
       goal: goal ? goal.title : null,
-      goal_mode: profileR.data?.goal_mode || "income",
-      desire: profileR.data?.primary_desire || "",
+      goal_mode: profileData.goal_mode || "income",
+      desire: profileData.primary_desire || "",
     };
 
     const lovableKey = Deno.env.get("LOVABLE_API_KEY");
