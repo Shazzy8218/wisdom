@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+import { ExternalLink, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
@@ -9,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
 import owlLogo from "@/assets/owl-logo.png";
 import { toast } from "@/hooks/use-toast";
+import { detectInAppBrowser } from "@/lib/in-app-browser";
 
 export default function Auth() {
   const [mode, setMode] = useState<"login" | "signup" | "forgot">("login");
@@ -18,6 +20,26 @@ export default function Auth() {
   const [submitting, setSubmitting] = useState(false);
   const { signIn, signUp } = useAuth();
   const navigate = useNavigate();
+  const inApp = useMemo(() => detectInAppBrowser(), []);
+
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      toast({ title: "Link copied", description: "Paste it in Safari or Chrome to sign in with Google." });
+    } catch {
+      toast({ title: "Copy failed", description: "Long-press the address bar to copy the URL.", variant: "destructive" });
+    }
+  };
+
+  const handleOpenInBrowser = () => {
+    // Best-effort: try to break out of the in-app webview.
+    const url = window.location.href;
+    try {
+      window.open(url, "_blank", "noopener,noreferrer");
+    } catch {
+      // Fallback handled by Copy button.
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -91,10 +113,44 @@ export default function Auth() {
             <p className="text-sm text-muted-foreground">{subtitle}</p>
           </div>
 
+          {/* In-app browser warning — Google blocks OAuth in webviews like Snapchat/Instagram/TikTok */}
+          {mode !== "forgot" && inApp.isInApp && (
+            <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 space-y-2">
+              <p className="text-xs text-amber-200 font-medium">
+                You're in {inApp.appName ?? "an in-app browser"}. Google sign-in is blocked here.
+              </p>
+              <p className="text-xs text-amber-200/80">
+                Open this page in Safari or Chrome to continue with Google — or use email below.
+              </p>
+              <div className="flex gap-2 pt-1">
+                <Button type="button" size="sm" variant="outline" className="flex-1 gap-1.5 text-xs" onClick={handleOpenInBrowser}>
+                  <ExternalLink className="h-3.5 w-3.5" /> Open in browser
+                </Button>
+                <Button type="button" size="sm" variant="outline" className="flex-1 gap-1.5 text-xs" onClick={handleCopyLink}>
+                  <Copy className="h-3.5 w-3.5" /> Copy link
+                </Button>
+              </div>
+            </div>
+          )}
+
           {/* Social login buttons - not shown in forgot mode */}
           {mode !== "forgot" && (
             <div className="space-y-3">
-              <Button variant="outline" className="w-full gap-2 bg-surface-2 border-border hover:bg-surface-hover" onClick={() => handleOAuth("google")}>
+              <Button
+                variant="outline"
+                className="w-full gap-2 bg-surface-2 border-border hover:bg-surface-hover disabled:opacity-50"
+                onClick={() => {
+                  if (inApp.isInApp) {
+                    toast({
+                      title: "Open in your browser",
+                      description: `Google blocks sign-in inside ${inApp.appName ?? "in-app browsers"}. Tap "Open in browser" above or use email.`,
+                      variant: "destructive",
+                    });
+                    return;
+                  }
+                  handleOAuth("google");
+                }}
+              >
                 <svg className="h-4 w-4" viewBox="0 0 24 24">
                   <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4" />
                   <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
