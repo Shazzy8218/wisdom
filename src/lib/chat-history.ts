@@ -126,14 +126,16 @@ export async function syncChatHistoryToCloud(): Promise<ChatThread[]> {
     });
   }
 
-  const cloudThreads: ChatThread[] = threads.map(t => ({
-    id: t.id,
-    title: t.title,
-    lessonId: t.lesson_id || undefined,
-    messages: msgsByThread[t.id] || [],
-    createdAt: Number(t.created_at),
-    updatedAt: Number(t.updated_at),
-  }));
+  const cloudThreads: ChatThread[] = threads
+    .map(t => ({
+      id: t.id,
+      title: t.title,
+      lessonId: t.lesson_id || undefined,
+      messages: msgsByThread[t.id] || [],
+      createdAt: Number(t.created_at),
+      updatedAt: Number(t.updated_at),
+    }))
+    .filter(t => !isHiddenThread(t));
 
   // Merge: keep any local threads not in cloud
   const localThreads = loadLocal();
