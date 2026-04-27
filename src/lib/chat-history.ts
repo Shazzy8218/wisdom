@@ -27,10 +27,18 @@ supabase.auth.onAuthStateChange((_event, session) => {
 
 // --- localStorage helpers ---
 
+// Titles to hide from chat history (legacy flows that no longer belong here)
+const HIDDEN_THREAD_TITLES = new Set(["Life Optimization Session"]);
+
+function isHiddenThread(t: ChatThread): boolean {
+  return HIDDEN_THREAD_TITLES.has(t.title);
+}
+
 function loadLocal(): ChatThread[] {
   try {
     const stored = localStorage.getItem(CHAT_STORAGE_KEY);
-    return stored ? JSON.parse(stored) : [];
+    const parsed: ChatThread[] = stored ? JSON.parse(stored) : [];
+    return parsed.filter(t => !isHiddenThread(t));
   } catch {
     return [];
   }
@@ -118,14 +126,16 @@ export async function syncChatHistoryToCloud(): Promise<ChatThread[]> {
     });
   }
 
-  const cloudThreads: ChatThread[] = threads.map(t => ({
-    id: t.id,
-    title: t.title,
-    lessonId: t.lesson_id || undefined,
-    messages: msgsByThread[t.id] || [],
-    createdAt: Number(t.created_at),
-    updatedAt: Number(t.updated_at),
-  }));
+  const cloudThreads: ChatThread[] = threads
+    .map(t => ({
+      id: t.id,
+      title: t.title,
+      lessonId: t.lesson_id || undefined,
+      messages: msgsByThread[t.id] || [],
+      createdAt: Number(t.created_at),
+      updatedAt: Number(t.updated_at),
+    }))
+    .filter(t => !isHiddenThread(t));
 
   // Merge: keep any local threads not in cloud
   const localThreads = loadLocal();

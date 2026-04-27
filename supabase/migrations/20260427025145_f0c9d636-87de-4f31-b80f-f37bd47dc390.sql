@@ -1,0 +1,1 @@
+UPDATE public.chat_threads SET archived = true WHERE title = 'Life Optimization Session' AND archived = false;
