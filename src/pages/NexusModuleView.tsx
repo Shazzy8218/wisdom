@@ -101,6 +101,20 @@ export default function NexusModuleView() {
         </div>
       </div>
 
+      {/* CAE — Inline Retrieval Drill (top of module) */}
+      <RetrievalDrillCard moduleId={mod.id} />
+
+      {/* CAE — ACL-M Scaffolding banner + DRO Phenomenon Preview */}
+      <div className="px-5 pt-4 space-y-3">
+        <ScaffoldBanner mod={mod} />
+        <PhenomenonPreview moduleId={mod.id} moduleTitle={mod.title} concept={mod.title} />
+      </div>
+
+      {/* CAE — CTA "Why this matters to YOUR goal" */}
+      <div className="px-5 pt-4">
+        <WhyThisMatters moduleId={mod.id} moduleTitle={mod.title} moduleHook={mod.hook} />
+      </div>
+
       {/* IMPACT PROJECTION MATRIX — Predictive Manifestation Engine */}
       <div className="px-5 pt-6">
         <ImpactProjectionMatrix module={mod} />
