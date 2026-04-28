@@ -58,6 +58,7 @@ import LifeOptimizer from "./pages/LifeOptimizer";
 import KnowledgeNexus from "./pages/KnowledgeNexus";
 import NexusModuleView from "./pages/NexusModuleView";
 import NexusCourse from "./pages/NexusCourse";
+import NexusReview from "./pages/NexusReview";
 import { useLastRoute } from "@/hooks/useLastRoute";
 
 const queryClient = new QueryClient();
@@ -132,6 +133,7 @@ function AppRoutes() {
           <Route path="/nexus" element={<KnowledgeNexus />} />
           <Route path="/nexus/module/:moduleId" element={<NexusModuleView />} />
           <Route path="/nexus/course/:id" element={<NexusCourse />} />
+          <Route path="/nexus/review" element={<NexusReview />} />
           <Route path="/feed" element={<LearnFeed />} />
           {/* Redirects for old routes */}
           <Route path="/learn" element={<Navigate to="/courses" replace />} />

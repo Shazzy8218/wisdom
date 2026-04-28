@@ -12,7 +12,16 @@ import { toast } from "@/hooks/use-toast";
 import WisdomSpark from "@/components/WisdomSpark";
 import ImpactProjectionMatrix from "@/components/nexus/ImpactProjectionMatrix";
 import RealityShiftIndicator from "@/components/nexus/RealityShiftIndicator";
+import RetrievalDrillCard from "@/components/nexus/RetrievalDrillCard";
+import ScaffoldBanner from "@/components/nexus/ScaffoldBanner";
+import WhyThisMatters from "@/components/nexus/WhyThisMatters";
+import PhenomenonPreview from "@/components/nexus/PhenomenonPreview";
+import ActiveRecallPrompt from "@/components/nexus/ActiveRecallPrompt";
+import AnalogyButton from "@/components/nexus/AnalogyButton";
+import ReflectiveAction from "@/components/nexus/ReflectiveAction";
 import { computeImpactProjection } from "@/lib/impact-projection";
+import { decideScaffold } from "@/lib/learning-optimizer";
+import { useSeedRecallPrompts } from "@/hooks/useSeedRecallPrompts";
 import { useGoals } from "@/hooks/useGoals";
 
 export default function NexusModuleView() {
@@ -31,10 +40,16 @@ export default function NexusModuleView() {
     }
   }, [moduleId, mod, navigate]);
 
+  // CAE — Seed spaced-repetition prompts for this module (idempotent)
+  useSeedRecallPrompts(mod);
+
   if (!mod) return null;
 
   const meta = PILLAR_META[mod.pillar];
   const flagshipCompleted = (progress.completedLessons || []).includes(`nexus:${mod.id}`);
+  const scaffold = decideScaffold(mod);
+  // Insert active-recall pause after the second section (mid-module)
+  const recallInsertAfter = Math.min(1, mod.sections.length - 1);
 
   const markComplete = () => {
     if (flagshipCompleted) return;
@@ -84,6 +99,20 @@ export default function NexusModuleView() {
           <span>·</span>
           <span className="text-accent-gold">{mod.difficulty}</span>
         </div>
+      </div>
+
+      {/* CAE — Inline Retrieval Drill (top of module) */}
+      <RetrievalDrillCard moduleId={mod.id} />
+
+      {/* CAE — ACL-M Scaffolding banner + DRO Phenomenon Preview */}
+      <div className="px-5 pt-4 space-y-3">
+        <ScaffoldBanner mod={mod} />
+        <PhenomenonPreview moduleId={mod.id} moduleTitle={mod.title} concept={mod.title} />
+      </div>
+
+      {/* CAE — CTA "Why this matters to YOUR goal" */}
+      <div className="px-5 pt-4">
+        <WhyThisMatters moduleId={mod.id} moduleTitle={mod.title} moduleHook={mod.hook} />
       </div>
 
       {/* IMPACT PROJECTION MATRIX — Predictive Manifestation Engine */}
@@ -153,31 +182,43 @@ export default function NexusModuleView() {
         </div>
         <div className="space-y-5">
           {mod.sections.map((s, i) => (
-            <motion.section
-              key={i}
-              initial={{ opacity: 0, y: 8 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: i * 0.05 }}
-            >
-              <div className="flex items-baseline gap-2 mb-2">
-                <span className="text-[10px] font-bold text-muted-foreground/60">§ {(i + 1).toString().padStart(2, "0")}</span>
-                <h3 className="font-display text-lg font-bold text-foreground leading-tight">{s.heading}</h3>
-              </div>
-              <p className="text-sm text-foreground/90 leading-relaxed">{s.body}</p>
-              {s.operatorMove && (
-                <div className="mt-3 glass-card p-3 border-l-2 border-primary bg-primary/[0.04]">
-                  <p className="text-[10px] uppercase tracking-wider font-bold text-primary mb-1">Operator Move</p>
-                  <p className="text-xs text-foreground/90 leading-relaxed">{s.operatorMove}</p>
+            <div key={i}>
+              <motion.section
+                initial={{ opacity: 0, y: 8 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.05 }}
+              >
+                <div className="flex items-baseline gap-2 mb-2">
+                  <span className="text-[10px] font-bold text-muted-foreground/60">§ {(i + 1).toString().padStart(2, "0")}</span>
+                  <h3 className="font-display text-lg font-bold text-foreground leading-tight">{s.heading}</h3>
+                </div>
+                <p className="text-sm text-foreground/90 leading-relaxed">{s.body}</p>
+                {s.operatorMove && scaffold.showOperatorMoves && (
+                  <div className="mt-3 glass-card p-3 border-l-2 border-primary bg-primary/[0.04]">
+                    <p className="text-[10px] uppercase tracking-wider font-bold text-primary mb-1">Operator Move</p>
+                    <p className="text-xs text-foreground/90 leading-relaxed">{s.operatorMove}</p>
+                  </div>
+                )}
+                <AnalogyButton moduleId={mod.id} sectionIdx={i} sectionHeading={s.heading} sectionBody={s.body} />
+                <button
+                  onClick={() => setSparkSection(i)}
+                  className="mt-3 w-full flex items-center justify-center gap-1.5 rounded-xl border border-accent-gold/30 bg-accent-gold/[0.06] hover:bg-accent-gold/[0.12] py-2 text-[11px] font-bold uppercase tracking-wider text-accent-gold transition-all"
+                >
+                  <Zap className="h-3 w-3" /> Wisdom Spark · 60-sec challenge
+                </button>
+              </motion.section>
+
+              {/* CAE — Interleaved Active Recall pump after the (recallInsertAfter)th section */}
+              {i === recallInsertAfter && (
+                <div className="mt-5">
+                  <ActiveRecallPrompt
+                    prompt={`Pause. In your own words: what is the operator-grade principle behind "${s.heading}", and when would you deploy it?`}
+                    ideal={s.operatorMove || s.body.slice(0, 240)}
+                  />
                 </div>
               )}
-              <button
-                onClick={() => setSparkSection(i)}
-                className="mt-3 w-full flex items-center justify-center gap-1.5 rounded-xl border border-accent-gold/30 bg-accent-gold/[0.06] hover:bg-accent-gold/[0.12] py-2 text-[11px] font-bold uppercase tracking-wider text-accent-gold transition-all"
-              >
-                <Zap className="h-3 w-3" /> Wisdom Spark · 60-sec challenge
-              </button>
-            </motion.section>
+            </div>
           ))}
         </div>
       </div>
@@ -223,8 +264,13 @@ export default function NexusModuleView() {
         </div>
       </div>
 
+      {/* CAE — Reflective Practice (knowledge → reality transfer) */}
+      <div className="px-5 pt-7">
+        <ReflectiveAction moduleId={mod.id} moduleTitle={mod.title} />
+      </div>
+
       {/* COMPLETE / TIE-INS */}
-      <div className="px-5 pt-7 space-y-3">
+      <div className="px-5 pt-5 space-y-3">
         <button
           onClick={markComplete}
           disabled={flagshipCompleted}
