@@ -18,6 +18,7 @@ import HiddenOwl from "@/components/HiddenOwl";
 import OwlHuntTracker from "@/components/OwlHuntTracker";
 import { Progress } from "@/components/ui/progress";
 import { SerendipityDashboardCard } from "@/components/StrategicSerendipity";
+import DueReviewsWidget from "@/components/nexus/DueReviewsWidget";
 
 const QUOTE_SEEN_KEY = "wisdom-seen-quotes-v2";
 
