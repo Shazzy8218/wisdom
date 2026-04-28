@@ -40,10 +40,16 @@ export default function NexusModuleView() {
     }
   }, [moduleId, mod, navigate]);
 
+  // CAE — Seed spaced-repetition prompts for this module (idempotent)
+  useSeedRecallPrompts(mod);
+
   if (!mod) return null;
 
   const meta = PILLAR_META[mod.pillar];
   const flagshipCompleted = (progress.completedLessons || []).includes(`nexus:${mod.id}`);
+  const scaffold = decideScaffold(mod);
+  // Insert active-recall pause after the second section (mid-module)
+  const recallInsertAfter = Math.min(1, mod.sections.length - 1);
 
   const markComplete = () => {
     if (flagshipCompleted) return;
