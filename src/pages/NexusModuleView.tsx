@@ -12,7 +12,16 @@ import { toast } from "@/hooks/use-toast";
 import WisdomSpark from "@/components/WisdomSpark";
 import ImpactProjectionMatrix from "@/components/nexus/ImpactProjectionMatrix";
 import RealityShiftIndicator from "@/components/nexus/RealityShiftIndicator";
+import RetrievalDrillCard from "@/components/nexus/RetrievalDrillCard";
+import ScaffoldBanner from "@/components/nexus/ScaffoldBanner";
+import WhyThisMatters from "@/components/nexus/WhyThisMatters";
+import PhenomenonPreview from "@/components/nexus/PhenomenonPreview";
+import ActiveRecallPrompt from "@/components/nexus/ActiveRecallPrompt";
+import AnalogyButton from "@/components/nexus/AnalogyButton";
+import ReflectiveAction from "@/components/nexus/ReflectiveAction";
 import { computeImpactProjection } from "@/lib/impact-projection";
+import { decideScaffold } from "@/lib/learning-optimizer";
+import { useSeedRecallPrompts } from "@/hooks/useSeedRecallPrompts";
 import { useGoals } from "@/hooks/useGoals";
 
 export default function NexusModuleView() {
