@@ -109,6 +109,9 @@ export default function Index() {
         </motion.div>
       </div>
 
+      {/* CAE — Due reviews widget (Memory Engraver) */}
+      <DueReviewsWidget />
+
       {/* Strategic Serendipity — daily cross-domain card */}
       <SerendipityDashboardCard delay={0.11} />
 
