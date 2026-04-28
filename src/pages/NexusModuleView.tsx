@@ -264,8 +264,13 @@ export default function NexusModuleView() {
         </div>
       </div>
 
+      {/* CAE — Reflective Practice (knowledge → reality transfer) */}
+      <div className="px-5 pt-7">
+        <ReflectiveAction moduleId={mod.id} moduleTitle={mod.title} />
+      </div>
+
       {/* COMPLETE / TIE-INS */}
-      <div className="px-5 pt-7 space-y-3">
+      <div className="px-5 pt-5 space-y-3">
         <button
           onClick={markComplete}
           disabled={flagshipCompleted}
