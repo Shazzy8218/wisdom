@@ -182,31 +182,43 @@ export default function NexusModuleView() {
         </div>
         <div className="space-y-5">
           {mod.sections.map((s, i) => (
-            <motion.section
-              key={i}
-              initial={{ opacity: 0, y: 8 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: i * 0.05 }}
-            >
-              <div className="flex items-baseline gap-2 mb-2">
-                <span className="text-[10px] font-bold text-muted-foreground/60">§ {(i + 1).toString().padStart(2, "0")}</span>
-                <h3 className="font-display text-lg font-bold text-foreground leading-tight">{s.heading}</h3>
-              </div>
-              <p className="text-sm text-foreground/90 leading-relaxed">{s.body}</p>
-              {s.operatorMove && (
-                <div className="mt-3 glass-card p-3 border-l-2 border-primary bg-primary/[0.04]">
-                  <p className="text-[10px] uppercase tracking-wider font-bold text-primary mb-1">Operator Move</p>
-                  <p className="text-xs text-foreground/90 leading-relaxed">{s.operatorMove}</p>
+            <div key={i}>
+              <motion.section
+                initial={{ opacity: 0, y: 8 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.05 }}
+              >
+                <div className="flex items-baseline gap-2 mb-2">
+                  <span className="text-[10px] font-bold text-muted-foreground/60">§ {(i + 1).toString().padStart(2, "0")}</span>
+                  <h3 className="font-display text-lg font-bold text-foreground leading-tight">{s.heading}</h3>
+                </div>
+                <p className="text-sm text-foreground/90 leading-relaxed">{s.body}</p>
+                {s.operatorMove && scaffold.showOperatorMoves && (
+                  <div className="mt-3 glass-card p-3 border-l-2 border-primary bg-primary/[0.04]">
+                    <p className="text-[10px] uppercase tracking-wider font-bold text-primary mb-1">Operator Move</p>
+                    <p className="text-xs text-foreground/90 leading-relaxed">{s.operatorMove}</p>
+                  </div>
+                )}
+                <AnalogyButton moduleId={mod.id} sectionIdx={i} sectionHeading={s.heading} sectionBody={s.body} />
+                <button
+                  onClick={() => setSparkSection(i)}
+                  className="mt-3 w-full flex items-center justify-center gap-1.5 rounded-xl border border-accent-gold/30 bg-accent-gold/[0.06] hover:bg-accent-gold/[0.12] py-2 text-[11px] font-bold uppercase tracking-wider text-accent-gold transition-all"
+                >
+                  <Zap className="h-3 w-3" /> Wisdom Spark · 60-sec challenge
+                </button>
+              </motion.section>
+
+              {/* CAE — Interleaved Active Recall pump after the (recallInsertAfter)th section */}
+              {i === recallInsertAfter && (
+                <div className="mt-5">
+                  <ActiveRecallPrompt
+                    prompt={`Pause. In your own words: what is the operator-grade principle behind "${s.heading}", and when would you deploy it?`}
+                    ideal={s.operatorMove || s.body.slice(0, 240)}
+                  />
                 </div>
               )}
-              <button
-                onClick={() => setSparkSection(i)}
-                className="mt-3 w-full flex items-center justify-center gap-1.5 rounded-xl border border-accent-gold/30 bg-accent-gold/[0.06] hover:bg-accent-gold/[0.12] py-2 text-[11px] font-bold uppercase tracking-wider text-accent-gold transition-all"
-              >
-                <Zap className="h-3 w-3" /> Wisdom Spark · 60-sec challenge
-              </button>
-            </motion.section>
+            </div>
           ))}
         </div>
       </div>
